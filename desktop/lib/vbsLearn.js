@@ -12,10 +12,12 @@
  *   workspaces     the lists a call about workspaces answers with: each item's name, its branch, repository, owner
  *
  * Only VB Studio's own hosts (…developer…oraclecloud.com) and never a sign-in call (oauth, token, sso, login, identity).
- * calls(): each call's path (ids as <org>, <project>, {n}) and the shape of its answer — field names only, never a value —
- * for "Copy what Build.Rite saw".
+ * calls(): each call's path (ids as <org>, <project>, {n}), what it is for (projects, repos, workspaces, orgs), its
+ * paging and sorting parameters, and the shape of its answer — field names only, never a value — for "Copy what
+ * Build.Rite saw", and for Sync, which makes the same calls through VB Studio's API (lib/vbs.js).
  *
- *   learner() → { see({ url, status, json }), found(), calls() }      merge(a, b) → a found merged with another
+ *   learner() → { see({ url, status, json, auth }), found(), calls() }   merge(a, b) → a found merged with another
+ *   roleOf(parts, pid), roleOfPath(path) → what a call is for          listsIn(json) → the lists in an answer
  */
 const str = (v) => (v === undefined || v === null ? '' : String(v));
 const SIGNIN = /oauth|token|\/sso\b|sso\/|login|logout|identity|saml|openid|authenticate|\/auth\//i;
@@ -23,8 +25,26 @@ const isVbsHost = (h) => /\.oraclecloud\.com$/i.test(h) && /developer/i.test(h);
 const ORG_RE = /^[a-z0-9][a-z0-9-]{2,}$/;
 const GIT_RE = /https:\/\/([a-z0-9.-]+)\/([a-z0-9][a-z0-9-]*)\/s\/([a-z0-9][a-z0-9-]*)_([A-Za-z0-9._-]+)\/scm\/([A-Za-z0-9._-]+?)(?:\.git)?(?=["'\s,)\]}]|$)/g;
 const VBS_URL_RE = /https:\/\/([a-z0-9.-]*developer[a-z0-9.-]*\.oraclecloud\.com)\/([a-z0-9][a-z0-9-]{2,})(?=[/"'\s?#]|$)/gi;
+const AUTH_KINDS = /^(basic|bearer|cookie|session)$/;
 const pick = (o, re) => { const k = Object.keys(o || {}).filter((x) => re.test(x))[0]; return k ? o[k] : undefined; };
 const scalar = (v) => (v === null || v === undefined ? '' : typeof v === 'object' ? str(v.name || v.displayName || v.username || v.id || '') : str(v));
+
+/**
+ * What a call is for, from its address's parts (the real ones, or a recorded path with its ids hidden): 'projects' (a list
+ * of the organization's projects: a "projects" part, not inside one project), 'workspaces', 'repos' (one project's
+ * repositories), 'orgs', or ''. pid: the project the address is inside ('<project>' in a recorded path).
+ */
+function roleOf(parts, pid) {
+  const sg = (parts || []).map((x) => str(x).toLowerCase());
+  if (pid === undefined) pid = sg.some((x) => x === '<org>_<project>') ? '<project>' : '';
+  if (sg.some((x) => /^(projects?|projectlist|myprojects)$/.test(x)) && !pid && !sg.some((x) => /workspace|repositor|scm|cibuild|issues/.test(x))) return 'projects';
+  if (sg.some((x) => /^workspaces?$|workspacelist/.test(x))) return 'workspaces';
+  if (pid && sg.some((x) => /^(repositories|repos|repository)$/.test(x))) return 'repos';
+  if (sg.some((x) => /^(organizations|orgs|organization)$/.test(x))) return 'orgs';
+  return '';
+}
+/** A recorded path's role (calls recorded before roles were kept have none: read again from the path). */
+const roleOfPath = (path) => roleOf(str(path).split('/').filter(Boolean));
 
 /** The shape of an answer: field names only (and of a list, its items' fields), never a value. */
 function shapeOf(j, depth) {
@@ -71,7 +91,11 @@ function learner() {
     if (j === undefined || j === null) return true;
     // the call, for "Copy what Build.Rite saw": its path (ids hidden) and the shape of its answer
     const path = '/' + parts.map((p, i) => ((i === 0 || p === o) && o ? '<org>' : (o && p.indexOf(o + '_') === 0 ? '<org>_<project>' : /^\d+$/.test(p) ? '{n}' : /^[0-9a-f-]{16,}$/i.test(p) ? '{id}' : p))).join('/');
-    if (!calls[path]) calls[path] = { path: path, status: r.status || 0, shape: shapeOf(j) };
+    const role = roleOf(parts, pid);
+    // its query, kept for the same call through the API: paging, sorting and view parameters only (never anything else)
+    const SAFE_Q = /^(offset|limit|page|size|pagesize|pagenumber|start|count|max|maxresults|sort|sortby|order|orderby|fields|expand|status|type|view|scope|include|filter|archived|deleted)$/i;
+    const query = Array.from(u.searchParams.keys()).filter((k) => SAFE_Q.test(k)).map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(u.searchParams.get(k))).join('&');
+    if (!calls[path] || (role && !calls[path].role)) calls[path] = { path: path, role: role, query: query, status: r.status || 0, shape: shapeOf(j), auth: AUTH_KINDS.test(str(r.auth)) ? str(r.auth) : '' };
     const text = JSON.stringify(j);
     // every VB Studio address in the data: its organization
     let m;
@@ -89,9 +113,8 @@ function learner() {
     }
     // a call about projects (its own address has a "projects" part, and is not inside one project): each listed item's
     // name, id, description — judged on the real address, never the one with its ids hidden
-    const segs = parts.map((x) => x.toLowerCase());
-    const aboutProjects = segs.some((x) => /^(projects?|projectlist|myprojects)$/.test(x)) && !pid && !segs.some((x) => /workspace|repositor|scm|cibuild|issues/.test(x));
-    const aboutWorkspaces = segs.some((x) => /^workspaces?$|workspacelist/.test(x));
+    const aboutProjects = role === 'projects';
+    const aboutWorkspaces = role === 'workspaces';
     if (o && aboutProjects) {
       listsIn(j).forEach((l) => l.forEach((it) => {
         if (!it || typeof it !== 'object') return;
@@ -142,8 +165,12 @@ function merge(a, b) {
     const i = out.workspaces.findIndex((y) => k(y) === k(w));
     if (i === -1) out.workspaces.push(w); else out.workspaces[i] = Object.assign({}, out.workspaces[i], w);
   });
-  ((b && b.calls) || []).forEach((c) => { if (!out.calls.some((x) => x.path === c.path)) out.calls.push(c); });
+  ((b && b.calls) || []).forEach((c) => {
+    const i = out.calls.findIndex((x) => x.path === c.path);
+    if (i === -1) out.calls.push(c);
+    else if ((c.role && !out.calls[i].role) || (c.query && !out.calls[i].query) || (c.auth && !out.calls[i].auth)) out.calls[i] = Object.assign({}, out.calls[i], c);
+  });
   return out;
 }
 
-module.exports = { learner, merge, shapeOf, isVbsHost, SIGNIN };
+module.exports = { learner, merge, shapeOf, isVbsHost, roleOf, roleOfPath, listsIn, SIGNIN };

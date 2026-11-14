@@ -24,7 +24,7 @@ T.check('never another site, never a sign-in call', !l.see({ url: 'https://githu
 
 T.section('projects: from the calls, the Git addresses, the project lists');
 l.see({ url: base + '/rest/' + ORG + '/projects?offset=0', status: 200, json: { count: 2, items: [
-  { identifier: 'equiprite_1234', displayName: 'EquipRite', description: SECRET_VALUE, owner: { username: 'rite.user' } },
+  { identifier: 'equiprite_1234', displayName: 'EquipRite', description: SECRET_VALUE, owner: { username: 'demo.user' } },
   { identifier: 'billing', displayName: 'Billing portal', description: 'B' }] } });
 l.see({ url: base + '/rest/' + ORG + '_equiprite_1234/scm/v2/repositories', status: 200, json: [
   { name: 'equiprite', httpUrl: base + '/s/' + ORG + '_equiprite_1234/scm/equiprite.git', sshUrl: 'ssh://x' },
@@ -40,16 +40,25 @@ T.check('…a project\'s repositories are not taken for projects: exactly its th
 T.section('workspaces');
 l.see({ url: base + '/rest/' + ORG + '_equiprite_1234/workspaces/v1/workspaces', status: 200, json: { items: [
   { id: 'w-1', name: 'javeed-26c-titles', branch: 'ws-javeed', repository: { name: 'equiprite' }, owner: { username: 'javeed.shaik' } },
-  { workspaceId: 'w-2', displayName: 'Release 26D', gitBranch: 'release-26d', repositoryUrl: base + '/s/' + ORG + '_equiprite_1234/scm/equiprite.git', createdBy: 'rite.user' }] } });
+  { workspaceId: 'w-2', displayName: 'Release 26D', gitBranch: 'release-26d', repositoryUrl: base + '/s/' + ORG + '_equiprite_1234/scm/equiprite.git', createdBy: 'demo.user' }] } });
 const ws = l.found().workspaces;
 T.check('each workspace: its project, name, branch, repository, owner (whatever the fields are called)', ws.length === 2
-  && JSON.stringify(ws.map((w) => [w.project, w.name, w.branch, w.repo, w.owner])) === JSON.stringify([['equiprite_1234', 'javeed-26c-titles', 'ws-javeed', 'equiprite', 'javeed.shaik'], ['equiprite_1234', 'Release 26D', 'release-26d', 'equiprite', 'rite.user']]), JSON.stringify(ws));
+  && JSON.stringify(ws.map((w) => [w.project, w.name, w.branch, w.repo, w.owner])) === JSON.stringify([['equiprite_1234', 'javeed-26c-titles', 'ws-javeed', 'equiprite', 'javeed.shaik'], ['equiprite_1234', 'Release 26D', 'release-26d', 'equiprite', 'demo.user']]), JSON.stringify(ws));
 
 T.section('what Build.Rite saw: paths and field names only, never a value');
 const calls = l.calls();
 const all = JSON.stringify(calls);
 T.check('the calls: their paths (ids hidden as <org>, <org>_<project>) and the shape of their answers', calls.some((c) => c.path === '/<org>/rest/<org>/projects' && /items: \[2\] \{ identifier, displayName, description, owner: \{ username \} \}/.test(c.shape))
   && calls.some((c) => c.path === '/<org>/rest/<org>_<project>/workspaces/v1/workspaces') && all.indexOf(ORG) === -1 && all.indexOf(SECRET_VALUE) === -1 && all.indexOf('javeed') === -1 && all.indexOf('equiprite_1234') === -1, all.slice(0, 600));
+
+T.check('…each call: what it is for (projects, repositories, workspaces), its paging parameters (nothing else from its query)', (() => {
+  const l3 = L.learner();
+  l3.see({ url: base + '/rest/' + ORG + '/projects?offset=0&limit=25&q=SECRET&owner=SECRET', json: { items: [] } });
+  l3.see({ url: base + '/rest/' + ORG + '_equiprite_1234/scm/v2/repositories', json: [] });
+  l3.see({ url: base + '/rest/' + ORG + '_equiprite_1234/workspaces/v1/workspaces?limit=50', json: { items: [] } });
+  const c = l3.calls();
+  return c[0].role === 'projects' && c[0].query === 'offset=0&limit=25' && c[1].role === 'repos' && c[2].role === 'workspaces' && c[2].query === 'limit=50' && JSON.stringify(c).indexOf('SECRET') === -1;
+})());
 
 T.section('merged across visits');
 const l2 = L.learner();

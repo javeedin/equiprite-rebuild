@@ -29,5 +29,7 @@ define([], function () {
     discovered: function () { return call('discovered'); },
     diagnostic: function () { return call('diagnostic'); },
     clearDiscovered: function () { return post('discovered/clear', {}); },
+    /** Sync from VB Studio (API, no window): every project (all pages), its repositories and workspaces. */
+    sync: function (orgId) { return post('sync', { orgId: orgId || '' }); },
   };
 });

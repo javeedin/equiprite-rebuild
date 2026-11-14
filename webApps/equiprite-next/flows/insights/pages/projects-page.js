@@ -6,6 +6,8 @@ define([], () => {
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const when = (at) => { const d = new Date(at); if (isNaN(d.getTime())) return ''; const p2 = (n) => (n < 10 ? '0' : '') + n; return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear() + ', ' + p2(d.getHours()) + ':' + p2(d.getMinutes()); };
   const plural = (n, one, many) => n + ' ' + (n === 1 ? one : (many || one + 's'));
+  /** Sync from VB Studio's steps: live while it runs, else the last sync's. */
+  const stepsOf = (f) => (f && (f.syncLive || (f.sync && f.sync.steps))) || [];
 
   class PageModule {
     subText(orgs, projects) { return !(orgs || []).length ? 'Start by adding your Visual Builder Studio organization.' : plural(orgs.length, 'organization') + ' · ' + plural((projects || []).length, 'project'); }
@@ -33,7 +35,26 @@ define([], () => {
       }));
     }
     // ── Find in VB Studio ──
-    hasFound(f) { return !!f && ((f.orgs || []).length + (f.projects || []).length + (f.workspaces || []).length > 0 || !!(f.finder && (f.finder.open || (f.finder.log || []).length))); }
+    hasFound(f) { return !!f && ((f.orgs || []).length + (f.projects || []).length + (f.workspaces || []).length > 0 || !!(f.finder && (f.finder.open || (f.finder.log || []).length)) || stepsOf(f).length > 0); }
+    // ── Sync from VB Studio (API) ──
+    syncStepCount(f) { return stepsOf(f).length; }
+    syncStepsText(f) {
+      const p2 = (n) => (n < 10 ? '0' : '') + n;
+      return stepsOf(f).map((l) => { const d = new Date(l.at); return (isNaN(d.getTime()) ? '' : p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds())) + '  ' + l.text; }).join('\n');
+    }
+    syncClass(f) { const s = f && f.sync; return 'nx-vbs-sync' + (f && f.syncLive ? '' : s && s.ok ? ' nx-vbs-sync--ok' : s ? ' nx-vbs-sync--bad' : ''); }
+    /** The last sync in one line: when, what it read, how it signed in (or what to do first). */
+    syncLine(f, running) {
+      if (running || (f && f.syncLive)) { const st = stepsOf(f); return 'Syncing through VB Studio\'s API… ' + (st.length ? st[st.length - 1].text : ''); }
+      const s = f && f.sync;
+      if (!s) return '';
+      const c = s.counts || {};
+      const via = s.via || {};
+      const ways = [via.basic ? 'your username and password' : '', via.session ? 'the VB Studio window\'s session' : '', via.window ? 'the VB Studio window\'s sign-in' : ''].filter(Boolean);
+      if (!s.ok) return '✗ Synced on ' + when(s.at) + ': nothing read. ' + (s.needLearn ? 'Build.Rite has not seen VB Studio\'s project list yet: Open VB Studio once, go to the organization\'s page, close it — then Sync again.' : 'See what Sync did.');
+      return '✓ Synced through VB Studio\'s API on ' + when(s.at) + ': ' + plural(c.projects || 0, 'project') + ' · ' + plural(c.repos || 0, 'repository', 'repositories') + ' · ' + plural(c.workspaces || 0, 'workspace')
+        + (ways.length ? ' — signed in with ' + ways.join(' and ') : '') + (s.needLearn ? '. Its project list not learned yet: Open VB Studio once on the organization\'s page.' : '');
+    }
     /** The VB Studio window's log: each step it took (addresses without their query), oldest first. */
     finderLogCount(f) { return ((f && f.finder && f.finder.log) || []).length; }
     finderLogText(f) {
@@ -43,7 +64,8 @@ define([], () => {
     foundNote(f, watching) {
       if (!f) return '';
       if ((f.finder && f.finder.open) || watching) return 'The VB Studio window is open: sign in as usual, open the organization\'s page, then a project\'s Repositories and Workspaces — what VB Studio shows appears here.';
-      return f.at ? 'Read from VB Studio\'s pages, last on ' + when(f.at) + '. Open VB Studio again to find more.' : '';
+      if (f.sync && f.sync.ok) return 'Sync from VB Studio reads these through VB Studio\'s API, without a window. Open VB Studio only to teach Build.Rite a page it has not seen.';
+      return f.at ? 'Read from VB Studio\'s pages, last on ' + when(f.at) + '. Sync from VB Studio now makes the same calls itself (no window).' : '';
     }
     foundCounts(f) { return !f ? '' : plural((f.orgs || []).length, 'organization') + ' · ' + plural((f.projects || []).length, 'project') + ' · ' + plural((f.projects || []).reduce((n, p) => n + (p.repos || []).length, 0), 'repository', 'repositories') + ' · ' + plural((f.workspaces || []).length, 'workspace'); }
     foundOrgs(f) { return ((f && f.orgs) || []).map((o) => ({ url: o.url, org: o.org, host: o.host, setUp: !!o.orgId })); }

@@ -348,6 +348,10 @@ function vbsStore() {
       encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
       decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
       fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
+      // Sync from VB Studio: when VB Studio refuses the saved sign-in for a call, the VB Studio window's own session (its
+      // cookies, kept between runs) — the same calls, no window
+      sessionFetch: (url, init) => session.fromPartition('persist:vbstudio').fetch(url, init),
+      onSyncStep: (text) => pushLog(`${new Date().toTimeString().slice(0, 8)} Sync from VB Studio: ${String(text).slice(0, 300)}`),
       gitPath: commandPath('git') || 'git',
     });
   }
@@ -425,11 +429,22 @@ async function openVbsFinder(url) {
   const keep = () => { if (flush) return; flush = setTimeout(() => { flush = null; keepNow(); }, 800); };
   const counts = () => { const f = learner.found(); return f.orgs.length + ' org · ' + f.projects.length + ' projects · ' + f.projects.reduce((n, p) => n + p.repos.length, 0) + ' repos · ' + f.workspaces.length + ' workspaces'; };
   const pending = {};
+  const authOf = {}; // each call's way in (bearer, basic, or the session's cookies): its kind only, for Sync
   let skipped = 0, read = 0;
   const dbg = wc.debugger;
   try { dbg.attach('1.3'); say('watching its network: on'); } catch (e) { say('could not watch its network (' + e.message + '): it opens, but nothing can be read from it'); }
   dbg.on('detach', (e, reason) => say('stopped watching its network: ' + reason));
   dbg.on('message', async (event, method, params) => {
+    if (method === 'Network.requestWillBeSent') {
+      // the sign-in VB Studio's own pages send with their calls (a bearer token): kept in memory for Sync this run only —
+      // never saved, logged or shown; VB Studio's own host only, never a sign-in call
+      const q = params.request || {};
+      let h = '';
+      Object.keys(q.headers || {}).forEach((k) => { if (/^authorization$/i.test(k)) h = String(q.headers[k] || ''); });
+      authOf[params.requestId] = /^Bearer\s/i.test(h) ? 'bearer' : /^Basic\s/i.test(h) ? 'basic' : 'session';
+      try { const u = new URL(q.url); if (h && L.isVbsHost(u.hostname) && !L.SIGNIN.test(u.pathname + u.search)) store.windowSignIn(u.hostname, h); } catch (e) { /* not an address */ }
+      return;
+    }
     if (method === 'Network.responseReceived') {
       const r = params.response || {};
       if (params.type === 'Document') { if (learner.see({ url: r.url, status: r.status })) keep(); return; }
@@ -445,7 +460,9 @@ async function openVbsFinder(url) {
         const text = b.base64Encoded ? Buffer.from(b.body, 'base64').toString('utf8') : b.body;
         let json = null;
         try { json = JSON.parse(text); } catch (e) { json = null; }
-        if (json !== null && learner.see({ url: p.url, status: p.status, json: json })) { read++; say('read ' + u.pathname.replace(/^\/[^/]+/, '/<org>') + ' (HTTP ' + p.status + ') — found so far: ' + counts()); keep(); }
+        const auth = authOf[params.requestId] || '';
+        delete authOf[params.requestId];
+        if (json !== null && learner.see({ url: p.url, status: p.status, json: json, auth: auth })) { read++; say('read ' + u.pathname.replace(/^\/[^/]+/, '/<org>') + ' (HTTP ' + p.status + ') — found so far: ' + counts()); keep(); }
       } catch (e) { say('could not read ' + u.pathname + ': ' + e.message); }
     } else if (method === 'Network.loadingFailed' && pending[params.requestId]) {
       const p = pending[params.requestId];

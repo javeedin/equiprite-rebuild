@@ -71,6 +71,21 @@ define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) =>
           watch(v);
           return;
         }
+        if (act === 'sync') {
+          // Sync from VB Studio (API): no window; its steps shown live (read again every second or so while it runs)
+          v.syncing = true; v.syncOpen = false;
+          const poll = setInterval(async () => { const f = await VC.discovered(); if (f.ok && v.syncing) v.found = f.body; }, 1200);
+          let r;
+          try { r = await VC.sync(''); } finally { clearInterval(poll); v.syncing = false; }
+          if (r.body && Array.isArray(r.body.projects)) v.found = r.body;
+          v.syncOpen = true;
+          const s = await VC.state();
+          if (s.ok) { v.orgs = s.body.orgs; v.projects = s.body.projects; }
+          if (!r.ok) { v.result = { ok: false, text: r.body.error || 'Sync did not work.' }; return; }
+          const c = r.body.counts || {};
+          v.result = { ok: true, text: 'Synced from VB Studio (API, no window): ' + c.projects + ' project' + (c.projects === 1 ? '' : 's') + ', ' + c.repos + ' repositor' + (c.repos === 1 ? 'y' : 'ies') + ', ' + c.workspaces + ' workspace' + (c.workspaces === 1 ? '' : 's') + '.' };
+          return;
+        }
         if (act === 'addFound') {
           const url = String(key || '');
           const m = /^https:\/\/([^/]+)\/([^/]+)\//.exec(url);

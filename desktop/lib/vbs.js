@@ -14,11 +14,15 @@
  *   its build jobs (VB Studio's documented builds API, https://<host>/<org>/rest/<org>_<project>/cibuild/v1/jobs).
  *   The sign-in goes to git as a header in its environment (never in the address, the command line or a file).
  *
- *   open({ file, encrypt, decrypt, fetch, gitPath, now }) → store
+ *   open({ file, encrypt, decrypt, fetch, sessionFetch, gitPath, now }) → store
  *     state()                                  { orgs: [...], projects: [...] } — never a password
  *     saveOrg({ id, name, url, user, password }) an empty password keeps the saved one
  *     removeOrg(id)   addProject({ orgId, repoUrl, name })   checkProject(id)   removeProject(id)
  *     auth(orgId)                              { host, org, user, header } for Build.Rite's own calls, or null
+ *     sync({ orgId })                          Sync from VB Studio (API, no window): the calls VB Studio's pages make,
+ *                                              made directly (Basic; else the window's session) — projects (every page),
+ *                                              their repositories and workspaces
+ *     windowSignIn(host, header)               the window's own sign-in, for Sync this run only (memory)
  *     learn(found)  discovered()  clearDiscovered()  diagnostic()  setFinder(open, url)
  *                                              Find in VB Studio: organizations, projects (their Git addresses) and
  *                                              workspaces read from VB Studio's own pages in a window of Build.Rite
@@ -226,7 +230,7 @@ function open(opts) {
     const d = data.discovered || { orgs: [], projects: [], workspaces: [], calls: [] };
     const orgIdOf = (host, o) => (data.orgs.filter((x) => x.host === host && x.org === o)[0] || {}).id || '';
     const added = (url) => data.projects.some((p) => p.repoUrl === url);
-    return { ok: true, at: d.at || '', finder: finder,
+    return { ok: true, at: d.at || '', finder: finder, sync: data.lastSync || null, syncing: !!syncing, syncLive: syncing && live ? live.slice() : null,
       orgs: (d.orgs || []).map((o) => Object.assign({}, o, { orgId: orgIdOf(o.host, o.org) })),
       projects: (d.projects || []).map((p) => Object.assign({}, p, { orgId: orgIdOf(p.host, p.org), repos: (p.repos || []).map((r) => Object.assign({}, r, { added: added(r.url) })) })),
       workspaces: (d.workspaces || []).slice(), calls: (d.calls || []).length };
@@ -235,15 +239,162 @@ function open(opts) {
   /** "Copy what Build.Rite saw": the calls VB Studio's pages made, as paths and field names only (no value), and counts. */
   function diagnostic() {
     const d = data.discovered || {};
+    // the organizations' names and ids, and the projects' ids, never in it
+    const ids = data.orgs.map((x) => x.name).concat(data.orgs.map((x) => x.org), (d.orgs || []).map((x) => x.org)).filter((x) => x && x.length > 2).sort((a, b) => b.length - a.length);
+    const hideIds = (t) => ids.reduce((acc, id) => acc.split(id).join('<org>'), str(t));
     return JSON.stringify({ seen: d.at || '', organizations: (d.orgs || []).length, projects: (d.projects || []).length, repositories: (d.projects || []).reduce((n, p) => n + (p.repos || []).length, 0),
-      workspaces: (d.workspaces || []).length, calls: (d.calls || []).map((c) => ({ path: c.path, status: c.status, shape: c.shape })) }, null, 1);
+      workspaces: (d.workspaces || []).length, calls: (d.calls || []).map((c) => ({ path: c.path, role: c.role || L.roleOfPath(c.path), query: c.query || '', auth: c.auth || '', status: c.status, shape: c.shape })),
+      lastSync: data.lastSync ? { at: data.lastSync.at, ok: data.lastSync.ok, counts: data.lastSync.counts, via: data.lastSync.via, steps: (data.lastSync.steps || []).map((x) => hideIds(x.text)) } : null }, null, 1);
   }
   /** The VB Studio window: open or not, its address, and its log (the last 200 lines; addresses without their query). */
   function setFinder(open, url, fresh) { finder = { open: !!open, url: str(url), at: now().toISOString(), log: fresh ? [] : (finder.log || []) }; }
   function finderLog(text) { finder.log = (finder.log || []).concat([{ at: now().toISOString(), text: str(text).slice(0, 400) }]).slice(-200); }
 
+  // ── Sync from VB Studio (API): no window. VB Studio's documented API lists no organizations, projects or workspaces, so
+  //    Build.Rite makes the calls VB Studio's own pages make — learned once, as paths with their ids hidden, when VB Studio
+  //    was opened in Build.Rite's window (Find) — directly: each organization's project list (every page of it), then each
+  //    project's repositories and workspaces. Signed in with the saved username and password (Basic, as VB Studio's REST
+  //    API takes); when VB Studio refuses that for a call, with the VB Studio window's session (its cookies, kept by the
+  //    desktop app between runs), else with the sign-in VB Studio's own pages sent this run (in memory only: never saved,
+  //    logged or shown). Read only (GET). Every answer goes through the same reading as Find (lib/vbsLearn.js). ──
+  const sessionFetch = o.sessionFetch || null;
+  const tokens = {}; // host → the window's own sign-in for this run (memory only)
+  const viaOf = {}; // host and call → the way in that worked last (tried first next time)
+  /** The VB Studio window's pages sent a sign-in of their own (a bearer token) to this host: usable by Sync for this run only. */
+  function windowSignIn(host, value) { const h = str(host).toLowerCase(); if (L.isVbsHost(h) && /^Bearer\s+\S+$/i.test(str(value))) tokens[h] = str(value); }
+  const timeout = () => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(o.syncTimeoutMs || 30000) : undefined);
+  /** One GET, by each way in until one answers JSON: { ok, status, json, via } or { ok: false, status, error }. */
+  async function getJson(url, host, basic, key) {
+    const k = host + ' ' + str(key);
+    const ways = [];
+    if (basic && fetchFn) ways.push(['basic', () => fetchFn(url, { headers: { Authorization: basic, Accept: 'application/json' }, signal: timeout() })]);
+    if (sessionFetch) ways.push(['session', () => sessionFetch(url, { headers: { Accept: 'application/json' }, credentials: 'include', signal: timeout() })]);
+    if (tokens[host] && fetchFn) ways.push(['window', () => fetchFn(url, { headers: { Authorization: tokens[host], Accept: 'application/json' }, signal: timeout() })]);
+    if (!ways.length) return { ok: false, status: 0, error: 'No way to sign in: save the organization\'s password, or open VB Studio once and sign in there.' };
+    ways.sort((a, b) => (b[0] === viaOf[k] ? 1 : 0) - (a[0] === viaOf[k] ? 1 : 0));
+    let last = { status: 0, error: 'It did not work.' };
+    for (let i = 0; i < ways.length; i++) {
+      try {
+        const r = await ways[i][1]();
+        const text = await r.text();
+        let json = null;
+        if (r.ok) { try { json = JSON.parse(text); } catch (e) { json = null; } }
+        if (json !== null) { viaOf[k] = ways[i][0]; return { ok: true, status: r.status, json: json, via: ways[i][0] }; }
+        last = { status: r.status, error: r.ok ? 'VB Studio answered with a page, not data (its sign-in page?)' : r.status === 404 ? 'not there (this organization may not have it, or this user may not see it)' : why('', r.status) };
+        if (r.status === 404) break; // not there, whoever asks
+      } catch (e) { last = { status: 0, error: why(e && (e.name === 'TimeoutError' ? 'timed out' : e.message)) }; }
+    }
+    return { ok: false, status: last.status, error: last.error };
+  }
+  const pl = (n, one, many) => n + ' ' + (n === 1 ? one : (many || one + 's'));
+  const num = (v) => (typeof v === 'number' && isFinite(v) ? v : /^\d+$/.test(str(v)) ? Number(v) : 0);
+  /** Every page of a list (Oracle's REST paging: hasMore / totalResults / a "next" link; offset & limit, or page): each answer to see(). */
+  async function allPages(url0, host, basic, see, key) {
+    let url = url0, pages = 0, got = 0, prevFirst = null, first = null;
+    for (;;) {
+      const r = await getJson(url, host, basic, key);
+      if (!r.ok) return pages ? { ok: true, pages: pages, items: got, via: first && first.via, partial: r.error } : r;
+      if (!first) first = r;
+      see(url, r);
+      pages++;
+      const list = L.listsIn(r.json).sort((a, b) => b.length - a.length)[0] || [];
+      const head = list.length ? JSON.stringify(list[0]).slice(0, 300) : '';
+      if (!list.length || head === prevFirst || pages >= (o.syncMaxPages || 40)) break; // empty, or the paging was ignored
+      prevFirst = head;
+      got += list.length;
+      const j = r.json && !Array.isArray(r.json) ? r.json : {};
+      const total = num(j.totalResults) || num(j.total) || num(j.totalCount) || num(j.totalItems) || num(j.totalSize);
+      const next = (Array.isArray(j.links) ? j.links : []).filter((l) => l && /^next$/i.test(str(l.rel)) && l.href)[0];
+      if (!(j.hasMore === true || (total && got < total) || next)) break;
+      const u = new URL(url);
+      if (next) { try { const n = new URL(next.href, url); if (n.hostname !== u.hostname) break; url = n.toString(); continue; } catch (e) { break; } }
+      if (u.searchParams.has('page') && !u.searchParams.has('offset')) u.searchParams.set('page', String((num(u.searchParams.get('page')) || 0) + 1));
+      else if (u.searchParams.has('start') && !u.searchParams.has('offset')) u.searchParams.set('start', String(got));
+      else { u.searchParams.set('offset', String(got)); if (!u.searchParams.has('limit')) u.searchParams.set('limit', String(list.length)); }
+      url = u.toString();
+    }
+    return { ok: true, pages: pages, items: got, via: first && first.via };
+  }
+  /** A learned call's address for an organization (and a project): its ids put back. */
+  const urlOf = (org, c, project) => 'https://' + org.host + str(c.path).replace(/<org>_<project>/g, org.org + '_' + project).replace(/<org>/g, org.org) + (c.query ? '?' + c.query : '');
+  let syncing = null;
+  let live = null; // the steps of the sync running, read by discovered() while it runs
+  /**
+   * Sync from VB Studio: { orgId } one organization, or every one set up here and each found on the same VB Studio (the
+   * host of one set up: its sign-in borrowed). → { ok, counts, via, steps, needLearn, sync } and what is found (as discovered()).
+   */
+  function sync(b) {
+    if (syncing) return syncing;
+    syncing = doSync(b || {}).finally(() => { syncing = null; });
+    return syncing;
+  }
+  async function doSync(b) {
+    const t0 = Date.now();
+    const steps = [];
+    live = steps;
+    const step = (text) => { steps.push({ at: now().toISOString(), text: str(text).slice(0, 300) }); if (o.onSyncStep) { try { o.onSyncStep(str(text)); } catch (e) { /* only a log */ } } };
+    const d = data.discovered || {};
+    const calls = (d.calls || []).map((c) => Object.assign({}, c, { role: c.role || L.roleOfPath(c.path) })).filter((c) => c.role && !/\{n\}|\{id\}/.test(c.path));
+    const pick = (role, inProject) => calls.filter((c) => c.role === role && (c.path.indexOf('<org>_<project>') !== -1) === inProject);
+    const projCalls = pick('projects', false), orgCalls = pick('orgs', false);
+    const perOrg = pick('workspaces', false);
+    const perProject = pick('repos', true).concat(pick('workspaces', true));
+    // the organizations: one, or each set up here and each found on the host of one set up (its sign-in borrowed)
+    const saved = b.orgId ? data.orgs.filter((x) => x.id === str(b.orgId)) : data.orgs.slice();
+    if (b.orgId && !saved.length) return { ok: false, error: 'No such organization.' };
+    if (!saved.length && !(d.orgs || []).length) return { ok: false, error: 'Add your VB Studio organization first (its address and sign-in).' };
+    const targets = saved.map((x) => ({ host: x.host, org: x.org, name: x.name, basic: header(x) }));
+    if (!b.orgId) (d.orgs || []).forEach((x) => { if (targets.some((y) => y.host === x.host && y.org === x.org)) return; const same = data.orgs.filter((y) => y.host === x.host)[0]; if (same) targets.push({ host: x.host, org: x.org, name: x.org, basic: same ? header(same) : '', borrowed: !!same }); });
+    const l = L.learner();
+    const via = {};
+    const see = (url, r) => { via[r.via] = (via[r.via] || 0) + 1; l.see({ url: url, status: r.status, json: r.json, auth: r.via === 'window' ? 'bearer' : r.via }); };
+    let needLearn = '';
+    if (!projCalls.length) needLearn = 'projects';
+    step('Sync from VB Studio (API): ' + targets.length + ' organization' + (targets.length === 1 ? '' : 's') + '; the calls learned from VB Studio\'s pages: ' + projCalls.length + ' project list, ' + perProject.length + ' per project, ' + (perOrg.length + orgCalls.length) + ' other');
+    if (needLearn) step('Build.Rite has not seen VB Studio\'s project list yet: open VB Studio once (Find in VB Studio), go to the organization\'s page, close the window — then Sync makes that same call directly.');
+    let refused = 0;
+    for (let i = 0; i < targets.length; i++) {
+      const org = targets[i];
+      if (!org.basic && !sessionFetch && !tokens[org.host]) { step(org.name + ': no sign-in saved on this PC — skipped'); continue; }
+      for (const c of orgCalls.concat(projCalls, perOrg)) {
+        const r = await allPages(urlOf(org, c), org.host, org.basic, see, c.path);
+        if (r.ok) step(org.name + ': ' + c.path + ' — ' + c.role + ': ' + r.pages + ' page' + (r.pages === 1 ? '' : 's') + ', ' + r.items + ' item' + (r.items === 1 ? '' : 's') + ' (signed in by ' + (r.via === 'basic' ? 'username and password' : r.via === 'session' ? 'the VB Studio window\'s session' : 'the VB Studio window\'s sign-in') + ')' + (r.partial ? '; then: ' + r.partial : ''));
+        else { refused++; step(org.name + ': ' + c.path + ' — ' + (r.status ? 'HTTP ' + r.status + ': ' : '') + r.error); }
+      }
+      if (!perProject.length) continue;
+      // each project of this organization: found now, found before, or added here
+      const ids = {};
+      l.found().projects.concat(d.projects || []).forEach((p) => { if (p.host === org.host && p.org === org.org) ids[p.project] = true; });
+      data.projects.forEach((p) => { const so = orgOf(p.orgId); if (so && so.host === org.host && so.org === org.org) ids[p.project] = true; });
+      const list = Object.keys(ids);
+      if (!list.length) { step(org.name + ': no project known in it, so no repositories or workspaces asked'); continue; }
+      for (const c of perProject) {
+        let ok = 0, bad = 0, lastErr = '';
+        // the first project alone (the way in that works found once), then six at a time
+        for (let k = 0; k < list.length; k += (k === 0 ? 1 : 6)) {
+          const rs = await Promise.all(list.slice(k, k === 0 ? 1 : k + 6).map((pid) => allPages(urlOf(org, c, pid), org.host, org.basic, see, c.path)));
+          rs.forEach((r) => { if (r.ok) ok++; else { bad++; lastErr = (r.status ? 'HTTP ' + r.status + ': ' : '') + r.error; } });
+        }
+        step(org.name + ': ' + c.path + ' — ' + c.role + ' of ' + list.length + ' project' + (list.length === 1 ? '' : 's') + ': ' + ok + ' answered' + (bad ? ', ' + bad + ' not (' + lastErr + ')' : ''));
+        if (bad && !ok) refused++;
+      }
+    }
+    const f = l.found();
+    const counts = { orgs: f.orgs.length, projects: f.projects.length, repos: f.projects.reduce((n, p) => n + p.repos.length, 0), workspaces: f.workspaces.length };
+    learn(Object.assign(f, { calls: l.calls() }));
+    const answered = Object.keys(via).reduce((n, k) => n + via[k], 0);
+    step('Done in ' + Math.round((Date.now() - t0) / 100) / 10 + ' s: ' + pl(answered, 'answer') + ' read — ' + pl(counts.orgs, 'organization') + ' · ' + pl(counts.projects, 'project') + ' · ' + pl(counts.repos, 'repository', 'repositories') + ' · ' + pl(counts.workspaces, 'workspace'));
+    data.lastSync = { at: now().toISOString(), ok: answered > 0, counts: counts, via: via, needLearn: needLearn, steps: steps };
+    save();
+    const ok = answered > 0;
+    live = null;
+    return Object.assign(discovered(), { ok: ok, syncing: false, syncLive: null, counts: counts, via: via, steps: steps, needLearn: needLearn,
+      error: ok ? '' : needLearn && !calls.length ? 'Build.Rite has not learned VB Studio\'s calls yet: open VB Studio once (Find in VB Studio), go to the organization\'s page and a project\'s Repositories and Workspaces, then close it. After that, Sync works without the window.' : refused ? 'VB Studio refused every call (see the steps).' : 'Nothing to ask VB Studio yet (see the steps).' });
+  }
+
   return { state: state, saveOrg: saveOrg, removeOrg: removeOrg, addProject: addProject, checkProject: checkProject, removeProject: removeProject, auth: auth, git: git,
-    learn: learn, discovered: discovered, clearDiscovered: clearDiscovered, diagnostic: diagnostic, setFinder: setFinder, finderLog: finderLog };
+    learn: learn, discovered: discovered, clearDiscovered: clearDiscovered, diagnostic: diagnostic, setFinder: setFinder, finderLog: finderLog,
+    sync: sync, windowSignIn: windowSignIn };
 }
 
 module.exports = { open, parseOrgUrl, parseRepoUrl, branchesOf, jobsOf, why };

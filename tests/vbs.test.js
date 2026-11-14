@@ -24,7 +24,7 @@ const REPO = 'https://acme-dev1-demo-phx.developer.ocp.oraclecloud.com/acme-dev1
     const o = V.parseOrgUrl(ORG_URL.replace('https://', '').replace(/\/$/, '') + '/#/projects');
     T.check('the organization\'s page: its host and organization (with or without https://, a trailing part ignored)', o && o.host === 'acme-dev1-demo-phx.developer.ocp.oraclecloud.com' && o.org === 'acme-dev1-demo-phx' && o.url === ORG_URL, JSON.stringify(o));
     T.check('…no organization in it, or not https: said', V.parseOrgUrl('https://acme.oraclecloud.com/').org === '' && V.parseOrgUrl('http://acme.oraclecloud.com/x/') === null && V.parseOrgUrl('') === null);
-    const r = V.parseRepoUrl(REPO.replace('https://', 'https://rite.user@'));
+    const r = V.parseRepoUrl(REPO.replace('https://', 'https://demo.user@'));
     T.check('a project\'s Git address: its organization, project id and repository (a user name in it left out)', r && r.org === 'acme-dev1-demo-phx' && r.project === 'equiprite_1234' && r.repo === 'equiprite' && r.repoUrl === REPO, JSON.stringify(r));
     T.check('…not a VB Studio Git address: none', V.parseRepoUrl('https://github.com/acme/equiprite.git') === null && V.parseRepoUrl('https://x/acme/s/other_p/scm/r.git') === null);
     T.check('git\'s branches and its HEAD; VB Studio\'s jobs (whatever list it answers with)', JSON.stringify(V.branchesOf('ref: refs/heads/main\tHEAD\nabc1234\tHEAD\nabc1234\trefs/heads/main\ndef5678\trefs/heads/ws-javeed\n')) === '{"branches":["main","ws-javeed"],"head":"main"}'
@@ -42,14 +42,14 @@ const REPO = 'https://acme-dev1-demo-phx.developer.ocp.oraclecloud.com/acme-dev1
       git: (args, auth) => { gitCalls.push({ args: args, auth: auth }); return gitAnswer; },
       fetch: async (url, init) => { fetchCalls.push({ url: url, init: init }); return { ok: jobsAnswer.ok, status: jobsAnswer.status, text: async () => JSON.stringify(jobsAnswer.body) }; } });
     let threw = '';
-    try { store.saveOrg({ url: ORG_URL, user: 'rite.user' }); } catch (e) { threw = e.message; }
+    try { store.saveOrg({ url: ORG_URL, user: 'demo.user' }); } catch (e) { threw = e.message; }
     T.check('a new organization needs its password', /Enter the password/.test(threw) && store.state().orgs.length === 0, threw);
-    const so = store.saveOrg({ name: 'Rite demo', url: ORG_URL, user: 'rite.user', password: 'S3cret!#' });
+    const so = store.saveOrg({ name: 'Rite demo', url: ORG_URL, user: 'demo.user', password: 'S3cret!#' });
     const file = fs.readFileSync(path.join(tmp, 'vbs.json'), 'utf8');
     T.check('saved: its name, address, user; the password encrypted in the file, never given back', so.ok && so.org.name === 'Rite demo' && so.org.org === 'acme-dev1-demo-phx' && so.org.hasPassword && so.org.keychain
       && file.indexOf('S3cret') === -1 && JSON.stringify(store.state()).indexOf('S3cret') === -1 && JSON.stringify(store.state()).indexOf('password') === -1, file.slice(0, 300));
-    const again = store.saveOrg({ id: so.org.id, name: 'Rite demo (DEV)', url: ORG_URL, user: 'rite.user', password: '' });
-    T.check('saved again without a password: the saved one kept', again.org.name === 'Rite demo (DEV)' && again.org.hasPassword && store.auth(so.org.id).header === 'Basic ' + Buffer.from('rite.user:S3cret!#').toString('base64'));
+    const again = store.saveOrg({ id: so.org.id, name: 'Rite demo (DEV)', url: ORG_URL, user: 'demo.user', password: '' });
+    T.check('saved again without a password: the saved one kept', again.org.name === 'Rite demo (DEV)' && again.org.hasPassword && store.auth(so.org.id).header === 'Basic ' + Buffer.from('demo.user:S3cret!#').toString('base64'));
     try { threw = ''; store.saveOrg({ url: 'https://acme.oraclecloud.com/', user: 'x', password: 'y' }); } catch (e) { threw = e.message; }
     T.check('an address without its organization: said', /has no organization in it/.test(threw), threw);
 

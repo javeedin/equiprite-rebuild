@@ -9,7 +9,8 @@
       <div class="nx-sub" id="vbsSub"><oj-bind-text value="[[ $functions.subText($variables.orgs, $variables.projects) ]]"></oj-bind-text></div>
     </div>
     <div class="nx-actions">
-      <button type="button" class="nx-btn nx-btn--primary" id="vbsFind" data-act="find" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Open VB Studio in a window of Build.Rite: its organizations, projects and workspaces are read as you browse"><span class="oj-ux-ico-search" aria-hidden="true"></span>Find in VB Studio</button>
+      <button type="button" class="nx-btn nx-btn--primary" id="vbsSync" data-act="sync" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Through VB Studio's API, no window: every project of your organizations (all pages), their repositories and workspaces"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Sync from VB Studio</button>
+      <button type="button" class="nx-btn" id="vbsFind" data-act="find" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Open VB Studio in a window of Build.Rite once: Build.Rite learns the calls its pages make, then Sync makes them itself"><span class="oj-ux-ico-search" aria-hidden="true"></span>Open VB Studio</button>
       <button type="button" class="nx-btn nx-btn--plain" id="vbsRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
     </div>
   </div>
@@ -19,6 +20,16 @@
   <oj-bind-if test="[[ $functions.hasFound($variables.found) ]]">
     <section class="nx-card nx-vbs-found" id="vbsFound" aria-labelledby="vbsFoundTitle">
       <div class="nx-card-head"><h2 id="vbsFoundTitle">Found in VB Studio</h2><span class="nx-note" id="vbsFoundCounts"><oj-bind-text value="[[ $functions.foundCounts($variables.found) ]]"></oj-bind-text></span></div>
+      <!-- Sync from VB Studio (API): what it did, live while it runs -->
+      <oj-bind-if test="[[ $functions.syncStepCount($variables.found) > 0 ]]">
+        <div :class="[[ $functions.syncClass($variables.found) ]]" id="vbsSyncBox">
+          <div class="nx-vbs-syncline" id="vbsSyncLine"><oj-bind-if test="[[ $variables.syncing ]]"><span class="nx-spin" aria-hidden="true"></span> </oj-bind-if><oj-bind-text value="[[ $functions.syncLine($variables.found, $variables.syncing) ]]"></oj-bind-text></div>
+          <details class="nx-vbs-log" id="vbsSyncSteps" :open="[[ $variables.syncing || $variables.syncOpen ]]">
+            <summary><oj-bind-text value="[[ 'What Sync did · ' + $functions.syncStepCount($variables.found) + ' steps' ]]"></oj-bind-text></summary>
+            <pre class="nx-vbs-logtext" id="vbsSyncStepsText"><oj-bind-text value="[[ $functions.syncStepsText($variables.found) ]]"></oj-bind-text></pre>
+          </details>
+        </div>
+      </oj-bind-if>
       <p class="nx-vbs-foundnote" id="vbsFoundNote"><oj-bind-if test="[[ $variables.watching ]]"><span class="nx-spin" aria-hidden="true"></span> </oj-bind-if><oj-bind-text value="[[ $functions.foundNote($variables.found, $variables.watching) ]]"></oj-bind-text></p>
       <oj-bind-if test="[[ $functions.foundOrgs($variables.found).length > 0 ]]">
         <h3 class="nx-pg-h3 nx-vbs-h3">Organizations</h3>
