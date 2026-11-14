@@ -203,13 +203,27 @@ async function fddStore() {
   if (!fddStoreInst) fddStoreInst = require('./lib/fdd').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git' });
   return fddStoreInst;
 }
+// Which product a call came from. The stores below are shared by every product's server; Build.Rite's server is given
+// them through forProduct, so its calls (and all they start) carry 'build' and follow your workspace — its working
+// folder — while EquipRite Next's calls never do (they read and change this project, as always).
+const productScope = new (require('async_hooks').AsyncLocalStorage)();
+const inBuild = () => productScope.getStore() === 'build';
+function forProduct(store, v) {
+  if (!store || v !== 'build') return store;
+  return new Proxy(store, { get(t, k) { const x = t[k]; return typeof x === 'function' ? function () { const a = arguments; return productScope.run(v, () => x.apply(t, a)); } : x; } });
+}
+// Your workspace set up on this PC (Build.Rite's top bar), for a Build.Rite call; else null
+function buildWorkspace() {
+  if (!inBuild()) return null;
+  try { const c = vbsStoreInst && vbsStoreInst.work().current; return c && c.exists ? c : null; } catch (e) { return null; }
+}
 // The Application pages catalog (lib/pages.js), shared through git (the data branch). Its screenshots: the page opened
 // in a hidden window of this app — the same sign-in and the same live data as you see — and captured once it has settled.
 let pagesStoreInst = null;
 async function pagesStore() {
   if (!pagesStoreInst) {
     // the code: your workspace's working folder when one is set up (Build.Rite's top bar), else this project
-    const current = () => { try { const c = vbsStoreInst && vbsStoreInst.work().current; return c && c.exists ? c : null; } catch (e) { return null; } };
+    const current = buildWorkspace;
     pagesStoreInst = require('./lib/pages').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git', capture: capturePage,
       rootFn: () => { const c = current(); return c ? c.working : ''; },
       rootLabel: () => { const c = current(); return c ? c.projectName + ' ▸ ' + c.workspace + ' (' + c.branch + ')' : ''; },
@@ -247,11 +261,11 @@ async function appServerOptions(v) {
     // Saved AI analyses: each run kept on this PC, so an analysis opens without asking the AI again
     analysisStore: nextLike(v) ? analysisStore() : undefined,
     // The Application pages catalog: technical sheets of the VB pages and the Jira stories mapped to them, in git
-    pagesStore: nextLike(v) ? await pagesStore() : undefined,
+    pagesStore: nextLike(v) ? forProduct(await pagesStore(), v) : undefined,
     // Code Fix: AI-proposed changes to a page, applied to the code only when approved
-    fixStore: nextLike(v) ? await fixStore() : undefined,
+    fixStore: nextLike(v) ? forProduct(await fixStore(), v) : undefined,
     // Issues (Build.Rite): issue → AI write-up and analysis → approval → the agent's branch and pull request
-    issuesStore: nextLike(v) ? await issuesStore() : undefined,
+    issuesStore: nextLike(v) ? forProduct(await issuesStore(), v) : undefined,
     // The API tester: a page's REST calls and reports, tried against the real backend
     apiStore: nextLike(v) ? apiStore() : undefined,
     // Setup → Organizations & projects (Build.Rite): VB Studio organizations and projects
@@ -511,6 +525,9 @@ async function fixStore() {
   if (!fixStoreInst) {
     fixStoreInst = require('./lib/codeFix').open({
       root: REPO_ROOT, file: path.join(app.getPath('userData'), 'code-fixes.json'), ai: await aiStore(), capture: capturePage, buildDir: BUILD_DIR,
+      // your workspace set up (Build.Rite's top bar): the code to fix is its working folder — changed and committed
+      // there only (never pushed from Code fix); Apply to main, then Push, in its project's tab send it to VB Studio
+      workFn: () => { const c = buildWorkspace(); return c ? { folder: c.working, label: c.projectName + ' ▸ ' + c.workspace, branch: c.workBranch || 'buildrite-working', key: c.orgKey + '/' + c.project, name: c.projectName, ws: c.workspace } : null; },
       // sandboxes (Issues → Try it in a sandbox): built with this project's own build tool, served like the app itself
       buildTool: REPO_ROOT, serveSandbox: serveSandbox, appUrl: appUrlOf,
       data: await dataBranch(), log: (l) => { try { pushLog(l); } catch (e) { console.log(l); } }, // the change history, shared on the data branch

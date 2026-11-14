@@ -74,7 +74,27 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
         committed: 'Committed', undone: 'Undone', discarded: 'Discarded', stale: 'Out of date: the code changed' }[s] || s;
     }
     fixStatusClass(s) { return 'nx-fx-st nx-fx-st--' + (s || 'none'); }
-    fixFolder(i) { return !i ? '' : (i.branch ? 'branch ' + i.branch + (i.upstream ? ' → ' + i.upstream : ' (not pushed anywhere)') : '') + (i.isDefault ? ' · the project this app runs from' : ''); }
+    fixFolder(i) {
+      if (!i) return '';
+      if (i.workspace) return 'Your workspace ' + i.workspace.label + ' — its working folder, branch ' + (i.branch || i.workspace.branch) + '. Changes stay on this PC until Apply to main, then Push, in its project\'s tab.';
+      return (i.branch ? 'branch ' + i.branch + (i.upstream ? ' → ' + i.upstream : ' (not pushed anywhere)') : '') + (i.isDefault ? ' · the project this app runs from' : '');
+    }
+    // a change to your workspace (Build.Rite): written, checked and committed in its working folder only, never pushed from here
+    fixInWs(f) { return !!(f && f.workspace); }
+    fixApproveText(f, i) {
+      const n = f ? f.files.length : 0;
+      if (f && f.workspace) return 'Writes the ' + n + ' file(s) in your workspace\'s working folder (' + f.workspace + ') and checks them. Nothing is pulled, committed or pushed: Save in working commits it here; Apply to main, then Push, in the project\'s tab, send it to VB Studio.';
+      return 'Pulls ' + (i ? i.branch : 'the branch') + ' first, runs the related tests, writes the ' + n + ' file(s), and tests again. Nothing is committed until you click Commit.';
+    }
+    fixAppliedText(f) {
+      const a = (f && f.applied) || {};
+      return 'Applied ' + when(a.at) + (f && f.workspace ? ' in your workspace\'s working folder (' + a.branch + ')' : ' on ' + a.branch);
+    }
+    fixCommittedText(f) {
+      const c = (f && f.commit) || {};
+      if (f && f.workspace) return 'Saved in working: commit ' + c.sha + ' on ' + c.branch + ', on this PC only. ' + (c.next || '');
+      return 'Committed ' + c.sha + ' on ' + c.branch + (c.pushed ? ', pushed to ' + c.upstream : ' (not pushed)');
+    }
     fixWhen(at) { return when(at); }
     fixMeta(f) { return !f ? '' : (f.provider || 'AI') + (f.model ? ' (' + f.model + ')' : '') + ' · ' + when(f.at) + (f.by ? ' · asked by ' + f.by : '') + (f.ms ? ' · ' + Math.round(f.ms / 1000) + ' s' : '') + (f.retried ? ' · asked twice' : ''); }
     fixSent(f) { return !f || !f.sent ? '' : 'The AI read ' + f.sent.files.length + ' files of this page (' + Math.round(f.sent.chars / 1000) + 'k characters)' + (f.sent.skipped.length ? '; too large to send: ' + f.sent.skipped.join(', ') : '') + '.'; }

@@ -391,7 +391,7 @@
                 </oj-bind-if>
                 <oj-bind-if test="[[ $functions.fixCanApply($variables.fix) ]]">
                   <div class="nx-fx-approve" id="fxApprove">
-                    <div class="nx-fx-approvetext"><b>Approve?</b> <oj-bind-text value="[[ 'Pulls ' + ($variables.fixInfo ? $variables.fixInfo.branch : 'the branch') + ' first, runs the related tests, writes the ' + $variables.fix.files.length + ' file(s), and tests again. Nothing is committed until you click Commit.' ]]"></oj-bind-text></div>
+                    <div class="nx-fx-approvetext" id="fxApproveText"><b>Approve?</b> <oj-bind-text value="[[ $functions.fixApproveText($variables.fix, $variables.fixInfo) ]]"></oj-bind-text></div>
                     <button type="button" class="nx-btn nx-btn--primary" id="fxApply" data-act="apply" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]"><span class="oj-ux-ico-check" aria-hidden="true"></span>Approve and apply</button>
                     <oj-bind-if test="[[ $variables.fix.status === 'proposed' ]]"><button type="button" class="nx-btn nx-btn--plain" id="fxDiscard" data-act="discard" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]">Discard</button></oj-bind-if>
                   </div>
@@ -400,7 +400,7 @@
                 <!-- applied: the tests; commit, push or undo -->
                 <oj-bind-if test="[[ !!$variables.fix.applied && ($variables.fix.status === 'applied' || $variables.fix.status === 'committed') ]]">
                   <div class="nx-fx-applied" id="fxApplied">
-                    <div><b><oj-bind-text value="[[ 'Applied ' + $functions.fixWhen($variables.fix.applied.at) + ' on ' + $variables.fix.applied.branch ]]"></oj-bind-text></b> · <oj-bind-text value="[[ $variables.fix.applied.pull.text ]]"></oj-bind-text><oj-bind-if test="[[ $variables.fix.applied.live ]]"> Reload the page in this app to try it.</oj-bind-if></div>
+                    <div id="fxAppliedText"><b><oj-bind-text value="[[ $functions.fixAppliedText($variables.fix) ]]"></oj-bind-text></b> · <oj-bind-text value="[[ $variables.fix.applied.pull.text ]]"></oj-bind-text><oj-bind-if test="[[ $variables.fix.applied.live ]]"> Reload the page in this app to try it.</oj-bind-if></div>
                     <oj-bind-if test="[[ !!$variables.fix.tests ]]">
                       <div :class="[[ 'nx-fx-tests ' + ($variables.fix.tests.ok ? 'nx-fx-tests--ok' : 'nx-fx-tests--bad') ]]" id="fxTests">
                         <b><oj-bind-text value="[[ $functions.fixTestsText($variables.fix.tests) ]]"></oj-bind-text></b>
@@ -425,11 +425,17 @@
                         <oj-bind-if test="[[ $variables.fix.tests && $variables.fix.tests.e2eFiles.length > 0 ]]"><button type="button" class="nx-btn nx-btn--sm" id="fxE2eBtn" data-act="e2e" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]"><oj-bind-text value="[[ 'Run the browser tests (' + $variables.fix.tests.e2eFiles.length + ')' ]]"></oj-bind-text></button></oj-bind-if>
                         <span class="nx-min-flex"></span>
                         <button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-pg-delete" id="fxUndo" data-act="undo" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]"><span class="oj-ux-ico-undo" aria-hidden="true"></span>Undo</button>
-                        <button type="button" class="nx-btn nx-btn--sm" id="fxCommit" data-act="commit" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]">Commit</button>
-                        <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="fxPush" data-act="push" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]"><span class="oj-ux-ico-upload" aria-hidden="true"></span>Commit &amp; push</button>
+                        <oj-bind-if test="[[ !$functions.fixInWs($variables.fix) ]]">
+                          <button type="button" class="nx-btn nx-btn--sm" id="fxCommit" data-act="commit" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]">Commit</button>
+                          <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="fxPush" data-act="push" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]"><span class="oj-ux-ico-upload" aria-hidden="true"></span>Commit &amp; push</button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ $functions.fixInWs($variables.fix) ]]">
+                          <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="fxSaveWork" data-act="commit" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]" title="A commit in your workspace's working folder (branch buildrite-working), on this PC only"><span class="oj-ux-ico-save" aria-hidden="true"></span>Save in working</button>
+                        </oj-bind-if>
                       </div>
                     </oj-bind-if>
-                    <oj-bind-if test="[[ !!$variables.fix.commit ]]"><div class="nx-note" id="fxCommitted"><oj-bind-text value="[[ 'Committed ' + $variables.fix.commit.sha + ' on ' + $variables.fix.commit.branch + ($variables.fix.commit.pushed ? ', pushed to ' + $variables.fix.commit.upstream : ' (not pushed)') ]]"></oj-bind-text></div></oj-bind-if>
+                    <oj-bind-if test="[[ !!$variables.fix.commit ]]"><div class="nx-note" id="fxCommitted"><oj-bind-text value="[[ $functions.fixCommittedText($variables.fix) ]]"></oj-bind-text>
+                      <oj-bind-if test="[[ $functions.fixInWs($variables.fix) && !!($variables.fixInfo && $variables.fixInfo.workspace) ]]"> <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="fxOpenProject" data-act="openProject" on-click="[[ $listeners.onFix ]]"><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span>Open its project (Apply to main → Push)</button></oj-bind-if></div></oj-bind-if>
                   </div>
                 </oj-bind-if>
               </div>

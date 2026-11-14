@@ -391,8 +391,14 @@ function open(opts) {
   function load() { if (!file) return mem; try { const j = JSON.parse(fs.readFileSync(file, 'utf8')); return { folder: str(j.folder), fixes: Array.isArray(j.fixes) ? j.fixes : [] }; } catch (e) { return { folder: '', fixes: [] }; } }
   function save(d) { mem = d; if (!file) return; fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(d, null, 1)); }
   const data = () => (file ? load() : mem);
-  const folder = () => { const f = data().folder; return f && isDir(path.join(f, 'webApps')) ? path.resolve(f) : root; };
+  // Your workspace (Build.Rite's top bar: a VB Studio workspace set up on this PC): the code is its working folder —
+  // read, changed, tested and committed there only (branch buildrite-working), never pushed from here; it reaches VB
+  // Studio by Apply to main, then Push (the project's tab). o.workFn() → { folder, label, branch } | null.
+  const ws = () => { try { const w = typeof o.workFn === 'function' ? o.workFn() : null; return w && w.folder && isDir(w.folder) ? { folder: path.resolve(w.folder), label: str(w.label), branch: str(w.branch), key: str(w.key), name: str(w.name), ws: str(w.ws) } : null; } catch (e) { return null; } };
+  const folder = () => { const w = ws(); if (w) return w.folder; const f = data().folder; return f && isDir(path.join(f, 'webApps')) ? path.resolve(f) : root; };
   const isDefault = () => samePath(folder(), root);
+  const inWs = (fix) => !!(fix && fix.workspace);
+  const WS_NEXT = 'To send it to VB Studio: Apply to main, then Push, in its project\'s tab.';
   const fixDir = (id) => path.join(dir, id);
   const backupOf = (id) => { try { return JSON.parse(fs.readFileSync(path.join(fixDir(id), 'backup.json'), 'utf8')); } catch (e) { return null; } };
   const slim = (f) => { const x = Object.assign({}, f); delete x.edits; return x; };
@@ -487,10 +493,14 @@ function open(opts) {
     const f = folder();
     const g = await gitState(f);
     const ai = o.ai && typeof o.ai.settings === 'function' ? (() => { try { const s = o.ai.settings(); return { ready: !!s.active, provider: ((s.catalog || []).filter((c) => c.id === s.active)[0] || {}).label || '' }; } catch (e) { return { ready: false, provider: '' }; } })() : { ready: !!o.ai, provider: '' };
+    const w = ws();
     return { ok: true, folder: f, isDefault: isDefault(), valid: g.git && isDir(path.join(f, 'webApps')), reason: g.git ? '' : g.reason, branch: g.branch || '', upstream: g.upstream || '',
-      canPick: typeof o.pickFolder === 'function', canPreview: typeof o.capture === 'function' && !!o.buildDir && isDefault(), ai: ai };
+      workspace: w ? { label: w.label, branch: g.branch || w.branch, key: w.key, name: w.name, ws: w.ws } : null,
+      canPick: !w && typeof o.pickFolder === 'function', canPreview: !w && typeof o.capture === 'function' && !!o.buildDir && isDefault(), ai: ai };
   }
   async function setFolder(p) {
+    const w = ws();
+    if (w) return no('Code fix works in your workspace\'s working folder (' + (w.label || w.folder) + '). To work on another, switch workspace from the top bar.');
     const f = path.resolve(str(p));
     if (!str(p) || !isDir(f)) return no('No such folder.');
     if (!isDir(path.join(f, 'webApps'))) return no('That folder is not an EquipRite project: it has no webApps folder.');
@@ -501,6 +511,7 @@ function open(opts) {
   }
   async function pick() {
     if (typeof o.pickFolder !== 'function') return no('Choosing a folder needs the desktop app.');
+    if (ws()) return setFolder('');
     const p = await o.pickFolder(folder());
     if (!p) return Object.assign(await info(), { ok: true, cancelled: true });
     return setFolder(p);
@@ -537,8 +548,9 @@ function open(opts) {
     const request = str(b.request).trim();
     if (!request) return no('Say what should change on this page.');
     const f = folder();
+    const wsNow = ws();
     const facts = scan.analyze(f, str(b.id));
-    if (!facts) return no('This page is not in ' + f + ' (pick the right code folder).');
+    if (!facts) return no('This page is not in ' + f + (wsNow ? ' (your workspace\'s working folder).' : ' (pick the right code folder).'));
     const parent = b.parent ? byId(b.parent) : null;
     const code = codeOf(f, facts);
     // screenshots the person pasted (or, asked again without new ones, the earlier proposal's)
@@ -597,8 +609,8 @@ function open(opts) {
       id: fixId, images: saved,
       page: facts.id, app: facts.app, label: facts.label, request: request, kind: str(b.kind), refine: str(b.refine).trim(), parent: parent ? parent.id : '',
       at: now().toISOString(), by: str(b.by), provider: r.provider || '', model: r.model || '', ms: Date.now() - t0, retried: retried,
-      folder: f, sent: { files: code.files, skipped: code.skipped, chars: code.chars },
-      markdown: parsed.markdown || r.text, questions: parsed.questions, edits: parsed.edits, problems: tried.errors, checks: checks.concat(oldAppWarnings(f, facts.app, files)),
+      folder: f, workspace: wsNow ? wsNow.label || path.basename(f) : '', sent: { files: code.files, skipped: code.skipped, chars: code.chars },
+      markdown: parsed.markdown || r.text, questions: parsed.questions, edits: parsed.edits, problems: tried.errors, checks: wsNow ? checks : checks.concat(oldAppWarnings(f, facts.app, files)),
       files: files, hashes: files.reduce((m, k) => { m[k] = sha(tried.files[k].old); return m; }, {}),
       diff: files.map((k) => diffOf(k, tried.files[k].old, tried.files[k].neu)),
       status: noFix() ? 'triaged' : parsed.questions && !files.length ? 'questions' : (tried.errors.length || !files.length || newFails(checks).length ? 'needs-redo' : 'proposed'),
@@ -669,6 +681,7 @@ function open(opts) {
   }
 
   async function runUnits(fix, f, onTest, onDone) {
+    if (inWs(fix)) return { unit: [], e2eFiles: [] }; // your workspace: the checks of the page's files only
     const p = scan.pagesOf(f).filter((x) => x.id === fix.page)[0] || { page: '', flow: '', app: fix.app };
     const rel = relatedTests(f, p);
     const out = [];
@@ -693,7 +706,8 @@ function open(opts) {
     const dirty = (await git(f, ['status', '--porcelain', '--'].concat(fix.files))).stdout.split('\n').map((l) => l.slice(3).trim()).filter(Boolean);
     if (dirty.length) return no('These files have changes that are not committed: ' + dirty.join(', ') + '. Commit or discard them first, so the fix does not mix with them.');
     let pull = { done: false, text: 'Not pulled (asked to skip).' };
-    if (!b.skipPull) {
+    if (inWs(fix)) pull = { done: false, workspace: true, text: 'In your workspace\'s working folder (' + fix.workspace + '): nothing pulled — Get latest is in its project\'s tab.' };
+    else if (!b.skipPull) {
       if (!g.upstream) pull = { done: false, text: 'Not pulled: branch ' + g.branch + ' is not pushed anywhere.' };
       else {
         const pr = await git(f, ['pull', '--ff-only', '--no-rebase']);
@@ -722,10 +736,10 @@ function open(opts) {
     fs.mkdirSync(fixDir(fix.id), { recursive: true });
     fs.writeFileSync(path.join(fixDir(fix.id), 'backup.json'), JSON.stringify(backup));
     fix.written = Object.keys(r.tried.files).reduce((m, k) => { m[k] = sha(r.tried.files[k].neu); return m; }, {});
-    fix.applied = { at: now().toISOString(), by: str(b.by), branch: g.branch, upstream: g.upstream, pull: pull, live: !!builtDir(fix.app) };
+    fix.applied = { at: now().toISOString(), by: str(b.by), branch: g.branch, upstream: g.upstream, pull: pull, live: !!builtDir(fix.app), workspace: fix.workspace || '', folder: f };
     fix.baseline = base.unit.map((t) => ({ file: t.file, ok: t.ok, failed: t.failed, failures: t.failures }));
     fix.status = 'applied';
-    ev(fix, 'approved and applied', b.by, 'on ' + g.branch + ' · ' + pull.text);
+    ev(fix, 'approved and applied', b.by, (inWs(fix) ? 'in ' + f + ' (' + g.branch + ')' : 'on ' + g.branch) + ' · ' + pull.text);
     put(fix);
     const t = await test({ fix: fix.id, by: b.by });
     return ok(t.fix || slim(fix));
@@ -807,10 +821,11 @@ function open(opts) {
       return no('git commit failed: ' + why.slice(0, 400), { hint: /user\.(name|email)|identity/i.test(why) ? 'Tell git who you are: git config --global user.name "Your Name" and git config --global user.email you@example.com' : '' });
     }
     const shaC = (await git(f, ['rev-parse', '--short', 'HEAD'])).stdout.trim();
-    fix.commit = { sha: shaC, at: now().toISOString(), pushed: false, branch: (await gitState(f)).branch, by: str(b.by) };
+    fix.commit = { sha: shaC, at: now().toISOString(), pushed: false, branch: (await gitState(f)).branch, by: str(b.by), folder: f };
     fix.status = 'committed';
-    ev(fix, 'committed', b.by, shaC + ' on ' + fix.commit.branch);
-    if (b.push) {
+    if (inWs(fix)) fix.commit.next = WS_NEXT;
+    ev(fix, 'committed', b.by, shaC + ' on ' + fix.commit.branch + (inWs(fix) ? ' in your workspace\'s working folder (not pushed)' : ''));
+    if (b.push && !inWs(fix)) {
       const g = await gitState(f);
       const p = g.upstream ? await git(f, ['push']) : await git(f, ['push', '-u', 'origin', 'HEAD']);
       if (p.code === 0) { fix.commit.pushed = true; fix.commit.upstream = g.upstream || 'origin/' + g.branch; ev(fix, 'pushed', b.by, 'to ' + fix.commit.upstream); }
@@ -831,6 +846,7 @@ function open(opts) {
     b = b || {};
     const fix = byId(b.fix);
     if (!fix) return no('No such fix.');
+    if (inWs(fix)) return no('This change is for your workspace (' + fix.workspace + '): it is applied in its working folder, not on a branch pushed from here. Open the page in Application pages → Code fix to approve it. ' + WS_NEXT);
     if (fix.status !== 'proposed' && fix.status !== 'undone') return no('Only a proposal can be applied (this one is ' + fix.status + ').');
     const branch = str(b.branch).trim();
     if (!/^[A-Za-z0-9][A-Za-z0-9._\/-]{1,90}$/.test(branch) || /\.\.|\/\/|\.lock$|\/$/.test(branch)) return no('Not a branch name: ' + branch);
@@ -1047,6 +1063,7 @@ function open(opts) {
     const fix = byId(b.fix);
     if (!fix) return no('No such fix.');
     if (!(fix.files || []).length) return no('This proposal changes no file: there is nothing to try.');
+    if (inWs(fix)) return no('A sandbox is a copy of this app\'s own project, so it cannot try a change to your workspace (' + fix.workspace + '). Approve it in Application pages → Code fix: it is written in your working folder, and Undo puts it back.');
     const branch = str(b.branch).trim();
     if (!okBranch(branch)) return no('Not a branch name: ' + branch);
     const say = sayer(b), told = toldOf(say);

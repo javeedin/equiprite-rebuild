@@ -1,4 +1,4 @@
-define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/codeFixClient'], (ActionChain, Actions, FX) => {
+define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/codeFixClient', 'resources/js/shellBus'], (ActionChain, Actions, FX, bus) => {
   'use strict';
 
   // The Code fix tab (desktop/lib/codeFix.js does the work): open it, ask the AI for a change to the open page, ask
@@ -92,6 +92,21 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/codeFixClien
           show(await FX.preview(fid), 'Before and after, below.');
           return;
         }
+        // your workspace's project tab: Save in working is done here; Apply to main, then Push, are there
+        if (act === 'openProject') {
+          const w = v.fixInfo && v.fixInfo.workspace;
+          if (w && w.key) bus.open({ record: 'vbs-project', params: { key: w.key, name: w.name, ws: w.ws } });
+          return;
+        }
+        // a change to your workspace: written in its working folder and checked — nothing pulled, nothing pushed
+        if ((act === 'apply' || act === 'applyNoPull') && v.fix.workspace) {
+          if (!ask('Write this change into ' + v.fix.files.length + ' file(s) in your workspace\'s working folder?\n\n' + v.fix.folder + '\n\nNothing is pulled, committed or pushed. Undo puts the files back; Save in working commits it on this PC.')) return;
+          v.fixProgress = 'Writing the files in your working folder and checking them…';
+          const r = await FX.apply(fid, true);
+          show(r, r.ok ? 'Written in your workspace\'s working folder: ' + r.body.fix.files.length + ' file(s). Try it, then Save in working (or Undo).' : '');
+          await list();
+          return;
+        }
         if (act === 'apply' || act === 'applyNoPull') {
           const pull = act === 'apply';
           if (!ask('Apply this change to ' + v.fix.files.length + ' file(s) in ' + ((v.fixInfo && v.fixInfo.folder) || 'the code folder') + ' (branch ' + branch + ')?\n\n'
@@ -116,6 +131,7 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/codeFixClien
           v.fixProgress = act === 'push' ? 'Committing and pushing…' : 'Committing…';
           const r = await FX.commit(fid, act === 'push');
           const c = r.ok && r.body.fix.commit;
+          if (c && r.body.fix.workspace) { show(r, 'Saved in working: commit ' + c.sha + ' on ' + c.branch + ' (on this PC). Apply to main, then Push, in the project\'s tab, send it to VB Studio.'); await list(); return; }
           show(r, c ? 'Committed ' + c.sha + ' on ' + c.branch + (c.pushed ? ', pushed to ' + c.upstream + '.' : c.pushError ? ' — the push failed: ' + c.pushError : ' (not pushed).') : '');
           await list();
           return;
