@@ -638,6 +638,13 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-fx-warn { flex-basis: 100%; color: #b3311f; font-size: 12.5px; }
 .nx-fx-ask { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid #cfe3ec; border-radius: 10px; background: #f6fbfd; }
 .nx-fx-kinds { display: flex; gap: 6px; flex-wrap: wrap; }
+/* the Jira story and the issue the change is for (written into the code's change note) */
+.nx-fx-refs { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+.nx-fx-ref { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #3b4a58; }
+.nx-fx-ref input { width: 130px; height: 28px; padding: 0 8px; border: 1px solid #c3d0da; border-radius: 6px; font: inherit; font-weight: 400; }
+.nx-fx-ref input:focus { outline: 2px solid #00688c33; border-color: #00688c; }
+.nx-fx-refs .nx-note { flex: 1; min-width: 220px; }
+.nx-fx-refsline, .nx-fx-notesline { margin: 4px 0; }
 .nx-fx-text { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; line-height: 1.45; padding: 9px 11px; border: 1px solid #c7d3dc; border-radius: 8px; resize: vertical; background: #fff; color: #16212c; }
 .nx-fx-text:focus { outline: 2px solid #00688c; outline-offset: 0; border-color: #00688c; }
 .nx-fx-askbar, .nx-fx-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

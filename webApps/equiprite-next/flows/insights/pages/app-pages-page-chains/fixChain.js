@@ -20,7 +20,12 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/codeFixClien
       if (act === 'open') {
         const i = await FX.info();
         v.fixInfo = i.ok ? i.body : { ok: false, error: (i.body && i.body.error) || 'Code Fix needs the desktop app.' };
-        if (v.fixPage !== id) { v.fix = null; v.fixResult = null; v.fixRefine = ''; }
+        if (v.fixPage !== id) {
+          v.fix = null; v.fixResult = null; v.fixRefine = '';
+          // another page: its mapped Jira stories to start with, no issue number (both written into the code's change note)
+          v.fixJira = ((v.sheet && v.sheet.stories) || []).join(', '); v.fixIssueNo = '';
+          try { ['fxJira', 'fxIssueNo'].forEach((x) => { const el = document.getElementById(x); if (el) el.value = x === 'fxJira' ? v.fixJira : ''; }); } catch (e) { /* not drawn yet */ }
+        }
         if (!i.ok) return;
         await list();
         // the latest fix of this page still under way (proposed, applied…): shown again
@@ -79,7 +84,7 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/codeFixClien
           const pics = v.fixImages.map((x) => ({ name: x.name, mime: x.mime, base64: x.base64 }));
           if (pics.length) v.fixProgress += ' The AI looks at your ' + pics.length + ' screenshot' + (pics.length === 1 ? '' : 's') + ' too.';
           // (asked again: the earlier proposal's screenshots go with it, or the ones attached now)
-          const r = await FX.analyze(refine ? { id: id, request: v.fix.request, kind: v.fix.kind, refine: v.fixRefine.trim(), parent: v.fix.id, images: pics } : { id: id, request: v.fixReq.trim(), kind: v.fixKind, images: pics });
+          const r = await FX.analyze(refine ? { id: id, request: v.fix.request, kind: v.fix.kind, refine: v.fixRefine.trim(), parent: v.fix.id, images: pics } : { id: id, request: v.fixReq.trim(), kind: v.fixKind, images: pics, refs: { jira: v.fixJira, issue: v.fixIssueNo } });
           // the request stays in its box (to tweak and ask again); what was asked of the proposal is cleared, box too
           if (r.ok) { v.fix = r.body.fix; if (refine) { v.fixRefine = ''; try { const el = document.getElementById('fxRefine'); if (el) el.value = ''; } catch (e) { /* no DOM */ } } } else fail(r);
           await list();

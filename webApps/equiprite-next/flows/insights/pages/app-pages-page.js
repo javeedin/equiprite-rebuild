@@ -81,10 +81,14 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
     }
     // a change to your workspace (Build.Rite): written, checked and committed in its working folder only, never pushed from here
     fixInWs(f) { return !!(f && f.workspace); }
+    // the Jira story and the issue the change is for; the change notes written into the code with it
+    fixRefsText(f) { const r = (f && f.refs) || {}, i = (f && f.issue) || {}; const jira = i.jira || r.jira, iss = i.number || r.issue; return [jira ? 'Jira story ' + jira : '', iss ? 'Issue ' + iss : ''].filter(Boolean).join(' · '); }
+    fixNotesText(f) { const n = (f && f.applied && f.applied.notes) || 0; return n + ' change note' + (n === 1 ? '' : 's') + ' written in the code beside the change: what was asked, who asked and who changed it, when, the Jira story and the issue (see The change above).'; }
     fixApproveText(f, i) {
       const n = f ? f.files.length : 0;
-      if (f && f.workspace) return 'Writes the ' + n + ' file(s) in your workspace\'s working folder (' + f.workspace + ') and checks them. Nothing is pulled, committed or pushed: Save in working commits it here; Apply to main, then Push, in the project\'s tab, send it to VB Studio.';
-      return 'Pulls ' + (i ? i.branch : 'the branch') + ' first, runs the related tests, writes the ' + n + ' file(s), and tests again. Nothing is committed until you click Commit.';
+      const note = ' A note goes into the code beside the change: who asked, who changed it, when, the Jira story and the issue.';
+      if (f && f.workspace) return 'Writes the ' + n + ' file(s) in your workspace\'s working folder (' + f.workspace + ') and checks them. Nothing is pulled, committed or pushed: Save in working commits it here; Apply to main, then Push, in the project\'s tab, send it to VB Studio.' + note;
+      return 'Pulls ' + (i ? i.branch : 'the branch') + ' first, runs the related tests, writes the ' + n + ' file(s), and tests again. Nothing is committed until you click Commit.' + note;
     }
     fixAppliedText(f) {
       const a = (f && f.applied) || {};

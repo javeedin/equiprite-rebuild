@@ -460,7 +460,7 @@ function open(opts) {
     try { pageShot = o.pages && typeof o.pages.shotImages === 'function' ? o.pages.shotImages(x.page, 1).map((im) => ({ name: im.name, mime: im.mime, base64: im.base64 })) : []; } catch (e) { pageShot = []; }
     const own = imagesOf(x);
     const r = await o.fix.analyze({ id: x.page, request: issueText(x) + (pageShot.length ? '\n\n(The last image is the page as it looks now, from Application pages' + (own.length ? '; the others came with the issue' : '') + '.)' : ''),
-      kind: x.kind === 'bug' ? 'fix' : x.kind, images: own.concat(pageShot).slice(0, 7), issue: { key: keyOf(x), title: (x.formatted && x.formatted.title) || x.title },
+      kind: x.kind === 'bug' ? 'fix' : x.kind, images: own.concat(pageShot).slice(0, 7), issue: { key: keyOf(x), title: (x.formatted && x.formatted.title) || x.title, number: x.key, jira: (x.jira && x.jira.key) || '' },
       context: fddContext(x), refine: str(b.refine), parent: parent, by: b.by });
     if (!r.ok) return no(r.error);
     const fx = r.fix;

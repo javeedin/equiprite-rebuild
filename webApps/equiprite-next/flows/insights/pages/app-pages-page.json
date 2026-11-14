@@ -34,6 +34,8 @@
     "fix": { "type": "any", "defaultValue": null, "description": "The fix shown: the AI's analysis, its edits as a diff, the checks, preview, what was applied and tested." },
     "fixReq": { "type": "string", "defaultValue": "", "description": "What should change on the page (the request typed)." },
     "fixKind": { "type": "string", "defaultValue": "fix", "description": "fix (a bug), enhance or change." },
+    "fixJira": { "type": "string", "defaultValue": "", "description": "The Jira story the change is for (the page's mapped stories to start with): written into the code's change note." },
+    "fixIssueNo": { "type": "string", "defaultValue": "", "description": "The issue number the change is for: written into the code's change note." },
     "fixRefine": { "type": "string", "defaultValue": "", "description": "What to change in the proposal (asked again)." },
     "fixBusy": { "type": "boolean", "defaultValue": false },
     "fixProgress": { "type": "string", "defaultValue": "" },

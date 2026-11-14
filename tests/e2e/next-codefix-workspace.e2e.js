@@ -51,11 +51,15 @@ const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8',
     T.check('the panel names your workspace and its working folder (branch buildrite-working), changes on this PC until Apply to main → Push', (await text(page, '#fxFolderPath')) === path.resolve(working)
       && /Your workspace Rebuild App ▸ Dev_One — its working folder, branch buildrite-working/.test(await text(page, '#fxFolder')) && /Apply to main, then Push/.test(await text(page, '#fxFolder')), await text(page, '#fxFolder'));
     T.check('…no other folder to pick', !(await page.$('#fxPick')));
+    T.check('the Jira story and issue no. asked with the request (written into the code\'s note)', !!(await page.$('#fxJira')) && !!(await page.$('#fxIssueNo')) && /Written into the code with the change/.test(await text(page, '#fxRefsAsk')));
+    await page.fill('#fxJira', 'EQP-123');
+    await page.fill('#fxIssueNo', 'ISS-12');
     await page.fill('#fxRequest', 'Show overdue invoices first');
     await page.click('#fxAnalyze');
     await page.waitForSelector('#fxProposal', { timeout: 20000 });
     T.check('proposed; approving says: written in the working folder, nothing pulled, committed or pushed', /Proposed/.test(await text(page, '#fxStatus'))
-      && /in your workspace's working folder \(Rebuild App ▸ Dev_One\)/.test(await text(page, '#fxApproveText')) && /Nothing is pulled, committed or pushed/.test(await text(page, '#fxApproveText')), await text(page, '#fxApproveText'));
+      && /in your workspace's working folder \(Rebuild App ▸ Dev_One\)/.test(await text(page, '#fxApproveText')) && /Nothing is pulled, committed or pushed/.test(await text(page, '#fxApproveText')) && /A note goes into the code beside the change/.test(await text(page, '#fxApproveText')), await text(page, '#fxApproveText'));
+    T.check('…the proposal names its Jira story and issue', (await text(page, '#fxRefs')) === 'Jira story EQP-123 · Issue ISS-12', await text(page, '#fxRefs'));
 
     T.section('approved: written in the working folder only');
     let asked = '';
@@ -67,6 +71,9 @@ const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8',
       && /nothing pulled/.test(await text(page, '#fxApplied')) && /Nothing broke/.test(await text(page, '#fxTests')), await text(page, '#fxApplied'));
     T.check('…the file changed in the working folder; the checkout (main) and its origin as they were', /Overdue invoices first \(workspace fix\)/.test(fs.readFileSync(path.join(working, BILL + '.html'), 'utf8'))
       && fs.readFileSync(path.join(pg.root, BILL + '.html'), 'utf8') === mainHtml && pg.gitRemote('rev-parse', 'pages/test') === remoteHead);
+    const wrote = fs.readFileSync(path.join(working, BILL + '.html'), 'utf8');
+    T.check('…the change note written in the code (who asked, who changed it, when, the Jira story and issue); said under Applied', /1 change note written in the code beside the change/.test(await text(page, '#fxNotes'))
+      && /<!-- Build\.Rite change fx[a-z0-9]+ — My Billing[\s\S]*Request: +Show overdue invoices first[\s\S]*Requested by: priya\.raman on [\s\S]*Changed by: +priya\.raman on [\s\S]*Issue: +ISS-12[\s\S]*Jira story: +EQP-123[\s\S]*?-->/.test(wrote), await text(page, '#fxNotes'));
     T.check('…"Save in working" — no Commit & push', !!(await page.$('#fxSaveWork')) && !(await page.$('#fxPush')) && !(await page.$('#fxCommit')));
     await env.shot('next-codefix-workspace-applied.png');
 

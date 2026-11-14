@@ -285,6 +285,11 @@
                     </template>
                   </oj-bind-for-each>
                 </div>
+                <div class="nx-fx-refs" id="fxRefsAsk">
+                  <label class="nx-fx-ref"><span>Jira story</span><input type="text" id="fxJira" data-field="fixJira" :value="[[ $variables.fixJira ]]" on-input="[[ $listeners.onField ]]" placeholder="EQP-123" maxlength="80"></label>
+                  <label class="nx-fx-ref"><span>Issue no.</span><input type="text" id="fxIssueNo" data-field="fixIssueNo" :value="[[ $variables.fixIssueNo ]]" on-input="[[ $listeners.onField ]]" placeholder="ISS-12" maxlength="80"></label>
+                  <span class="nx-note">Written into the code with the change, as a comment: what was asked, who asked and who changed it, when, the Jira story and the issue.</span>
+                </div>
                 <textarea class="nx-fx-text" id="fxRequest" rows="3" data-field="fixReq" :value="[[ $variables.fixReq ]]" on-input="[[ $listeners.onField ]]" :placeholder="[[ 'What should change on ' + $variables.sheet.facts.label + '? e.g. “The Save button should stay disabled until a date is picked”, “Add a Customer column to the table”.' ]]"></textarea>
                 <div class="nx-fx-imgs" id="fxImgs">
                   <oj-bind-for-each data="[[ $functions.indexed($variables.fixImages) ]]">
@@ -324,6 +329,7 @@
                   <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="fxNew" data-act="new" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>Ask something else</button>
                 </div>
                 <blockquote class="nx-fx-req" id="fxReq"><oj-bind-text value="[[ $variables.fix.request ]]"></oj-bind-text><oj-bind-if test="[[ !!$variables.fix.refine ]]"><span class="nx-pg-block nx-note"><oj-bind-text value="[[ 'Then: ' + $variables.fix.refine ]]"></oj-bind-text></span></oj-bind-if></blockquote>
+                <oj-bind-if test="[[ !!$functions.fixRefsText($variables.fix) ]]"><div class="nx-note nx-fx-refsline" id="fxRefs"><oj-bind-text value="[[ $functions.fixRefsText($variables.fix) ]]"></oj-bind-text></div></oj-bind-if>
                 <div class="nx-note"><oj-bind-text value="[[ $functions.fixMeta($variables.fix) ]]"></oj-bind-text> · <oj-bind-text value="[[ $functions.fixSent($variables.fix) ]]"></oj-bind-text></div>
                 <oj-bind-if test="[[ ($variables.fix.images || []).length > 0 ]]">
                   <div class="nx-fx-imgs" id="fxFixImgs"><span class="nx-pg-maplbl">Screenshots sent</span>
@@ -413,6 +419,7 @@
                 <oj-bind-if test="[[ !!$variables.fix.applied && ($variables.fix.status === 'applied' || $variables.fix.status === 'committed') ]]">
                   <div class="nx-fx-applied" id="fxApplied">
                     <div id="fxAppliedText"><b><oj-bind-text value="[[ $functions.fixAppliedText($variables.fix) ]]"></oj-bind-text></b> · <oj-bind-text value="[[ $variables.fix.applied.pull.text ]]"></oj-bind-text><oj-bind-if test="[[ $variables.fix.applied.live ]]"> Reload the page in this app to try it.</oj-bind-if></div>
+                    <oj-bind-if test="[[ !!$variables.fix.applied.notes ]]"><div class="nx-note nx-fx-notesline" id="fxNotes"><span class="oj-ux-ico-edit" aria-hidden="true"></span> <oj-bind-text value="[[ $functions.fixNotesText($variables.fix) ]]"></oj-bind-text></div></oj-bind-if>
                     <oj-bind-if test="[[ !!$variables.fix.tests ]]">
                       <div :class="[[ 'nx-fx-tests ' + ($variables.fix.tests.ok ? 'nx-fx-tests--ok' : 'nx-fx-tests--bad') ]]" id="fxTests">
                         <b><oj-bind-text value="[[ $functions.fixTestsText($variables.fix.tests) ]]"></oj-bind-text></b>

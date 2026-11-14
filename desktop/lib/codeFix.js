@@ -39,6 +39,7 @@ const vm = require('vm');
 const crypto = require('crypto');
 const scan = require('./pageScan');
 const gitPaths = require('./gitPaths');
+const changeNote = require('./changeNote');
 const { runGit } = gitPaths;
 
 const MAX_CODE = 170000;    // characters of code sent to the AI
@@ -473,6 +474,31 @@ function open(opts) {
   const ok = (fix, extra) => Object.assign({ ok: true, fix: fix }, extra || {});
   const no = (error, extra) => Object.assign({ ok: false, error: error }, extra || {});
 
+  // ── Change notes (lib/changeNote.js): beside each change written into the code, a comment — what was asked, who
+  // asked and when, who changed it (approved and applied) and when, the issue and the Jira story, the change's id ──
+  const KIND = { fix: 'Fix a bug', enhance: 'Enhance', change: 'Change' };
+  function noteMeta(fix, by, how) {
+    const refs = fix.refs || {}, iss = fix.issue || {};
+    return { id: fix.id, page: fix.label, request: fix.request + (fix.refine ? ' — then: ' + fix.refine : ''), kind: KIND[fix.kind] || '',
+      askedBy: fix.by, askedAt: fix.at, changedBy: str(by), changedAt: now().toISOString(), how: how,
+      proposedBy: (fix.provider || '') + (fix.model ? ' (' + fix.model + ')' : ''), issue: str(iss.number || iss.key || refs.issue), jira: str(iss.jira || refs.jira) };
+  }
+  /** The notes put into the files about to be written ({ rel: { old, neu } }: neu gets them); how many were written. */
+  function withNotes(files, meta) {
+    const json = Object.keys(files).filter((k) => /\.json$/i.test(k));
+    let n = 0;
+    Object.keys(files).forEach((rel) => {
+      const x = files[rel];
+      if (!x || x.inSandbox || x.neu == null) return;
+      const r = changeNote.annotate(rel, x.old, x.neu, Object.assign({}, meta, { also: json.filter((j) => j !== rel).map((j) => path.basename(j)) }), lineOps);
+      if (!r.notes) return;
+      if (/\.js$/i.test(rel)) { try { new vm.Script(r.text, { filename: rel }); } catch (e) { return; } } // never a note that would break the code
+      x.neu = r.text;
+      n += r.notes;
+    });
+    return n;
+  }
+
   /** The built copy the app serves for a webApp (the newest version folder), when the code folder is the app's own. */
   function builtDir(app) {
     if (!o.buildDir || !isDefault()) return '';
@@ -572,7 +598,10 @@ function open(opts) {
     if (code.skipped.length) user += '\n(Not included, too large: ' + code.skipped.join(', ') + ')\n';
     if (str(b.context).trim()) user += '\n' + str(b.context).trim().slice(0, 40000) + '\n';
     // an issue (Build.Rite's Issues): its verdict first, its number in the comments of the code it changes
-    const issue = b.issue && b.issue.key ? { key: str(b.issue.key).slice(0, 40), title: str(b.issue.title).slice(0, 200) } : null;
+    const issue = b.issue && b.issue.key ? { key: str(b.issue.key).slice(0, 40), title: str(b.issue.title).slice(0, 200), number: str(b.issue.number).slice(0, 40), jira: str(b.issue.jira).slice(0, 40) } : null;
+    // the Jira story and the issue number the change is for (asked with the request; asked again: the earlier ones)
+    const ref = (v) => str(v).replace(/[^A-Za-z0-9 _#.,\/-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+    const refs = b.refs ? { jira: ref(b.refs.jira), issue: ref(b.refs.issue) } : (parent && parent.refs) || { jira: '', issue: '' };
     const system = issue ? SYSTEM + '\n' + issueRules(issue.key, issue.title) : SYSTEM;
     const t0 = Date.now();
     const pics = images.map((im) => ({ mime: im.mime, base64: im.base64 }));
@@ -609,7 +638,7 @@ function open(opts) {
       id: fixId, images: saved,
       page: facts.id, app: facts.app, label: facts.label, request: request, kind: str(b.kind), refine: str(b.refine).trim(), parent: parent ? parent.id : '',
       at: now().toISOString(), by: str(b.by), provider: r.provider || '', model: r.model || '', ms: Date.now() - t0, retried: retried,
-      folder: f, workspace: wsNow ? wsNow.label || path.basename(f) : '', sent: { files: code.files, skipped: code.skipped, chars: code.chars },
+      folder: f, workspace: wsNow ? wsNow.label || path.basename(f) : '', refs: refs, sent: { files: code.files, skipped: code.skipped, chars: code.chars },
       markdown: parsed.markdown || r.text, questions: parsed.questions, edits: parsed.edits, problems: tried.errors, checks: wsNow ? checks : checks.concat(oldAppWarnings(f, facts.app, files)),
       files: files, hashes: files.reduce((m, k) => { m[k] = sha(tried.files[k].old); return m; }, {}),
       diff: files.map((k) => diffOf(k, tried.files[k].old, tried.files[k].neu)),
@@ -723,6 +752,7 @@ function open(opts) {
     const r = retry(fix);
     if (r.error) { fix.status = 'stale'; ev(fix, 'out of date', b.by, r.error); put(fix); return no(r.error, { fix: slim(fix) }); }
     const base = await runUnits(fix, f); // the related tests on the code as it was
+    const notes = withNotes(r.tried.files, noteMeta(fix, b.by, 'approved and applied in Code fix' + (inWs(fix) ? ", in the workspace's working folder" : '')));
     const backup = {};
     Object.keys(r.tried.files).forEach((rel) => {
       const x = r.tried.files[rel];
@@ -736,10 +766,11 @@ function open(opts) {
     fs.mkdirSync(fixDir(fix.id), { recursive: true });
     fs.writeFileSync(path.join(fixDir(fix.id), 'backup.json'), JSON.stringify(backup));
     fix.written = Object.keys(r.tried.files).reduce((m, k) => { m[k] = sha(r.tried.files[k].neu); return m; }, {});
-    fix.applied = { at: now().toISOString(), by: str(b.by), branch: g.branch, upstream: g.upstream, pull: pull, live: !!builtDir(fix.app), workspace: fix.workspace || '', folder: f };
+    fix.applied = { at: now().toISOString(), by: str(b.by), branch: g.branch, upstream: g.upstream, pull: pull, live: !!builtDir(fix.app), workspace: fix.workspace || '', folder: f, notes: notes };
+    if (notes) fix.diff = (fix.files || []).filter((k) => r.tried.files[k]).map((k) => diffOf(k, r.tried.files[k].old, r.tried.files[k].neu)); // as written: its notes too
     fix.baseline = base.unit.map((t) => ({ file: t.file, ok: t.ok, failed: t.failed, failures: t.failures }));
     fix.status = 'applied';
-    ev(fix, 'approved and applied', b.by, (inWs(fix) ? 'in ' + f + ' (' + g.branch + ')' : 'on ' + g.branch) + ' · ' + pull.text);
+    ev(fix, 'approved and applied', b.by, (inWs(fix) ? 'in ' + f + ' (' + g.branch + ')' : 'on ' + g.branch) + ' · ' + pull.text + (notes ? ' · ' + notes + ' change note(s) written in the code' : ''));
     put(fix);
     const t = await test({ fix: fix.id, by: b.by });
     return ok(t.fix || slim(fix));
@@ -812,7 +843,10 @@ function open(opts) {
     if (!fix) return no('No such fix.');
     if (fix.status !== 'applied') return no(fix.status === 'committed' ? 'It is committed already.' : 'Apply it first.');
     const f = fix.folder;
-    const msg = str(b.message).trim() || ('Code fix: ' + fix.label + ' — ' + fix.request.split('\n')[0].slice(0, 90) + '\n\n' + fix.request.slice(0, 2000) + '\n\n(Proposed by ' + (fix.provider || 'AI') + ' in EquipRite Code Fix, approved by ' + (fix.applied.by || 'the user') + '.)');
+    const rf = fix.refs || {};
+    const msg = str(b.message).trim() || ('Code fix: ' + fix.label + ' — ' + fix.request.split('\n')[0].slice(0, 90) + '\n\n' + fix.request.slice(0, 2000)
+      + (rf.jira || rf.issue ? '\n\n' + [rf.jira ? 'Jira story: ' + rf.jira : '', rf.issue ? 'Issue: ' + rf.issue : ''].filter(Boolean).join('\n') : '')
+      + '\n\n(Build.Rite change ' + fix.id + ': asked by ' + (fix.by || 'someone') + ', proposed by ' + (fix.provider || 'AI') + ' in Code fix, approved and applied by ' + (fix.applied.by || 'the user') + '.)');
     const add = await git(f, ['add', '--'].concat(fix.files));
     if (add.code !== 0) return no('git add failed: ' + add.stderr.trim());
     const c = await git(f, ['commit', '-m', msg, '--'].concat(fix.files));
@@ -915,6 +949,7 @@ function open(opts) {
         + ' (' + (t.ms / 1000).toFixed(1) + ' s)' + (t.failures.length ? ' — ' + t.failures.slice(0, 3).join(' | ') : ''));
       const base = sbx ? { unit: sbx.baseline || [] } : await runUnits(fix, wt, (i, n, file) => say('before', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file), told('before'));
       say('before', base.unit.length ? 'done' : 'skipped', base.unit.length ? base.unit.filter((u) => u.ok).length + ' of ' + base.unit.length + ' passing before the change' + (sbx ? ' (when the sandbox was made)' : '') : 'no unit test names this page (the page checks run)');
+      if (!sbx) withNotes(tried.files, noteMeta(fix, b.by, "applied on the issue's branch " + branch + ' when approved'));
       say('write', 'running', sbx ? 'already in the sandbox: ' + Object.keys(tried.files).join(', ') : Object.keys(tried.files).join(', '));
       Object.keys(tried.files).forEach((rel) => {
         const x = tried.files[rel];
@@ -1103,6 +1138,7 @@ function open(opts) {
     say('before', 'running', 'finding the tests that name this page…');
     const base = await runUnits(fix, sb, (i, n, file) => say('before', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file), told('before'));
     say('before', base.unit.length ? 'done' : 'skipped', base.unit.length ? base.unit.filter((u) => u.ok).length + ' of ' + base.unit.length + ' passing before the fix' : 'no unit test names this page');
+    withNotes(tried.files, noteMeta(fix, b.by, "written in the issue's sandbox; committed from there when approved"));
     say('write', 'running', Object.keys(tried.files).join(', '));
     const files = {};
     Object.keys(tried.files).forEach((rel) => {

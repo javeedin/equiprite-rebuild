@@ -10,7 +10,10 @@
  *   - Save in working: a commit on buildrite-working in the working folder — never pushed, even when asked
  *   - no branch pushed from here, no sandbox of this app's project; Undo puts the bytes back
  *   - another workspace: a change proposed for the first is not written into it; none set up: this project again
+ *   - the change note written beside the change (lib/changeNote.js): what was asked, who asked and who changed it, when,
+ *     the issue and the Jira story given with the request; the commit's message names them too
  */
+process.env.TZ = 'UTC';
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -77,13 +80,21 @@ function aProject(dir) {
 
     T.section('a change proposed and approved: written in the working folder only');
     replies.push(answer(anchor, anchor + '\n  Billing: a note added in the workspace.'));
-    const a = await store.analyze({ id: ID, request: 'Add a note', by: 'priya.raman' });
+    const a = await store.analyze({ id: ID, request: 'Add a note', kind: 'enhance', by: 'priya.raman', refs: { jira: 'EQP-123', issue: 'ISS-12' } });
     T.check('proposed from the working folder; the fix says it is your workspace\'s', a.ok && a.fix.status === 'proposed' && a.fix.folder === path.resolve(working) && a.fix.workspace === 'Rebuild App ▸ Dev_One', JSON.stringify(a).slice(0, 300));
     T.check('…nothing written yet', fs.readFileSync(path.join(working, PAGE + '.html'), 'utf8') === html0);
-    const ap = await store.apply({ fix: a.fix.id, by: 'priya.raman' });
+    const ap = await store.apply({ fix: a.fix.id, by: 'arun.mehta' });
     T.check('applied in the working folder, on buildrite-working; nothing pulled (Get latest is in the project\'s tab)', ap.ok && ap.fix.status === 'applied' && ap.fix.applied.branch === 'buildrite-working'
       && ap.fix.applied.pull.workspace && !ap.fix.applied.pull.done && /nothing pulled/.test(ap.fix.applied.pull.text) && ap.fix.applied.folder === path.resolve(working) && !ap.fix.applied.live, JSON.stringify(ap.fix && ap.fix.applied));
-    T.check('…the file changed there', /a note added in the workspace/.test(fs.readFileSync(path.join(working, PAGE + '.html'), 'utf8')));
+    const written = fs.readFileSync(path.join(working, PAGE + '.html'), 'utf8');
+    T.check('…the file changed there', /a note added in the workspace/.test(written));
+    const note = (written.match(/<!-- Build\.Rite change [\s\S]*? -->/) || [''])[0];
+    T.check('…with its change note in the code: the change\'s id and page, the request, who asked and when, who changed it and when (in the working folder), the issue and the Jira story', a.fix.refs.jira === 'EQP-123' && a.fix.refs.issue === 'ISS-12'
+      && note.indexOf('Build.Rite change ' + a.fix.id + ' — My Billing') !== -1 && /Request: +Add a note \(Enhance\)/.test(note) && /Requested by: priya\.raman on \d+ \w+ 2026 at \d\d:\d\d \(UTC\+00:00\)/.test(note)
+      && /Changed by: +arun\.mehta on \d+ \w+ 2026 at \d\d:\d\d \(UTC\+00:00\) — approved and applied in Code fix, in the workspace's working folder/.test(note) && /Issue: +ISS-12/.test(note) && /Jira story: +EQP-123/.test(note)
+      && ap.fix.applied.notes === 1, note);
+    T.check('…the note is a comment of its own (before the page\'s header comment, not inside it); The change shows it', written.indexOf('<!-- Build.Rite change') === 0 && /-->\n<!--/.test(written)
+      && ap.fix.diff[0].hunks.some((h) => h.rows.some((r) => r.t === '+' && /Jira story: +EQP-123/.test(r.s))), written.slice(0, 600));
     T.check('…Build.Rite\'s own project, the main folder and VB Studio untouched', fs.readFileSync(path.join(own, PAGE + '.html'), 'utf8') === ownHtml
       && !/a note added/.test(fs.readFileSync(path.join(main, PAGE + '.html'), 'utf8')) && git(origin, 'rev-parse', 'dev-one') === originHead && git(own, 'status', '--porcelain') === '');
     T.check('…checked (the page\'s files), this project\'s tests not run (a workspace has none of them)', ap.fix.tests && ap.fix.tests.ok && ap.fix.tests.unit.length === 0 && ap.fix.tests.none
@@ -102,6 +113,8 @@ function aProject(dir) {
     T.check('…the working folder\'s branch has it; the main folder and VB Studio do not', git(working, 'log', '-1', '--format=%s').indexOf('Code fix:') === 0 && git(working, 'status', '--porcelain') === ''
       && git(main, 'rev-parse', 'HEAD') === mainHead && git(origin, 'rev-parse', 'dev-one') === originHead && git(origin, 'branch', '--list', 'buildrite-working') === '');
     T.check('…its history says so', c.fix.events.some((e) => e.what === 'committed' && /not pushed/.test(e.detail)) && !c.fix.events.some((e) => e.what === 'pushed'));
+    const body = git(working, 'log', '-1', '--format=%B');
+    T.check('…its message names the Jira story, the issue, who asked and who approved it', /Jira story: EQP-123/.test(body) && /Issue: ISS-12/.test(body) && new RegExp('Build\\.Rite change ' + a.fix.id + ': asked by priya\\.raman, .* approved and applied by arun\\.mehta').test(body), body);
 
     T.section('Undo puts the bytes back');
     const html1 = fs.readFileSync(path.join(working, PAGE + '.html'), 'utf8');
