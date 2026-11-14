@@ -6,6 +6,12 @@ define([], () => {
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const when = (at) => { const d = new Date(at); if (isNaN(d.getTime())) return ''; const p2 = (n) => (n < 10 ? '0' : '') + n; return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear() + ', ' + p2(d.getHours()) + ':' + p2(d.getMinutes()); };
   const plural = (n, one, many) => n + ' ' + (n === 1 ? one : (many || one + 's'));
+  const orgKey = (o) => o.host + '/' + o.org;
+  const projKey = (p) => p.host + '/' + p.org + '/' + p.project;
+  const inOrg = (x, fOrg) => !fOrg || orgKey(x) === fOrg;
+  const matches = (p, t) => { const q = String(t || '').trim().toLowerCase(); return !q || [p.name, p.project, p.description].some((v) => String(v || '').toLowerCase().indexOf(q) !== -1); };
+  const wsOf = (f, p) => ((f && f.workspaces) || []).filter((w) => w.host === p.host && w.org === p.org && w.project === p.project);
+  const wsRow = (w) => ({ name: w.name, project: w.project || '—', projectKey: w.project ? w.host + '/' + w.org + '/' + w.project : '', branch: w.branch || '—', repo: w.repo || '—', owner: w.owner || '—' });
   /** Sync from VB Studio's steps: live while it runs, else the last sync's. */
   const stepsOf = (f) => (f && (f.syncLive || (f.sync && f.sync.steps))) || [];
 
@@ -36,6 +42,39 @@ define([], () => {
     }
     // ── Find in VB Studio ──
     hasFound(f) { return !!f && ((f.orgs || []).length + (f.projects || []).length + (f.workspaces || []).length > 0 || !!(f.finder && (f.finder.open || (f.finder.log || []).length)) || stepsOf(f).length > 0); }
+    // ── the filter: an organization (its projects), the projects by name; a project opened (its workspaces) ──
+    showFilters(f, orgs) { return ((f && f.projects) || []).length > 0 || ((f && f.orgs) || []).length > 1; }
+    orgChips(f, orgs, fOrg) {
+      const map = {};
+      ((f && f.orgs) || []).forEach((o) => { map[orgKey(o)] = { key: orgKey(o), label: o.org, n: 0 }; });
+      (orgs || []).forEach((o) => { const k = orgKey(o); map[k] = Object.assign(map[k] || { key: k, n: 0 }, { label: o.name || o.org }); });
+      ((f && f.projects) || []).forEach((p) => { const k = p.host + '/' + p.org; if (map[k]) map[k].n++; });
+      const list = Object.keys(map).map((k) => map[k]).sort((a, b) => b.n - a.n || String(a.label).localeCompare(String(b.label)));
+      return [{ key: '', label: 'All organizations', n: ((f && f.projects) || []).length }].concat(list)
+        .map((c) => ({ key: c.key, label: c.label, n: c.n, on: c.key === (fOrg || ''), cls: 'nx-vbs-fchip' + (c.key === (fOrg || '') ? ' nx-vbs-fchip--on' : '') }));
+    }
+    /** "Showing 12 of 77 projects" while a filter is on. */
+    filterNote(f, fOrg, fText) {
+      const all = (f && f.projects) || [];
+      const shown = all.filter((p) => inOrg(p, fOrg) && matches(p, fText)).length;
+      if (!fOrg && !String(fText || '').trim()) return '';
+      return 'Showing ' + shown + ' of ' + plural(all.length, 'project') + (String(fText || '').trim() ? ' matching “' + String(fText).trim() + '”' : '') + '.';
+    }
+    /** The breadcrumb: All organizations ▸ the organization ▸ the project. */
+    crumbOrg(f, orgs, fOrg) { if (!fOrg) return ''; const s = (orgs || []).filter((o) => orgKey(o) === fOrg)[0]; return s ? (s.name || s.org) : fOrg.split('/').pop(); }
+    crumbProject(f, fProject) { const p = ((f && f.projects) || []).filter((x) => projKey(x) === fProject)[0]; return p ? (p.name || p.project) : ''; }
+    /** The project opened: its repositories (Add) and its workspaces. */
+    projectView(f, fProject) {
+      const p = ((f && f.projects) || []).filter((x) => projKey(x) === fProject)[0];
+      if (!p) return null;
+      const ws = wsOf(f, p);
+      const learned = (f && f.learned) || {};
+      return { key: projKey(p), orgKey: p.host + '/' + p.org, name: p.name || p.project, project: p.project, org: p.org, description: p.description || '', orgSetUp: !!p.orgId,
+        repos: (p.repos || []).map((r) => ({ repo: r.repo, url: r.url, added: !!r.added })), noRepo: !(p.repos || []).length,
+        workspaces: ws.map(wsRow), wsTitle: 'Workspaces · ' + ws.length,
+        wsNote: ws.length ? '' : learned.workspaces ? 'No workspace found in this project yet (as of the last sync): Refresh it from VB Studio.' : 'Build.Rite has not seen VB Studio\'s Workspaces page yet: Open VB Studio, open this project\'s Workspaces page (Designer → Workspaces), close the window — then Sync reads every project\'s workspaces itself.',
+        canRefresh: !!(learned.repos || learned.workspaces) };
+    }
     // ── Sync from VB Studio (API) ──
     syncStepCount(f) { return stepsOf(f).length; }
     syncStepsText(f) {
@@ -50,8 +89,8 @@ define([], () => {
       if (!s) return '';
       const c = s.counts || {};
       const via = s.via || {};
-      const ways = [via.basic ? 'your username and password' : '', via.session ? 'the VB Studio window\'s session' : '', via.window ? 'the VB Studio window\'s sign-in' : ''].filter(Boolean);
-      if (!s.ok) return '✗ Synced on ' + when(s.at) + ': nothing read. ' + (s.needLearn ? 'Build.Rite has not seen VB Studio\'s project list yet: Open VB Studio once, go to the organization\'s page, close it — then Sync again.' : 'See what Sync did.');
+      const ways = [via.basic ? 'your username and password' : '', via.page ? 'your VB Studio session' : '', via.session ? 'the VB Studio window\'s session' : '', via.window ? 'the VB Studio window\'s sign-in' : ''].filter(Boolean);
+      if (!s.ok) return '✗ Synced on ' + when(s.at) + ': nothing read. ' + (s.signIn ? 'VB Studio needs you to sign in: Open VB Studio, sign in, close it — then Sync again.' : s.needLearn ? 'Build.Rite has not seen VB Studio\'s project list yet: Open VB Studio once, go to the organization\'s page, close it — then Sync again.' : 'See what Sync did.');
       return '✓ Synced through VB Studio\'s API on ' + when(s.at) + ': ' + plural(c.projects || 0, 'project') + ' · ' + plural(c.repos || 0, 'repository', 'repositories') + ' · ' + plural(c.workspaces || 0, 'workspace')
         + (ways.length ? ' — signed in with ' + ways.join(' and ') : '') + (s.needLearn ? '. Its project list not learned yet: Open VB Studio once on the organization\'s page.' : '');
     }
@@ -67,14 +106,28 @@ define([], () => {
       if (f.sync && f.sync.ok) return 'Sync from VB Studio reads these through VB Studio\'s API, without a window. Open VB Studio only to teach Build.Rite a page it has not seen.';
       return f.at ? 'Read from VB Studio\'s pages, last on ' + when(f.at) + '. Sync from VB Studio now makes the same calls itself (no window).' : '';
     }
-    foundCounts(f) { return !f ? '' : plural((f.orgs || []).length, 'organization') + ' · ' + plural((f.projects || []).length, 'project') + ' · ' + plural((f.projects || []).reduce((n, p) => n + (p.repos || []).length, 0), 'repository', 'repositories') + ' · ' + plural((f.workspaces || []).length, 'workspace'); }
-    foundOrgs(f) { return ((f && f.orgs) || []).map((o) => ({ url: o.url, org: o.org, host: o.host, setUp: !!o.orgId })); }
-    foundProjects(f) {
-      return ((f && f.projects) || []).map((p) => ({ key: p.host + '/' + p.org + '/' + p.project, name: p.name || p.project, project: p.project, org: p.org, description: p.description || '', orgSetUp: !!p.orgId,
-        guess: 'https://' + p.host + '/' + p.org + '/s/' + p.org + '_' + p.project + '/scm/' + p.project + '.git', noRepo: !(p.repos || []).length,
-        repos: (p.repos || []).map((r) => ({ repo: r.repo, url: r.url, added: !!r.added })) }));
+    foundCounts(f, fOrg, fText) {
+      if (!f) return '';
+      const pr = (f.projects || []).filter((p) => inOrg(p, fOrg) && matches(p, fText));
+      const keys = {};
+      pr.forEach((p) => { keys[projKey(p)] = true; });
+      const ws = (f.workspaces || []).filter((w) => inOrg(w, fOrg) && (!String(fText || '').trim() || keys[w.host + '/' + w.org + '/' + w.project]));
+      return plural((f.orgs || []).filter((o) => inOrg(o, fOrg)).length, 'organization') + ' · ' + plural(pr.length, 'project') + ' · ' + plural(pr.reduce((n, p) => n + (p.repos || []).length, 0), 'repository', 'repositories') + ' · ' + plural(ws.length, 'workspace');
     }
-    foundWorkspaces(f) { return ((f && f.workspaces) || []).map((w) => ({ name: w.name, project: w.project || '—', branch: w.branch || '—', repo: w.repo || '—', owner: w.owner || '—' })); }
+    foundOrgs(f, fOrg) {
+      const all = (f && f.projects) || [];
+      return ((f && f.orgs) || []).filter((o) => inOrg(o, fOrg)).map((o) => { const n = all.filter((p) => p.host === o.host && p.org === o.org).length; return { key: orgKey(o), url: o.url, org: o.org, host: o.host, setUp: !!o.orgId, n: n, show: fOrg !== orgKey(o) && n > 0, showText: 'Its projects · ' + n }; });
+    }
+    foundProjects(f, fOrg, fText) {
+      return ((f && f.projects) || []).filter((p) => inOrg(p, fOrg) && matches(p, fText)).map((p) => { const n = wsOf(f, p).length; return { key: projKey(p), name: p.name || p.project, project: p.project, org: p.org, description: p.description || '', orgSetUp: !!p.orgId,
+        noRepo: !(p.repos || []).length, wsText: 'Workspaces · ' + n + ' ›',
+        repos: (p.repos || []).map((r) => ({ repo: r.repo, url: r.url, added: !!r.added })) }; });
+    }
+    foundWorkspaces(f, fOrg, fText) {
+      const keys = {};
+      ((f && f.projects) || []).filter((p) => matches(p, fText)).forEach((p) => { keys[projKey(p)] = true; });
+      return ((f && f.workspaces) || []).filter((w) => inOrg(w, fOrg) && (!String(fText || '').trim() || keys[w.host + '/' + w.org + '/' + w.project])).map(wsRow);
+    }
     repoHint(o) { return o ? 'https://' + o.host + '/' + o.org + '/s/' + o.org + '_<project>/scm/<repository>.git' : ''; }
   }
 

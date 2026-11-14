@@ -98,6 +98,16 @@ function why(text, status) {
   return t.trim().split('\n').filter(Boolean).slice(-2).join(' ').slice(0, 300) || 'It did not work.';
 }
 
+/** How a call was signed in, in words. */
+const WAYS = { basic: 'username and password', page: 'your VB Studio session, inside VB Studio\'s own page', session: 'the VB Studio window\'s session', window: 'the VB Studio window\'s sign-in' };
+/**
+ * VB Studio's own calls Build.Rite knows without being shown (seen in VB Studio's pages: its organization page lists the
+ * organization's projects with this one). The ones learned from VB Studio's pages come first.
+ */
+const BUILT_IN = [
+  { path: '/<org>/api2/v2/organization/projects', role: 'projects', query: '', builtIn: true },
+];
+
 function open(opts) {
   const o = opts || {};
   const file = o.file || '';
@@ -230,8 +240,11 @@ function open(opts) {
     const d = data.discovered || { orgs: [], projects: [], workspaces: [], calls: [] };
     const orgIdOf = (host, o) => (data.orgs.filter((x) => x.host === host && x.org === o)[0] || {}).id || '';
     const added = (url) => data.projects.some((p) => p.repoUrl === url);
+    const roles = {};
+    (d.calls || []).forEach((c) => { const r = c.role || L.roleOfPath(c.path); if (r && !/\{n\}|\{id\}/.test(c.path)) roles[r + (c.path.indexOf('<org>_<project>') !== -1 ? ':project' : '')] = true; });
     return { ok: true, at: d.at || '', finder: finder, sync: data.lastSync || null, syncing: !!syncing, syncLive: syncing && live ? live.slice() : null,
-      orgs: (d.orgs || []).map((o) => Object.assign({}, o, { orgId: orgIdOf(o.host, o.org) })),
+      learned: { projects: !!roles.projects, repos: !!roles['repos:project'], workspaces: !!(roles['workspaces:project'] || roles.workspaces) },
+      orgs: (d.orgs || []).filter((o) => L.isOrgId(o.org)).map((o) => Object.assign({}, o, { orgId: orgIdOf(o.host, o.org) })),
       projects: (d.projects || []).map((p) => Object.assign({}, p, { orgId: orgIdOf(p.host, p.org), repos: (p.repos || []).map((r) => Object.assign({}, r, { added: added(r.url) })) })),
       workspaces: (d.workspaces || []).slice(), calls: (d.calls || []).length };
   }
@@ -258,8 +271,13 @@ function open(opts) {
   //    desktop app between runs), else with the sign-in VB Studio's own pages sent this run (in memory only: never saved,
   //    logged or shown). Read only (GET). Every answer goes through the same reading as Find (lib/vbsLearn.js). ──
   const sessionFetch = o.sessionFetch || null;
+  // VB Studio's own page (desktop/main.js: a hidden VB Studio window, signed in with the session kept from Open VB Studio):
+  // the call made from inside it, as its own pages make it — what VB Studio's internal calls (api2) take
+  const pageFetch = o.pageFetch || null;
   const tokens = {}; // host → the window's own sign-in for this run (memory only)
   const viaOf = {}; // host and call → the way in that worked last (tried first next time)
+  const viaHost = {}; // host → the way in that worked last for any call (tried next)
+  let pageOff = {}; // host → VB Studio's page needs a sign-in (this sync: not tried again)
   /** The VB Studio window's pages sent a sign-in of their own (a bearer token) to this host: usable by Sync for this run only. */
   function windowSignIn(host, value) { const h = str(host).toLowerCase(); if (L.isVbsHost(h) && /^Bearer\s+\S+$/i.test(str(value))) tokens[h] = str(value); }
   const timeout = () => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(o.syncTimeoutMs || 30000) : undefined);
@@ -268,23 +286,27 @@ function open(opts) {
     const k = host + ' ' + str(key);
     const ways = [];
     if (basic && fetchFn) ways.push(['basic', () => fetchFn(url, { headers: { Authorization: basic, Accept: 'application/json' }, signal: timeout() })]);
+    if (pageFetch && !pageOff[host]) ways.push(['page', () => pageFetch(url, { headers: { Accept: 'application/json' } })]);
     if (sessionFetch) ways.push(['session', () => sessionFetch(url, { headers: { Accept: 'application/json' }, credentials: 'include', signal: timeout() })]);
     if (tokens[host] && fetchFn) ways.push(['window', () => fetchFn(url, { headers: { Authorization: tokens[host], Accept: 'application/json' }, signal: timeout() })]);
     if (!ways.length) return { ok: false, status: 0, error: 'No way to sign in: save the organization\'s password, or open VB Studio once and sign in there.' };
-    ways.sort((a, b) => (b[0] === viaOf[k] ? 1 : 0) - (a[0] === viaOf[k] ? 1 : 0));
+    const rank = (w) => (w[0] === viaOf[k] ? 2 : w[0] === viaHost[host] ? 1 : 0);
+    ways.sort((a, b) => rank(b) - rank(a));
     let last = { status: 0, error: 'It did not work.' };
     for (let i = 0; i < ways.length; i++) {
       try {
         const r = await ways[i][1]();
+        if (r && r.signIn) { pageOff[host] = true; last = { status: 401, signIn: true, error: 'VB Studio needs you to sign in again: Open VB Studio, sign in, close the window — then Sync.' }; continue; }
         const text = await r.text();
         let json = null;
         if (r.ok) { try { json = JSON.parse(text); } catch (e) { json = null; } }
-        if (json !== null) { viaOf[k] = ways[i][0]; return { ok: true, status: r.status, json: json, via: ways[i][0] }; }
-        last = { status: r.status, error: r.ok ? 'VB Studio answered with a page, not data (its sign-in page?)' : r.status === 404 ? 'not there (this organization may not have it, or this user may not see it)' : why('', r.status) };
+        if (json !== null) { viaOf[k] = ways[i][0]; viaHost[host] = ways[i][0]; return { ok: true, status: r.status, json: json, via: ways[i][0] }; }
+        if (last.signIn) continue; // keep the reason that says what to do
+        last = { status: r.status, page: !!r.ok, error: r.ok ? 'VB Studio sent its sign-in page, not data' : r.status === 404 ? 'not there (this organization may not have it, or this user may not see it)' : why('', r.status) };
         if (r.status === 404) break; // not there, whoever asks
       } catch (e) { last = { status: 0, error: why(e && (e.name === 'TimeoutError' ? 'timed out' : e.message)) }; }
     }
-    return { ok: false, status: last.status, error: last.error };
+    return { ok: false, status: last.status, error: last.error, signIn: !!last.signIn, page: !!last.page };
   }
   const pl = (n, one, many) => n + ' ' + (n === 1 ? one : (many || one + 's'));
   const num = (v) => (typeof v === 'number' && isFinite(v) ? v : /^\d+$/.test(str(v)) ? Number(v) : 0);
@@ -321,7 +343,8 @@ function open(opts) {
   let live = null; // the steps of the sync running, read by discovered() while it runs
   /**
    * Sync from VB Studio: { orgId } one organization, or every one set up here and each found on the same VB Studio (the
-   * host of one set up: its sign-in borrowed). → { ok, counts, via, steps, needLearn, sync } and what is found (as discovered()).
+   * host of one set up: its sign-in borrowed); { orgKey: '<host>/<org>' } one of those; { orgKey, project } one project
+   * only (its repositories and workspaces). → { ok, counts, via, steps, needLearn, sync } and what is found (as discovered()).
    */
   function sync(b) {
     if (syncing) return syncing;
@@ -334,7 +357,10 @@ function open(opts) {
     live = steps;
     const step = (text) => { steps.push({ at: now().toISOString(), text: str(text).slice(0, 300) }); if (o.onSyncStep) { try { o.onSyncStep(str(text)); } catch (e) { /* only a log */ } } };
     const d = data.discovered || {};
-    const calls = (d.calls || []).map((c) => Object.assign({}, c, { role: c.role || L.roleOfPath(c.path) })).filter((c) => c.role && !/\{n\}|\{id\}/.test(c.path));
+    pageOff = {};
+    const known = (d.calls || []).map((c) => Object.assign({}, c, { role: c.role || L.roleOfPath(c.path) }))
+      .filter((c) => c.role && !/\{n\}|\{id\}/.test(c.path) && (c.path.indexOf('<org>_<project>') !== -1 || !c.shape || /\[\d+\]/.test(c.shape)));
+    const calls = known.concat(BUILT_IN.filter((c) => !known.some((x) => x.path === c.path)));
     const pick = (role, inProject) => calls.filter((c) => c.role === role && (c.path.indexOf('<org>_<project>') !== -1) === inProject);
     const projCalls = pick('projects', false), orgCalls = pick('orgs', false);
     const perOrg = pick('workspaces', false);
@@ -344,36 +370,44 @@ function open(opts) {
     if (b.orgId && !saved.length) return { ok: false, error: 'No such organization.' };
     if (!saved.length && !(d.orgs || []).length) return { ok: false, error: 'Add your VB Studio organization first (its address and sign-in).' };
     const targets = saved.map((x) => ({ host: x.host, org: x.org, name: x.name, basic: header(x) }));
-    if (!b.orgId) (d.orgs || []).forEach((x) => { if (targets.some((y) => y.host === x.host && y.org === x.org)) return; const same = data.orgs.filter((y) => y.host === x.host)[0]; if (same) targets.push({ host: x.host, org: x.org, name: x.org, basic: same ? header(same) : '', borrowed: !!same }); });
+    if (!b.orgId) (d.orgs || []).filter((x) => L.isOrgId(x.org)).forEach((x) => { if (targets.some((y) => y.host === x.host && y.org === x.org)) return; const same = data.orgs.filter((y) => y.host === x.host)[0]; if (same) targets.push({ host: x.host, org: x.org, name: x.org, basic: same ? header(same) : '', borrowed: !!same }); });
+    // one organization (by its host and id), one project of it
+    const only = str(b.orgKey).toLowerCase();
+    if (only) { const kept = targets.filter((x) => x.host + '/' + x.org === only); targets.length = 0; kept.forEach((x) => targets.push(x)); }
+    if (only && !targets.length) return { ok: false, error: 'Set up that organization first (its sign-in), or one on the same VB Studio.' };
+    const oneProject = str(b.project);
+    if (oneProject && !perProject.length) {
+      return { ok: false, needLearn: 'repos', error: 'Build.Rite has not seen how VB Studio lists a project\'s repositories and workspaces yet: Open VB Studio, open any project\'s Repositories and Workspaces pages, close the window — then this works for every project.' };
+    }
     const l = L.learner();
     const via = {};
     const see = (url, r) => { via[r.via] = (via[r.via] || 0) + 1; l.see({ url: url, status: r.status, json: r.json, auth: r.via === 'window' ? 'bearer' : r.via }); };
     let needLearn = '';
-    if (!projCalls.length) needLearn = 'projects';
+    if (!projCalls.length && !oneProject) needLearn = 'projects';
     step('Sync from VB Studio (API): ' + targets.length + ' organization' + (targets.length === 1 ? '' : 's') + '; the calls learned from VB Studio\'s pages: ' + projCalls.length + ' project list, ' + perProject.length + ' per project, ' + (perOrg.length + orgCalls.length) + ' other');
     if (needLearn) step('Build.Rite has not seen VB Studio\'s project list yet: open VB Studio once (Find in VB Studio), go to the organization\'s page, close the window — then Sync makes that same call directly.');
-    let refused = 0;
+    let refused = 0, signIn = false, pageOnly = false;
     for (let i = 0; i < targets.length; i++) {
       const org = targets[i];
       if (!org.basic && !sessionFetch && !tokens[org.host]) { step(org.name + ': no sign-in saved on this PC — skipped'); continue; }
-      for (const c of orgCalls.concat(projCalls, perOrg)) {
+      for (const c of oneProject ? perOrg : orgCalls.concat(projCalls, perOrg)) {
         const r = await allPages(urlOf(org, c), org.host, org.basic, see, c.path);
-        if (r.ok) step(org.name + ': ' + c.path + ' — ' + c.role + ': ' + r.pages + ' page' + (r.pages === 1 ? '' : 's') + ', ' + r.items + ' item' + (r.items === 1 ? '' : 's') + ' (signed in by ' + (r.via === 'basic' ? 'username and password' : r.via === 'session' ? 'the VB Studio window\'s session' : 'the VB Studio window\'s sign-in') + ')' + (r.partial ? '; then: ' + r.partial : ''));
-        else { refused++; step(org.name + ': ' + c.path + ' — ' + (r.status ? 'HTTP ' + r.status + ': ' : '') + r.error); }
+        if (r.ok) step(org.name + ': ' + c.path + ' — ' + c.role + ': ' + r.pages + ' page' + (r.pages === 1 ? '' : 's') + ', ' + r.items + ' item' + (r.items === 1 ? '' : 's') + ' (signed in by ' + WAYS[r.via] + ')' + (r.partial ? '; then: ' + r.partial : ''));
+        else { refused++; if (r.signIn) signIn = true; if (r.page) pageOnly = true; step(org.name + ': ' + c.path + ' — ' + (r.status ? 'HTTP ' + r.status + ': ' : '') + r.error); }
       }
       if (!perProject.length) continue;
       // each project of this organization: found now, found before, or added here
       const ids = {};
       l.found().projects.concat(d.projects || []).forEach((p) => { if (p.host === org.host && p.org === org.org) ids[p.project] = true; });
       data.projects.forEach((p) => { const so = orgOf(p.orgId); if (so && so.host === org.host && so.org === org.org) ids[p.project] = true; });
-      const list = Object.keys(ids);
+      const list = oneProject ? [oneProject] : Object.keys(ids);
       if (!list.length) { step(org.name + ': no project known in it, so no repositories or workspaces asked'); continue; }
       for (const c of perProject) {
         let ok = 0, bad = 0, lastErr = '';
         // the first project alone (the way in that works found once), then six at a time
         for (let k = 0; k < list.length; k += (k === 0 ? 1 : 6)) {
           const rs = await Promise.all(list.slice(k, k === 0 ? 1 : k + 6).map((pid) => allPages(urlOf(org, c, pid), org.host, org.basic, see, c.path)));
-          rs.forEach((r) => { if (r.ok) ok++; else { bad++; lastErr = (r.status ? 'HTTP ' + r.status + ': ' : '') + r.error; } });
+          rs.forEach((r) => { if (r.ok) ok++; else { bad++; if (r.signIn) signIn = true; lastErr = (r.status ? 'HTTP ' + r.status + ': ' : '') + r.error; } });
         }
         step(org.name + ': ' + c.path + ' — ' + c.role + ' of ' + list.length + ' project' + (list.length === 1 ? '' : 's') + ': ' + ok + ' answered' + (bad ? ', ' + bad + ' not (' + lastErr + ')' : ''));
         if (bad && !ok) refused++;
@@ -384,17 +418,57 @@ function open(opts) {
     learn(Object.assign(f, { calls: l.calls() }));
     const answered = Object.keys(via).reduce((n, k) => n + via[k], 0);
     step('Done in ' + Math.round((Date.now() - t0) / 100) / 10 + ' s: ' + pl(answered, 'answer') + ' read — ' + pl(counts.orgs, 'organization') + ' · ' + pl(counts.projects, 'project') + ' · ' + pl(counts.repos, 'repository', 'repositories') + ' · ' + pl(counts.workspaces, 'workspace'));
-    data.lastSync = { at: now().toISOString(), ok: answered > 0, counts: counts, via: via, needLearn: needLearn, steps: steps };
+    if (!oneProject) data.lastSync = { at: now().toISOString(), ok: answered > 0, counts: counts, via: via, needLearn: needLearn, signIn: signIn, steps: steps };
     save();
     const ok = answered > 0;
     live = null;
     return Object.assign(discovered(), { ok: ok, syncing: false, syncLive: null, counts: counts, via: via, steps: steps, needLearn: needLearn,
-      error: ok ? '' : needLearn && !calls.length ? 'Build.Rite has not learned VB Studio\'s calls yet: open VB Studio once (Find in VB Studio), go to the organization\'s page and a project\'s Repositories and Workspaces, then close it. After that, Sync works without the window.' : refused ? 'VB Studio refused every call (see the steps).' : 'Nothing to ask VB Studio yet (see the steps).' });
+      signIn: signIn,
+      error: ok ? '' : signIn ? 'VB Studio needs you to sign in: click Open VB Studio, sign in as usual, close the window — then Sync again (Build.Rite keeps that session on this PC).'
+        : pageOnly ? 'VB Studio sent its sign-in page instead of data: it does not take the username and password for these calls. Click Open VB Studio once and sign in — Sync then uses that session.'
+          : refused ? 'VB Studio refused every call (see what Sync did).' : 'Nothing to ask VB Studio yet (see what Sync did).' });
+  }
+
+  /**
+   * Find a project's repositories: { orgKey, project, name } → its repositories through VB Studio's API (when Build.Rite
+   * knows that call), else the names VB Studio gives a project's first repository tried, each checked with git
+   * (ls-remote, the saved sign-in): only one that exists is kept. → { ok, repos: [{ repo, url }], via, tried } + found.
+   */
+  async function findRepos(b) {
+    b = b || {};
+    const key = str(b.orgKey).toLowerCase();
+    const pid = str(b.project);
+    const m = /^([^/]+)\/([^/]+)$/.exec(key);
+    if (!m || !pid) return { ok: false, error: 'Which project?' };
+    const host = m[1], orgId = m[2];
+    const saved = data.orgs.filter((x) => x.host === host && x.org === orgId)[0] || data.orgs.filter((x) => x.host === host)[0];
+    if (!saved || !header(saved)) return { ok: false, error: 'Set up the organization first (its sign-in): Build.Rite asks VB Studio with it.' };
+    const reposOf = () => { const d = data.discovered || {}; const p = (d.projects || []).filter((x) => x.host === host && x.org === orgId && x.project === pid)[0]; return (p && p.repos) || []; };
+    const before = reposOf().length;
+    if (discovered().learned.repos) {
+      const r = await sync({ orgKey: key, project: pid });
+      if (reposOf().length > before || (r.ok && reposOf().length)) return Object.assign(discovered(), { ok: true, repos: reposOf(), via: 'api', tried: [] });
+    }
+    // the names VB Studio gives a project's repository: the project's id, without its number, its name
+    const nm = str(b.name).trim().toLowerCase();
+    const names = [pid, pid.replace(/_\d+$/, ''), nm.replace(/\s+/g, '-'), nm.replace(/\s+/g, '_'), nm.replace(/\s+/g, '')]
+      .map((x) => x.replace(/[^a-z0-9._-]/gi, '')).filter((x, i, a) => x && a.indexOf(x) === i);
+    const tried = [], found = [];
+    for (const n of names) {
+      const url = 'https://' + host + '/' + orgId + '/s/' + orgId + '_' + pid + '/scm/' + n + '.git';
+      const r = await git(['ls-remote', '--heads', url], saved, 30000);
+      tried.push({ repo: n, ok: r.code === 0, why: r.code === 0 ? '' : why(r.stderr) });
+      if (r.code === 0) { found.push({ repo: n, url: url }); break; }
+      if (/refused|may not open/.test(why(r.stderr))) break; // the sign-in itself: no use trying other names
+    }
+    if (found.length) learn({ orgs: [], workspaces: [], calls: [], projects: [{ host: host, org: orgId, project: pid, name: str(b.name), description: '', repos: found }] });
+    return Object.assign(discovered(), { ok: !!found.length, repos: found.length ? reposOf() : [], via: 'git', tried: tried,
+      error: found.length ? '' : (tried.length && /refused|may not open/.test(tried[tried.length - 1].why) ? tried[tried.length - 1].why : 'No repository found under the names VB Studio usually gives (' + names.join(', ') + '). Open VB Studio, open this project\'s Repositories page, and Build.Rite reads its real address (and learns how, for every project).') });
   }
 
   return { state: state, saveOrg: saveOrg, removeOrg: removeOrg, addProject: addProject, checkProject: checkProject, removeProject: removeProject, auth: auth, git: git,
     learn: learn, discovered: discovered, clearDiscovered: clearDiscovered, diagnostic: diagnostic, setFinder: setFinder, finderLog: finderLog,
-    sync: sync, windowSignIn: windowSignIn };
+    sync: sync, findRepos: findRepos, windowSignIn: windowSignIn };
 }
 
-module.exports = { open, parseOrgUrl, parseRepoUrl, branchesOf, jobsOf, why };
+module.exports = { open, parseOrgUrl, parseRepoUrl, branchesOf, jobsOf, why, BUILT_IN };

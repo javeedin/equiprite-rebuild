@@ -1005,7 +1005,9 @@ function createDevServer(o) {
           else if (pathname === '/__vbs/find') r = typeof o.vbsFind === 'function' ? await o.vbsFind(String(b.url || '')) : { ok: false, error: 'Find in VB Studio needs the desktop app.' };
           else if (pathname === '/__vbs/discovered/clear') r = vs.clearDiscovered();
           // Sync from VB Studio (API): no window — the calls VB Studio's pages make, made directly
-          else if (pathname === '/__vbs/sync') r = vs.sync ? await vs.sync({ orgId: String(b.orgId || '') }) : { ok: false, error: 'Sync needs the desktop app.' };
+          else if (pathname === '/__vbs/sync') r = vs.sync ? await vs.sync({ orgId: String(b.orgId || ''), orgKey: String(b.orgKey || ''), project: String(b.project || '') }) : { ok: false, error: 'Sync needs the desktop app.' };
+          // Find its repositories: VB Studio's API, else the names VB Studio usually gives, each checked with git
+          else if (pathname === '/__vbs/repos') r = vs.findRepos ? await vs.findRepos({ orgKey: String(b.orgKey || ''), project: String(b.project || ''), name: String(b.name || '') }) : { ok: false, error: 'Needs the desktop app.' };
           else return jsonV(404, { error: 'Not found' });
           log(`Setup: ${pathname.slice(7)} -> ${r && r.ok === false ? r.error : 'done'}`);
           return jsonV(200, r);

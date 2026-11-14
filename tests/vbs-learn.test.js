@@ -22,6 +22,13 @@ T.check('the organization of a page visited, and of any VB Studio address in the
 T.check('never another site, never a sign-in call', !l.see({ url: 'https://github.com/x', json: { a: 1 } }) && !l.see({ url: 'https://idcs-123.identity.oraclecloud.com/oauth2/v1/token', json: { access_token: 'x' } })
   && !l.see({ url: base + '/oauth2/token', json: { access_token: 'x' } }) && l.calls().every((c) => !/token|oauth/.test(c.path)));
 
+T.check('VB Studio\'s own services are not organizations (api2, static, rest…), from the addresses called or in the data', (() => {
+  const l4 = L.learner();
+  l4.see({ url: 'https://' + HOST + '/api2/v2/whatever', json: { a: 1 } });
+  l4.see({ url: base + '/api2/v2/organization/current', json: { links: ['https://' + HOST + '/api2/v2/x', 'https://' + HOST + '/static/app.js', 'https://' + HOST + '/' + ORG + '/'] } });
+  return l4.found().orgs.map((o) => o.org).join() === ORG && L.isOrgId(ORG) && !L.isOrgId('api2') && !L.isOrgId('static');
+})());
+
 T.section('projects: from the calls, the Git addresses, the project lists');
 l.see({ url: base + '/rest/' + ORG + '/projects?offset=0', status: 200, json: { count: 2, items: [
   { identifier: 'equiprite_1234', displayName: 'EquipRite', description: SECRET_VALUE, owner: { username: 'demo.user' } },

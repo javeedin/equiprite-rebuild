@@ -83,7 +83,8 @@ function learned(withRoles) {
     T.check('no organization: said', !n0.ok && /Add your VB Studio organization/.test(n0.error), JSON.stringify(n0));
     s0.saveOrg({ name: 'Rite demo', url: base + '/', user: 'demo.user', password: 'S3cret!#' });
     const n1 = await s0.sync({});
-    T.check('an organization, but VB Studio\'s calls never seen: said what to do once (Find), nothing asked', !n1.ok && n1.needLearn === 'projects' && /Find in VB Studio/.test(n1.error) && vb0.seen.length === 0, JSON.stringify(n1).slice(0, 300));
+    T.check('an organization, VB Studio\'s pages never seen: VB Studio\'s own project list asked all the same (built in) — not there here: said', !n1.ok && vb0.seen.map((x) => x.path).join() === '/' + ORG + '/api2/v2/organization/projects'
+      && /refused every call|not there/.test(n1.error + JSON.stringify(n1.steps)), JSON.stringify(n1).slice(0, 300));
 
     T.section('every project, every page; each project\'s repositories and workspaces');
     const vb = vbStudio();
@@ -94,7 +95,7 @@ function learned(withRoles) {
     const r = await st.sync({ orgId: so.org.id });
     const pr = (r.projects || []).filter((p) => p.org === ORG);
     T.check('all 77 projects (4 pages of 25: hasMore, offset), with their names and descriptions', r.ok && pr.length === 77 && pr.filter((p) => p.project === 'proj_77')[0].name === 'Project 77'
-      && vb.seen.filter((x) => /\/projects$/.test(x.path)).map((x) => x.query).join(' ') === '?offset=0&limit=25 ?offset=25&limit=25 ?offset=50&limit=25 ?offset=75&limit=25', vb.seen.filter((x) => /\/projects$/.test(x.path)).map((x) => x.query).join(' '));
+      && vb.seen.filter((x) => /\/rest\/[^/]+\/projects$/.test(x.path)).map((x) => x.query).join(' ') === '?offset=0&limit=25 ?offset=25&limit=25 ?offset=50&limit=25 ?offset=75&limit=25', vb.seen.filter((x) => /\/projects$/.test(x.path)).map((x) => x.query).join(' '));
     T.check('…the recorded call\'s other query parameters never sent (only its paging)', vb.seen.every((x) => x.query.indexOf('SECRET') === -1 && x.query.indexOf('q=') === -1));
     const p9 = pr.filter((p) => p.project === 'proj_9')[0];
     T.check('each project\'s repositories (its Git address) — refused with the username and password, read with the VB Studio window\'s session', p9.repos.length === 1 && p9.repos[0].url === base + '/s/' + ORG + '_proj_9/scm/proj_9-ui.git'
@@ -134,13 +135,68 @@ function learned(withRoles) {
     const r3b = await st3b.sync({});
     T.check('…gone when the app is opened again', r3b.counts.repos === 0, JSON.stringify(r3b.counts));
 
+    T.section('VB Studio\'s internal calls (api2): its sign-in page for the username and password — made from inside VB Studio\'s own page');
+    const PAGE_PROJECTS = { items: [{ id: 'demo-agent_100001', name: 'Demo_Agent' }, { id: 'sample-git_100002', name: 'samplegit' }, { id: 'contracts-hub_100003', name: 'Contracts Hub' }] };
+    const pageSeen = [];
+    let pageAnswer = 'data';
+    const api2 = async (url, init) => { const u = new URL(url); return u.pathname === '/' + ORG + '/api2/v2/organization/projects' && !(init && init.headers && init.headers.Authorization) ? res(200, '<!doctype html><title>Sign In</title>', 'text/html') : res(200, '<html>Sign in</html>', 'text/html'); };
+    const st5 = V.open({ file: path.join(tmp, 'f.json'), encrypt: enc, decrypt: dec, fetch: api2, sessionFetch: api2,
+      pageFetch: async (url) => { pageSeen.push(new URL(url).pathname); if (pageAnswer === 'signin') return { signIn: true }; return new URL(url).pathname === '/' + ORG + '/api2/v2/organization/projects' ? res(200, PAGE_PROJECTS) : res(404, {}); } });
+    st5.saveOrg({ name: 'Rite demo', url: base + '/', user: 'demo.user', password: 'S3cret!#' });
+    const r5 = await st5.sync({});
+    T.check('nothing learned, the username and password answered with the sign-in page: read from inside VB Studio\'s page — its 3 projects, their names', r5.ok && r5.projects.length === 3 && r5.projects.filter((p) => p.project === 'demo-agent_100001')[0].name === 'Demo_Agent' && r5.via.page === 1
+      && /signed in by your VB Studio session, inside VB Studio's own page/.test(r5.steps.map((x) => x.text).join('\n')), JSON.stringify(r5.steps.map((x) => x.text)));
+    pageAnswer = 'signin';
+    const r6 = await st5.sync({});
+    T.check('…VB Studio\'s session expired: said what to do (Open VB Studio, sign in) — its page not asked again in that sync', !r6.ok && r6.signIn && /Open VB Studio, sign in/.test(r6.error) && st5.discovered().sync.signIn === true, r6.error);
+    const st7 = V.open({ file: path.join(tmp, 'g.json'), encrypt: enc, decrypt: dec, fetch: api2, sessionFetch: api2 });
+    st7.saveOrg({ name: 'Rite demo', url: base + '/', user: 'demo.user', password: 'S3cret!#' });
+    const r7 = await st7.sync({});
+    T.check('…without VB Studio\'s page (not the desktop app): its sign-in page said as such, with what to do', !r7.ok && /sent its sign-in page instead of data/.test(r7.error) && /Open VB Studio once and sign in/.test(r7.error), r7.error);
+
+    T.section('one organization; one project (its repositories and workspaces)');
+    const vb8 = vbStudio();
+    const st8 = V.open({ file: path.join(tmp, 'h.json'), encrypt: enc, decrypt: dec, fetch: vb8.fetch, sessionFetch: vb8.session });
+    st8.saveOrg({ name: 'Rite demo', url: base + '/', user: 'demo.user', password: 'S3cret!#' });
+    st8.learn(learned(true));
+    const r8 = await st8.sync({ orgKey: HOST + '/' + ORG, project: 'proj_9' });
+    T.check('one project: only its repositories and workspaces asked (no project list); the last sync line kept', r8.ok && vb8.seen.every((x) => /proj_9\//.test(x.path)) && vb8.seen.length >= 2 && r8.projects.filter((p) => p.project === 'proj_9')[0].repos.length === 1 && !st8.discovered().sync, vb8.seen.map((x) => x.path).join());
+    const r9 = await st8.sync({ orgKey: HOST + '/other-org-x', project: 'p' });
+    T.check('…an organization not set up (nor on its VB Studio): said', !r9.ok && /Set up that organization first/.test(r9.error));
+    const st9 = V.open({ file: path.join(tmp, 'i.json'), encrypt: enc, decrypt: dec, fetch: vb8.fetch });
+    st9.saveOrg({ name: 'Rite demo', url: base + '/', user: 'demo.user', password: 'S3cret!#' });
+    const r10 = await st9.sync({ orgKey: HOST + '/' + ORG, project: 'proj_9' });
+    T.check('…a project\'s calls never seen: said what to open once in VB Studio', !r10.ok && r10.needLearn === 'repos' && /Repositories and Workspaces pages/.test(r10.error), r10.error);
+
+    T.section('Find its repositories: VB Studio\'s API when known, else the names VB Studio usually gives (each checked with git)');
+    const gitSeen = [];
+    const st10 = V.open({ file: path.join(tmp, 'j.json'), encrypt: enc, decrypt: dec, fetch: vb.fetch,
+      git: (args, auth) => { gitSeen.push(args[args.length - 1]); return /\/scm\/demo-agent\.git$/.test(args[args.length - 1]) ? { code: 0, stdout: 'abc\trefs/heads/main\n', stderr: '' } : { code: 128, stdout: '', stderr: 'fatal: repository not found' }; } });
+    st10.saveOrg({ name: 'Rite demo', url: base + '/', user: 'demo.user', password: 'S3cret!#' });
+    st10.learn({ orgs: [], workspaces: [], calls: [], projects: [{ host: HOST, org: ORG, project: 'demo-agent_100001', name: 'Demo Agent', description: '', repos: [] }] });
+    const fr = await st10.findRepos({ orgKey: HOST + '/' + ORG, project: 'demo-agent_100001', name: 'Demo Agent' });
+    T.check('no repositories call known: the likely names tried in turn (the project id, without its number…) — the one that exists kept, with its address', fr.ok && fr.via === 'git' && fr.repos.length === 1 && fr.repos[0].url === base + '/s/' + ORG + '_demo-agent_100001/scm/demo-agent.git'
+      && gitSeen.join(' ') === base + '/s/' + ORG + '_demo-agent_100001/scm/demo-agent_100001.git ' + base + '/s/' + ORG + '_demo-agent_100001/scm/demo-agent.git'
+      && st10.discovered().projects.filter((p) => p.project === 'demo-agent_100001')[0].repos.length === 1, JSON.stringify(fr.tried));
+    gitSeen.length = 0;
+    const fr2 = await st10.findRepos({ orgKey: HOST + '/' + ORG, project: 'other_1', name: 'Other thing' });
+    T.check('…none of them: said, with the names tried and what to open in VB Studio', !fr2.ok && /No repository found under the names VB Studio usually gives \(other_1, other, other-thing, other_thing, otherthing\)/.test(fr2.error) && /Repositories page/.test(fr2.error), fr2.error);
+    const fr3 = await st10.findRepos({ orgKey: 'other-dev2-demo-iad.developer.ocp.oraclecloud.com/other-dev2-demo-iad', project: 'x' });
+    T.check('…an organization on a VB Studio with nothing set up: said (set it up first)', !fr3.ok && /Set up the organization first/.test(fr3.error), fr3.error);
+    const vb11 = vbStudio();
+    const st11 = V.open({ file: path.join(tmp, 'k.json'), encrypt: enc, decrypt: dec, fetch: vb11.fetch, sessionFetch: vb11.session, git: () => ({ code: 128, stdout: '', stderr: 'not found' }) });
+    st11.saveOrg({ name: 'Rite demo', url: base + '/', user: 'demo.user', password: 'S3cret!#' });
+    st11.learn(learned(true));
+    const fr4 = await st11.findRepos({ orgKey: HOST + '/' + ORG, project: 'proj_12', name: 'Project 12' });
+    T.check('the repositories call known: VB Studio\'s API answers (no guessing)', fr4.ok && fr4.via === 'api' && fr4.repos[0].url === base + '/s/' + ORG + '_proj_12/scm/proj_12-ui.git', JSON.stringify(fr4.repos));
+
     T.section('a list whose paging is ignored; two syncs at once');
     const vb4 = vbStudio({ ignorePaging: true });
     const st4 = V.open({ file: path.join(tmp, 'e.json'), encrypt: enc, decrypt: dec, fetch: vb4.fetch, sessionFetch: vb4.session });
     st4.saveOrg({ name: 'Rite demo', url: base + '/', user: 'demo.user', password: 'S3cret!#' });
     st4.learn(learned(true));
     const both = await Promise.all([st4.sync({}), st4.sync({})]);
-    T.check('the same page again: stopped there (25 projects), not asked forever', both[0].projects.length === 25 && vb4.seen.filter((x) => /\/projects$/.test(x.path)).length === 2, String(vb4.seen.filter((x) => /\/projects$/.test(x.path)).length));
+    T.check('the same page again: stopped there (25 projects), not asked forever', both[0].projects.length === 25 && vb4.seen.filter((x) => /\/rest\/[^/]+\/projects$/.test(x.path)).length === 2, String(vb4.seen.filter((x) => /\/projects$/.test(x.path)).length));
     T.check('two syncs at once: one run, the same answer', both[0] === both[1]);
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);

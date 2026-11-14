@@ -351,11 +351,23 @@ function vbsStore() {
       // Sync from VB Studio: when VB Studio refuses the saved sign-in for a call, the VB Studio window's own session (its
       // cookies, kept between runs) — the same calls, no window
       sessionFetch: (url, init) => session.fromPartition('persist:vbstudio').fetch(url, init),
+      // …and VB Studio's internal calls (api2), which take only VB Studio's own page: made from inside it (a hidden window)
+      pageFetch: (url, init) => vbsPageFetch(url, init),
       onSyncStep: (text) => pushLog(`${new Date().toTimeString().slice(0, 8)} Sync from VB Studio: ${String(text).slice(0, 300)}`),
       gitPath: commandPath('git') || 'git',
     });
   }
   return vbsStoreInst;
+}
+// Sync from VB Studio: VB Studio's internal calls (api2) answer only VB Studio's own page, so they are made from inside it —
+// a hidden window signed in with the session kept from Open VB Studio (lib/vbsPage.js)
+let vbsPageInst = null;
+function vbsPageFetch(url, init) {
+  if (!vbsPageInst) {
+    vbsPageInst = require('./lib/vbsPage').create({ BrowserWindow: BrowserWindow, partition: 'persist:vbstudio', isHost: require('./lib/vbsLearn').isVbsHost,
+      log: (t) => pushLog(`${new Date().toTimeString().slice(0, 8)} Sync from VB Studio: ${t}`) });
+  }
+  return vbsPageInst.fetch(url, init);
 }
 // Find in VB Studio (Setup → Organizations & projects): VB Studio in a window of its own — signed in there as usual (its
 // own session, kept between runs) — and what its pages load read as they load (the window's DevTools network events):

@@ -30,6 +30,8 @@ define([], function () {
     diagnostic: function () { return call('diagnostic'); },
     clearDiscovered: function () { return post('discovered/clear', {}); },
     /** Sync from VB Studio (API, no window): every project (all pages), its repositories and workspaces. */
-    sync: function (orgId) { return post('sync', { orgId: orgId || '' }); },
+    sync: function (o) { return post('sync', typeof o === 'object' && o ? o : { orgId: o || '' }); },
+    /** Find a project's repositories: VB Studio's API, else the names VB Studio usually gives (each checked with git). */
+    findRepos: function (orgKey, project, name) { return post('repos', { orgKey: orgKey, project: project, name: name || '' }); },
   };
 });

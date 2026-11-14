@@ -20,7 +20,10 @@
     "found": { "type": "any", "defaultValue": null, "description": "Find in VB Studio: the organizations, projects (their Git addresses) and workspaces read from VB Studio's pages (desktop/lib/vbsLearn.js)." },
     "watching": { "type": "boolean", "defaultValue": false, "description": "The VB Studio window is open: what it finds is read again every few seconds." },
     "syncing": { "type": "boolean", "defaultValue": false, "description": "Sync from VB Studio (API) is running: its steps read again every second or so." },
-    "syncOpen": { "type": "boolean", "defaultValue": false, "description": "What the last sync did, shown open (right after it ran)." }
+    "syncOpen": { "type": "boolean", "defaultValue": false, "description": "What the last sync did, shown open (right after it ran)." },
+    "fOrg": { "type": "string", "defaultValue": "", "description": "The organization filtered on ('<host>/<org>'; empty: all)." },
+    "fText": { "type": "string", "defaultValue": "", "description": "Projects filtered by their name, id or description." },
+    "fProject": { "type": "string", "defaultValue": "", "description": "The project opened ('<host>/<org>/<project>'): its repositories and workspaces." }
   },
   "eventListeners": {
     "vbEnter": { "chains": [ { "chain": "loadChain" } ] },

@@ -48,6 +48,12 @@ define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) =>
         v.result = { ok: true, text: 'Enter how you sign in to ' + org + ', then Save: its projects can then be added with one click.' };
         return;
       }
+      // the filter: an organization (its projects); a project opened (its repositories and workspaces), closed
+      const toFound = () => setTimeout(() => { try { const e = document.getElementById('vbsFound'); if (e && e.scrollIntoView) e.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (er) { /* not drawn */ } }, 30);
+      const savedOf = (k) => (v.orgs || []).filter((o) => o.host + '/' + o.org === k)[0];
+      if (act === 'filterOrg') { v.fOrg = String(key || ''); v.fProject = ''; const so = savedOf(v.fOrg); if (so) v.selOrg = so.id; return; }
+      if (act === 'openProject') { const k = String(key || ''); v.fProject = k; v.fOrg = k.split('/').slice(0, 2).join('/'); const so = savedOf(v.fOrg); if (so) v.selOrg = so.id; toFound(); return; }
+      if (act === 'closeProject') { v.fProject = ''; toFound(); return; }
       if (act === 'cancelOrg') { v.formOrg = false; v.editId = ''; v.oPass = ''; clearBox('vbsOPass'); return; }
       if (v.busy) return;
       v.busy = true; v.result = null;
@@ -76,14 +82,31 @@ define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) =>
           v.syncing = true; v.syncOpen = false;
           const poll = setInterval(async () => { const f = await VC.discovered(); if (f.ok && v.syncing) v.found = f.body; }, 1200);
           let r;
-          try { r = await VC.sync(''); } finally { clearInterval(poll); v.syncing = false; }
+          try { r = await VC.sync(v.fOrg ? { orgKey: v.fOrg } : ''); } finally { clearInterval(poll); v.syncing = false; }
           if (r.body && Array.isArray(r.body.projects)) v.found = r.body;
-          v.syncOpen = true;
+          v.syncOpen = !r.ok; // what Sync did: shown open when something went wrong
           const s = await VC.state();
           if (s.ok) { v.orgs = s.body.orgs; v.projects = s.body.projects; }
           if (!r.ok) { v.result = { ok: false, text: r.body.error || 'Sync did not work.' }; return; }
           const c = r.body.counts || {};
           v.result = { ok: true, text: 'Synced from VB Studio (API, no window): ' + c.projects + ' project' + (c.projects === 1 ? '' : 's') + ', ' + c.repos + ' repositor' + (c.repos === 1 ? 'y' : 'ies') + ', ' + c.workspaces + ' workspace' + (c.workspaces === 1 ? '' : 's') + '.' };
+          return;
+        }
+        if (act === 'findRepos' || act === 'syncProject') {
+          // one project: its repositories (VB Studio's API, else the names VB Studio usually gives, checked with git), or
+          // its repositories and workspaces again through the API
+          const k = String(key || '').split('/');
+          const ok = k.slice(0, 2).join('/'), pid = k.slice(2).join('/');
+          const fp = ((v.found && v.found.projects) || []).filter((p) => p.host + '/' + p.org + '/' + p.project === String(key || ''))[0] || {};
+          const r = act === 'findRepos' ? await VC.findRepos(ok, pid, fp.name || '') : await VC.sync({ orgKey: ok, project: pid });
+          if (r.body && Array.isArray(r.body.projects)) v.found = r.body;
+          if (!r.ok) { v.result = { ok: false, text: r.body.error || 'Not found.' }; return; }
+          const np = ((v.found && v.found.projects) || []).filter((p) => p.host + '/' + p.org + '/' + p.project === String(key || ''))[0] || {};
+          const nr = (np.repos || []).length;
+          const nw = ((v.found && v.found.workspaces) || []).filter((w) => w.host + '/' + w.org + '/' + w.project === String(key || '')).length;
+          v.result = act === 'findRepos'
+            ? { ok: true, text: 'Found ' + (fp.name || pid) + '\'s repositor' + (nr === 1 ? 'y' : 'ies') + ': ' + (np.repos || []).map((x) => x.repo).join(', ') + (r.body.via === 'git' ? ' (checked with git: it exists).' : ' (from VB Studio\'s API).') + ' Add it to Build.Rite to work with it.' }
+            : { ok: true, text: (fp.name || pid) + ' refreshed from VB Studio: ' + nr + ' repositor' + (nr === 1 ? 'y' : 'ies') + ', ' + nw + ' workspace' + (nw === 1 ? '' : 's') + '.' };
           return;
         }
         if (act === 'addFound') {

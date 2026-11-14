@@ -23,9 +23,13 @@ const str = (v) => (v === undefined || v === null ? '' : String(v));
 const SIGNIN = /oauth|token|\/sso\b|sso\/|login|logout|identity|saml|openid|authenticate|\/auth\//i;
 const isVbsHost = (h) => /\.oraclecloud\.com$/i.test(h) && /developer/i.test(h);
 const ORG_RE = /^[a-z0-9][a-z0-9-]{2,}$/;
+// the first part of a VB Studio address that is not an organization (its services, its files)
+const NOT_ORG = /^(s|rest|static|vbstudio|api\d*|v\d+|ui|public|assets|resources|js|css|img|images|fonts|cdn|dist|libs?|favicon|help|docs|status|health|metrics|socket|ws|graphql|oauth2?|sso|idcs|signin|login|logout|auth|scm|git|maven|npm|registry|webhooks?|hooks)$/i;
+/** An organization's id: its shape, and not one of VB Studio's own services (api2, static, rest…). */
+const isOrgId = (id) => ORG_RE.test(str(id)) && !NOT_ORG.test(str(id));
 const GIT_RE = /https:\/\/([a-z0-9.-]+)\/([a-z0-9][a-z0-9-]*)\/s\/([a-z0-9][a-z0-9-]*)_([A-Za-z0-9._-]+)\/scm\/([A-Za-z0-9._-]+?)(?:\.git)?(?=["'\s,)\]}]|$)/g;
 const VBS_URL_RE = /https:\/\/([a-z0-9.-]*developer[a-z0-9.-]*\.oraclecloud\.com)\/([a-z0-9][a-z0-9-]{2,})(?=[/"'\s?#]|$)/gi;
-const AUTH_KINDS = /^(basic|bearer|cookie|session)$/;
+const AUTH_KINDS = /^(basic|bearer|cookie|session|page)$/;
 const pick = (o, re) => { const k = Object.keys(o || {}).filter((x) => re.test(x))[0]; return k ? o[k] : undefined; };
 const scalar = (v) => (v === null || v === undefined ? '' : typeof v === 'object' ? str(v.name || v.displayName || v.username || v.id || '') : str(v));
 
@@ -65,7 +69,7 @@ function listsIn(j) {
 
 function learner() {
   const orgs = {}, projects = {}, workspaces = {}, calls = {};
-  const org = (host, id) => { if (!host || !ORG_RE.test(id)) return null; const k = host + '/' + id; if (!orgs[k]) orgs[k] = { host: host, org: id, url: 'https://' + host + '/' + id + '/' }; return orgs[k]; };
+  const org = (host, id) => { if (!host || !isOrgId(id)) return null; const k = host + '/' + id; if (!orgs[k]) orgs[k] = { host: host, org: id, url: 'https://' + host + '/' + id + '/' }; return orgs[k]; };
   const project = (host, o, id) => {
     if (!o || !id) return null;
     const k = host + '/' + o + '/' + id;
@@ -78,7 +82,7 @@ function learner() {
     if (!isVbsHost(u.hostname) || SIGNIN.test(u.pathname + u.search)) return false;
     const host = u.hostname.toLowerCase();
     const parts = u.pathname.split('/').filter(Boolean);
-    const o = parts[0] && ORG_RE.test(parts[0]) ? parts[0] : '';
+    const o = parts[0] && isOrgId(parts[0]) ? parts[0] : '';
     if (o) org(host, o);
     // …/rest/<org>_<project>/… : a project of that organization
     let pid = '';
@@ -100,7 +104,7 @@ function learner() {
     // every VB Studio address in the data: its organization
     let m;
     VBS_URL_RE.lastIndex = 0;
-    while ((m = VBS_URL_RE.exec(text))) { if (!/^(s|rest|static|vbstudio|api)$/.test(m[2])) org(m[1].toLowerCase(), m[2].toLowerCase()); }
+    while ((m = VBS_URL_RE.exec(text))) org(m[1].toLowerCase(), m[2].toLowerCase());
     // every Git address in the data: its project and repository (the reliable part)
     GIT_RE.lastIndex = 0;
     while ((m = GIT_RE.exec(text))) {
@@ -173,4 +177,4 @@ function merge(a, b) {
   return out;
 }
 
-module.exports = { learner, merge, shapeOf, isVbsHost, roleOf, roleOfPath, listsIn, SIGNIN };
+module.exports = { learner, merge, shapeOf, isVbsHost, isOrgId, roleOf, roleOfPath, listsIn, SIGNIN };
