@@ -7,6 +7,8 @@
     "info": { "type": "object", "defaultValue": { "available": false, "canWrite": false, "canCapture": false, "data": null }, "description": "The local server: answers, can write into the project, can capture screenshots (desktop app); data: the git branch the sheets are kept on ({ separate, branch, reason }, lib/dataBranch.js)." },
     "busy": { "type": "boolean", "defaultValue": false },
     "progress": { "type": "string", "defaultValue": "" },
+    "steps": { "type": "any", "defaultValue": null, "description": "Build the sheet, step by step: { title, pct, list: [{ label, detail, state }] } (read the code, save the sheet, commit & push)." },
+    "busyAct": { "type": "string", "defaultValue": "", "description": "The action going on (its button shows it working)." },
     "pages": { "type": "any[]", "defaultValue": [], "description": "The catalog: [{ id, app, appName, flow, page, label, route, stories, sheet }]." },
     "q": { "type": "string", "defaultValue": "" },
     "appF": { "type": "string", "defaultValue": "all", "description": "The app shown: all, or an app id (vbredwoodapp, equiprite, equiprite-next, …)." },

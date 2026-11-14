@@ -47,12 +47,52 @@ define([
         await refresh();
       };
       v.busy = true;
+      v.busyAct = act;
       try {
         const id = v.selId;
         if (act === 'rescan') { v.progress = 'Reading every page of the project…'; const r = await PC.rescan(v.commit); await done(r, 'The page list is up to date: ' + ((r.body && r.body.pages) || 0) + ' pages.'); return; }
         if (act === 'push') { const r = await PC.gitSave('Application pages: update'); v.result = r.body.ok ? { ok: true, text: r.body.nothing ? 'Nothing to commit or push.' : 'Saved to git' + (r.body.pushed ? ', pushed to ' + r.body.upstream : '') + '.' } : { ok: false, text: (r.body.error || 'git failed.') + (r.body.hint ? ' ' + r.body.hint : '') }; await refresh(); return; }
         if (!id) return;
-        if (act === 'build') { v.progress = 'Reading the page\'s code…'; await done(await PC.build(id, v.commit), 'The technical sheet is saved.'); return; }
+        if (act === 'build') {
+          const list = [
+            { label: 'Read the page\'s code', detail: 'its HTML, JSON, JavaScript and action chains', state: 'active' },
+            { label: 'Work out its facts and save the sheet', detail: 'REST calls, action chains, rules, BI reports, actions, integrations, navigation', state: 'todo' },
+            { label: v.commit ? 'Commit & push it for the team' : 'Commit & push it (off: kept on this PC)', detail: v.commit ? 'to ' + ((v.git && v.git.branch) || 'the data branch') : '', state: v.commit ? 'todo' : 'skipped' },
+          ];
+          let cap = 40;
+          const show = (pct) => { v.steps = { title: 'Building the sheet of ' + ((v.sheet && v.sheet.facts && v.sheet.facts.label) || id), pct: Math.round(pct), list: list.map((x) => Object.assign({}, x)) }; };
+          let pct = 4;
+          show(pct);
+          const ease = setInterval(() => { pct = Math.min(cap, pct + Math.max(0.6, (cap - pct) * 0.12)); show(pct); }, 250);
+          try {
+            const r = await PC.build(id, false);
+            const b = r.body || {};
+            if (!b.ok) { clearInterval(ease); list[0].state = 'failed'; list[0].detail = b.error || 'It could not be read.'; show(pct); v.result = { ok: false, text: b.error || 'That did not work.' }; return; }
+            const f = (b.sheet && b.sheet.facts) || {};
+            const n = (x) => (Array.isArray(x) ? x.length : 0);
+            const lg = f.logic || {}, ig = f.integrations || {}, ft = f.features || {};
+            list[0].state = 'done'; list[0].detail = ((b.sheet && b.sheet.codeHash) ? 'code ' + b.sheet.codeHash : '');
+            list[1].state = 'done';
+            list[1].detail = [n(ig.rest) + ' REST calls', n(lg.chains) + ' action chains', n(lg.modules) + ' rules modules', n(ig.reports) + ' BI reports', n(ft.actions) + ' actions', n(ig.backends) + ' services'].join(' · ');
+            pct = Math.max(pct, 60); cap = v.commit ? 92 : 100;
+            if (v.commit) list[2].state = 'active';
+            show(pct);
+            let git = null;
+            if (v.commit) {
+              const g = await PC.gitSave('Application pages: sheet of ' + id);
+              git = g.body || {};
+              list[2].state = git.ok ? 'done' : 'failed';
+              list[2].detail = git.ok ? (git.nothing ? 'nothing new to commit' : 'pushed' + (git.upstream ? ' to ' + git.upstream : '')) : (git.error || 'git failed.') + (git.hint ? ' ' + git.hint : '');
+            }
+            clearInterval(ease); cap = 100; pct = 100; show(pct);
+            v.result = { ok: !git || git.ok, text: ('The technical sheet is saved.' + gitNote(git)).trim() };
+            await refresh();
+          } finally {
+            clearInterval(ease);
+            setTimeout(() => { if (v.steps && v.steps.pct === 100) v.steps = null; }, 6000);
+          }
+          return;
+        }
         if (act === 'capture') { v.progress = 'Opening the page in a hidden window and capturing it (up to 30 s)…'; await done(await PC.capture(id, v.commit), 'Screenshot captured.'); return; }
         if (act === 'upload') {
           // one or several images, each added to the page's screenshots (one commit at the end)
@@ -118,6 +158,7 @@ define([
       } finally {
         v.progress = '';
         v.busy = false;
+        v.busyAct = '';
       }
     }
   }

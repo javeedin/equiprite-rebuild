@@ -70,6 +70,13 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.click('#pgBuild');
     await page.waitForFunction(() => /Sheet built/.test((document.getElementById('pgSheetState') || {}).textContent || ''), null, { timeout: 20000 });
     T.check('the sheet is saved and pushed', /The technical sheet is saved\. Pushed to origin\/pages\/test/.test(await text(page, '#pgResult')) && pg.gitRemote('log', '-1', '--format=%s', 'pages/test') === 'Application pages: sheet of ' + ID, await text(page, '#pgResult'));
+    const stepsText = await text(page, '#pgSteps');
+    T.check('…shown step by step: the code read, its facts worked out and the sheet saved (what it found), committed & pushed — the bar at 100%', /^Building the sheet of .*100%/.test(stepsText) && (await page.getAttribute('#pgStepsBar', 'value')) === '100'
+      && (await page.$$eval('#pgStepsList li', (l) => l.map((x) => x.className.replace(/.*--/, '')))).join() === 'done,done,done'
+      && /Read the page's code\s*code \S+/.test(stepsText) && /Work out its facts and save the sheet\s*\d+ REST calls · \d+ action chains · \d+ rules modules · \d+ BI reports · \d+ actions · \d+ services/.test(stepsText)
+      && /Commit & push it for the team\s*pushed to origin\/pages\/test/.test(stepsText) && (await text(page, '#pgBuild')) === 'Refresh the sheet', stepsText);
+    await page.evaluate(() => { const e = document.getElementById('pgSteps'); if (e && e.scrollIntoView) e.scrollIntoView({ block: 'center' }); });
+    await env.shot('app-pages-build-steps.png');
     await page.fill('#pgMapKey', 'eqp-93');
     await page.dispatchEvent('#pgMapKey', 'input');
     await page.click('#pgMapBtn');

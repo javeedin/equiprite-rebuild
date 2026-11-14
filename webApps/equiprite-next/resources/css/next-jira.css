@@ -1707,3 +1707,9 @@ html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, htm
 .nx-work-mnote { display: block; font-size: 12px; font-weight: 500; color: #6b7886; }
 .nx-work-menu .nx-work-danger { color: #a1381b; }
 .nx-vbsp-workend { justify-content: flex-end; margin-top: 8px; }
+/* Application pages: Build the sheet, step by step (its bar, each step and what it found) */
+.nx-pg-steps { margin: 12px 0 4px; padding: 12px 14px; border: 1px solid var(--nx-line); border-left: 4px solid #2a78d6; border-radius: 10px; background: var(--nx-surface); max-width: 760px; }
+.nx-pg-steps .nx-vbsu-psteps { margin: 0; }
+.nx-pg-steps .nx-vbsu-ps { align-items: flex-start; }
+.nx-pg-stepdetail { display: block; font-size: 12px; font-weight: 500; color: var(--nx-muted); }
+.nx-spin--btn { display: inline-block; vertical-align: -2px; width: 14px; height: 14px; border-width: 2px; border-color: rgba(255, 255, 255, .45); border-top-color: #fff; margin-right: 6px; }

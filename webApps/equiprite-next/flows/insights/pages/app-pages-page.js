@@ -162,6 +162,11 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
       return 'Branch ' + where + ' · everything is in git ✓';
     }
     needsPush(g) { return !!(g && g.available && ((g.pending && g.pending.length) || (g.unpushed && g.unpushed.length))); }
+    /** Build the sheet's steps, each with its icon (done ✓, going ●, to come ○, failed ✗, skipped –). */
+    stepRows(steps) {
+      const ICON = { done: '✓', active: '●', todo: '○', failed: '✗', skipped: '–' };
+      return ((steps && steps.list) || []).map((s) => ({ label: s.label, detail: s.detail || '', state: s.state, icon: ICON[s.state] || '○' }));
+    }
     appChips(pages, showDeleted) {
       const ps = (pages || []).filter((p) => showDeleted || !p.deleted);
       const order = APPS.map((a) => a[0]);

@@ -89,7 +89,7 @@
           </div>
           <oj-bind-if test="[[ $variables.info.canWrite ]]">
             <div class="nx-pg-acts">
-              <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="pgBuild" data-act="build" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span><oj-bind-text value="[[ $variables.saved ? 'Refresh the sheet' : 'Build the sheet' ]]"></oj-bind-text></button>
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="pgBuild" data-act="build" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Reads this page's code and saves what it is: its REST calls, action chains, rules, BI reports, actions, integrations and navigation — then commits and pushes it for the team"><oj-bind-if test="[[ $variables.busyAct === 'build' ]]"><span class="nx-spin nx-spin--btn" aria-hidden="true"></span></oj-bind-if><oj-bind-if test="[[ $variables.busyAct !== 'build' ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span></oj-bind-if><oj-bind-text value="[[ $variables.busyAct === 'build' ? 'Building…' : ($variables.saved ? 'Refresh the sheet' : 'Build the sheet') ]]"></oj-bind-text></button>
               <oj-bind-if test="[[ $variables.info.canCapture ]]"><button type="button" class="nx-btn nx-btn--sm" id="pgCapture" data-act="capture" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" :title="[[ $variables.sheet.facts.route.url ? 'Open the page in a hidden window (your sign-in, live data) and capture it — added to its screenshots' : $variables.sheet.facts.route.needs ]]"><span class="oj-ux-ico-camera" aria-hidden="true"></span>Capture screenshot</button></oj-bind-if>
               <label class="nx-btn nx-btn--sm nx-pg-upload" id="pgUploadBtn"><span class="oj-ux-ico-upload" aria-hidden="true"></span>Upload screenshots<input type="file" id="pgShotFile" accept="image/png,image/jpeg,image/webp" multiple on-change="[[ $listeners.onShotFile ]]"></label>
               <button type="button" class="nx-btn nx-btn--sm nx-aibtn" id="pgExplain" data-act="explain" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span aria-hidden="true">✨</span><oj-bind-text value="[[ $variables.sheet.ai ? 'Explain again with AI' : 'Explain with AI' ]]"></oj-bind-text></button>
@@ -100,7 +100,18 @@
         </div>
         <oj-bind-if test="[[ $variables.deleted ]]"><div class="nx-an-stale" id="pgDeletedNote">This page was deleted from the catalog (the code still has it). Restore it, or build its sheet again, to bring it back.</div></oj-bind-if>
         <oj-bind-if test="[[ $variables.codeChanged ]]"><div class="nx-an-stale" id="pgChanged">The page's code changed since this sheet was built. <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="build" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy || !$variables.info.canWrite ]]">Refresh the sheet</button></div></oj-bind-if>
-        <oj-bind-if test="[[ !!$variables.progress ]]"><div class="nx-note nx-pg-progress" id="pgProgress"><oj-bind-text value="[[ $variables.progress ]]"></oj-bind-text></div></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.progress && !$variables.steps ]]"><div class="nx-note nx-pg-progress" id="pgProgress"><span class="nx-spin" aria-hidden="true"></span> <oj-bind-text value="[[ $variables.progress ]]"></oj-bind-text></div></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.steps ]]">
+          <div class="nx-pg-steps" id="pgSteps" aria-live="polite">
+            <div class="nx-vbsu-progh"><b id="pgStepsTitle"><oj-bind-text value="[[ $variables.steps.title ]]"></oj-bind-text></b><span class="nx-vbsu-pct" id="pgStepsPct"><oj-bind-text value="[[ $variables.steps.pct + '%' ]]"></oj-bind-text></span></div>
+            <progress class="nx-vbsu-bar" id="pgStepsBar" max="100" :value="[[ $variables.steps.pct ]]" aria-label="Building the sheet"></progress>
+            <ol class="nx-vbsu-psteps" id="pgStepsList">
+              <oj-bind-for-each data="[[ $functions.stepRows($variables.steps) ]]">
+                <template data-oj-as="s"><li :class="[[ 'nx-vbsu-ps nx-vbsu-ps--' + s.data.state ]]"><span class="nx-vbsu-psi" aria-hidden="true"><oj-bind-text value="[[ s.data.icon ]]"></oj-bind-text></span><span><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text><oj-bind-if test="[[ !!s.data.detail ]]"><span class="nx-pg-stepdetail"><oj-bind-text value="[[ s.data.detail ]]"></oj-bind-text></span></oj-bind-if></span></li></template>
+              </oj-bind-for-each>
+            </ol>
+          </div>
+        </oj-bind-if>
         <oj-bind-if test="[[ !!$variables.result ]]"><div :class="[[ 'nx-flib-result ' + ($variables.result.ok ? 'nx-flib-result--ok' : 'nx-flib-result--err') ]]" id="pgResult"><oj-bind-text value="[[ $variables.result.text ]]"></oj-bind-text></div></oj-bind-if>
 
         <!-- Tabs: the page (its sheet), its map (where it is opened from, where it goes), the whole app's map -->
