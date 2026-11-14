@@ -82,8 +82,8 @@ const BUILD_SCREENS = ['projects', 'issues', 'jira', 'minutes', 'followups', 'fd
     await page.click('.nx-backdrop').catch(() => {});
     await page.waitForSelector('#nxProfilePanel', { state: 'detached', timeout: 5000 }).catch(() => {});
     await page.click('#nxNav [data-nav-id="app-pages"]');
-    await page.waitForSelector('#pgRows .nx-pg-row', { timeout: 30000 }).catch(() => {});
-    T.check('its screens work as in Next (Application pages opens)', (await page.$$('#pgRows .nx-pg-row')).length > 100);
+    await page.waitForSelector('#pgNoWorkspace', { timeout: 30000 }).catch(() => {});
+    T.check('its screens open (Application pages: your workspace\'s pages — none set up yet, said)', !!(await page.$('#pgNoWorkspace')) && (await page.$$('#pgRows .nx-pg-row')).length === 0);
     const look = await page.evaluate(() => {
       const head = document.querySelector('.nx-pagehead');
       const after = head ? getComputedStyle(head, '::after') : null;
@@ -151,17 +151,10 @@ const BUILD_SCREENS = ['projects', 'issues', 'jira', 'minutes', 'followups', 'fd
     await page.waitForTimeout(300);
     T.check('Escape closes it (and it stops)', !(await page.evaluate(() => document.getElementById('hwPlay').open)));
     await page.click('#hw-codefix .nx-hw-openbtn');
-    await page.waitForSelector('#pgRows .nx-pg-row', { timeout: 20000 }).catch(() => {});
-    T.check('…and each one opens its screen (Code fix → Application pages)', (await page.$$('#pgRows .nx-pg-row')).length > 100 && !!(await page.$('.nx-tab--on[data-tab-id="app-pages"]'))
-      && !(await page.evaluate(() => document.getElementById('hwPlay').open)));
-    await page.click('#pgApps [data-value="equiprite-next"]');
-    await page.waitForTimeout(400);
-    const nextRows = await page.$$eval('#pgRows .nx-pg-row', (r) => r.map((x) => x.textContent));
-    T.check('a build chosen (Next): Application pages shows that build\'s pages', /EquipRite Next/.test(await text(page, '#pgApps .nx-chip--on')) && nextRows.length > 10
-      && nextRows.every((t) => /EquipRite Next/.test(t)), (await text(page, '#pgApps .nx-chip--on')) + ' ' + nextRows.length);
-    await page.click('#pgApps [data-value="all"]');
-    await page.waitForTimeout(400);
-    T.check('…All builds: every page again', (await page.$$('#pgRows .nx-pg-row')).length > 100 && /^All/.test(await text(page, '#pgApps .nx-chip--on')));
+    await page.waitForSelector('#pgNoWorkspace', { timeout: 20000 }).catch(() => {});
+    T.check('…and each one opens its screen (Code fix → Application pages)', !!(await page.$('.nx-tab--on[data-tab-id="app-pages"]')) && !(await page.evaluate(() => document.getElementById('hwPlay').open)));
+    T.check('Application pages in Build.Rite, no workspace set up: none shown (never Build.Rite\'s own Old/New/Next pages) — Set up your workspace offered; no Rescan', !!(await page.$('#pgNoWorkspace')) && !(await page.$('#pgRows .nx-pg-row')) && !(await page.$('#pgApps'))
+      && /No workspace set up/.test(await text(page, '#pgNoWorkspace')) && !!(await page.$('#pgSetupWs')) && !(await page.$('#pgRescan')) && /^No workspace set up/.test(await text(page, '#pgSub')), await text(page, '#pgSub'));
     await env.shot('buildrite.png');
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {

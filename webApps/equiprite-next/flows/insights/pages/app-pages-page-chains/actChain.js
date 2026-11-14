@@ -29,6 +29,7 @@ define([
         setTimeout(() => { const d = dlg(); try { if (d && !d.open) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); } } catch (e) { /* already open */ } }, 0);
         return;
       }
+      if (act === 'setupWs') { bus.open({ record: 'vbs-setup', params: {} }); bus.emit('vbs-setup', { reset: true }); return; }
       if (act === 'copyPath') {
         // the working folder's full path, copied
         const t = String((v.codeFrom && v.codeFrom.root) || '');

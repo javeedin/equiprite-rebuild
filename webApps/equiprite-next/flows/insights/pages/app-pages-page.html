@@ -6,7 +6,7 @@
     <div>
       <div class="nx-kicker">Insights · Code</div>
       <h1 id="pgTitle">Application pages</h1>
-      <div class="nx-sub" id="pgSub"><oj-bind-text value="[[ $functions.subText($variables.pages) ]]"></oj-bind-text></div>
+      <div class="nx-sub" id="pgSub"><oj-bind-text value="[[ $variables.noWorkspace ? 'No workspace set up: the pages of your workspace show here.' : $functions.subText($variables.pages) ]]"></oj-bind-text></div>
       <oj-bind-if test="[[ !!$variables.codeFrom ]]">
         <div class="nx-pg-codefrom" id="pgCodeFrom"><span class="oj-ux-ico-folder" aria-hidden="true"></span>
           <span><oj-bind-text value="[[ 'Your workspace: ' + $variables.codeFrom.source ]]"></oj-bind-text></span></div>
@@ -16,13 +16,23 @@
       </oj-bind-if>
     </div>
     <div class="nx-actions">
-      <oj-bind-if test="[[ $variables.info.canWrite ]]">
+      <oj-bind-if test="[[ $variables.info.canWrite && !$variables.noWorkspace ]]">
         <button type="button" class="nx-btn nx-btn--plain" id="pgRescan" data-act="rescan" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Read the project's pages again (new pages, current names) and save the list to git"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Rescan the code</button>
       </oj-bind-if>
       <button type="button" class="nx-btn nx-btn--plain" id="pgRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
     </div>
   </div>
 
+  <!-- Build.Rite with no workspace set up: nothing to show (only a workspace's working folder is read) -->
+  <oj-bind-if test="[[ $variables.noWorkspace ]]">
+    <div class="nx-card nx-pg-nows" id="pgNoWorkspace">
+      <span class="nx-pg-nows-ico oj-ux-ico-folder" aria-hidden="true"></span>
+      <h2>No workspace set up</h2>
+      <p>Application pages shows the pages of your workspace — the code in its working folder on this PC. Set one up (a VB Studio workspace and a folder), and its pages show here.</p>
+      <button type="button" class="nx-btn nx-btn--primary" id="pgSetupWs" data-act="setupWs" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-settings" aria-hidden="true"></span>Set up your workspace</button>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !$variables.noWorkspace ]]">
   <div class="nx-flib-git" id="pgGit">
     <span class="oj-ux-ico-branch nx-flib-gitico" aria-hidden="true"></span>
     <div class="nx-flib-gittext">
@@ -634,6 +644,8 @@
       </oj-bind-if>
     </section>
   </div>
+
+  </oj-bind-if>
 
   <!-- A Code fix screenshot, full size (a pasted one, or one sent with a fix) -->
   <dialog class="nx-pg-dialog" id="fxImgDlg" aria-label="Screenshot" on-close="[[ $listeners.onFixImgClosed ]]" on-click="[[ $listeners.onFixImgClick ]]">
