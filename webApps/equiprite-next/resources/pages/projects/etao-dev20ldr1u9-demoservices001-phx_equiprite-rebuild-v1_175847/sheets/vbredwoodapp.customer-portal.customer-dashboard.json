@@ -20,7 +20,7 @@
    },
    {
     "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
-    "lines": 276
+    "lines": 299
    },
    {
     "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.js",
@@ -63,7 +63,7 @@
     "lines": 43
    }
   ],
-  "codeHash": "c354fc0cb3506a7a",
+  "codeHash": "1e3de1392b6fb808",
   "features": {
    "sections": [
     "customer dashboard 26C"
@@ -418,7 +418,7 @@
   }
  ],
  "stories": [],
- "at": "2026-11-14T18:49:57.729Z",
+ "at": "2026-11-14T19:37:20.080Z",
  "by": "javeed.shaik",
- "codeHash": "c354fc0cb3506a7a"
+ "codeHash": "1e3de1392b6fb808"
 }
