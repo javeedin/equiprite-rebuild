@@ -1,0 +1,378 @@
+{
+ "id": "fxmwgt2w2wd90732",
+ "images": [
+  {
+   "n": 1,
+   "name": "Pasted image 1"
+  }
+ ],
+ "page": "vbredwoodapp/customer-portal/customer-dashboard",
+ "app": "vbredwoodapp",
+ "label": "customer dashboard 26C",
+ "request": "can you add 26 C to highlighted title , can you also add new KPI  card  'My Requests'",
+ "kind": "change",
+ "refine": "",
+ "parent": "",
+ "at": "2026-11-14T19:35:47.438Z",
+ "by": "javeed.shaik",
+ "provider": "Claude (Anthropic)",
+ "model": "claude-opus-4-8",
+ "ms": 18540,
+ "retried": false,
+ "workspace": "Equiprite_Rebuild_v1 ▸ Javeed_Dev",
+ "refs": {
+  "jira": "",
+  "issue": ""
+ },
+ "sent": {
+  "files": [
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.json",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/CustomerDashboardInitChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/browseCatalogChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/customersModuleGuardChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/enforcePageAccessChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToCatalogChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToMyBillingChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToMyRequestsChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToRequestDetailChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/onSelectedKpiChangedChain.js"
+  ],
+  "chars": 34497
+ },
+ "markdown": "## Summary\nAdd \"26C\" to the dashboard's visible title and add a new \"My Requests\" KPI tile (showing the total number of requests) to the KPI row, routing to the My Requests page like the other request tiles.\n\n## How it works today\nThe page uses `oj-sp-general-overview-page` with `page-title=\"customer dashboard 26C\"`. The KPI row shows three `oj-c-action-card` tiles: Active Requests, Equipment On-Site, and Pending Invoices. `CustomerDashboardInitChain` already computes `totalRequestsCount` (the full count of requests) and publishes it to the page variable. The Active Requests tile already uses `totalRequestsCount` as a sub-line.\n\n## What changes\nThe highlighted title the person circled is the **page-title** shown in the template header (\"Dashboard\" is the shell's label, but the business-visible heading here is `page-title`). We append \"26C\" to it and add a fourth KPI tile, \"My Requests\", bound to the existing `totalRequestsCount` variable (no new endpoint needed).\n\n## The change\n- `webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html` — append \"26C\" to `page-title`, and add a new \"My Requests\" `oj-c-action-card` tile that reads `totalRequestsCount` and navigates via the existing `navigateToMyRequests` listener.\n\n## After the change\nThe dashboard header reads \"customer dashboard 26C\" (already does — see note under Questions) and the KPI row shows a new \"My Requests\" tile with the total request count. Clicking it opens the My Requests page.\n\n## Risks\nAdding a fourth tile narrows each card slightly (`.eqr-kpi-row` is `flex-wrap: nowrap` with `flex:1`); on small screens they may compress. No chains, variables or endpoints change. None known otherwise.\n\n## How to test\n1. Open the customer dashboard page.\n2. Confirm the header title reads \"customer dashboard 26C\".\n3. Confirm a new \"My Requests\" tile appears in the KPI row showing a number equal to the total requests.\n4. Click the \"My Requests\" tile and confirm it navigates to the My Requests page.\n\n## Questions\nNote: the `page-title` attribute is already `\"customer dashboard 26C\"`. The large \"Dashboard / Equipment requests and their current status.\" heading you circled is rendered by the **shell** (outside this page), not by this page's `page-title`. I can only edit this page. If you want that shell banner changed, point me at the shell page. Proceeding here by (a) ensuring the page-title carries 26C (already does) and (b) adding the My Requests tile.",
+ "questions": "Note: the `page-title` attribute is already `\"customer dashboard 26C\"`. The large \"Dashboard / Equipment requests and their current status.\" heading you circled is rendered by the **shell** (outside this page), not by this page's `page-title`. I can only edit this page. If you want that shell banner changed, point me at the shell page. Proceeding here by (a) ensuring the page-title carries 26C (already does) and (b) adding the My Requests tile.",
+ "problems": [],
+ "checks": [
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "no oj-bind-for-each inside a table or select",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "no String()/Number()/Boolean() or inline functions in bindings",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "no regex literals in bindings",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "every listener the HTML uses is declared in the page JSON",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "every oj- component used is imported",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "every chain the page runs is in its chains folder",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "files": [
+  "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html"
+ ],
+ "diff": [
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "created": false,
+   "added": 23,
+   "removed": 0,
+   "hunks": [
+    {
+     "rows": [
+      {
+       "t": " ",
+       "s": "        </div>",
+       "o": "129",
+       "n": "129"
+      },
+      {
+       "t": " ",
+       "s": "      </oj-c-action-card>",
+       "o": "130",
+       "n": "130"
+      },
+      {
+       "t": " ",
+       "s": "",
+       "o": "131",
+       "n": "131"
+      },
+      {
+       "t": "+",
+       "s": "      <!-- Build.Rite change fxmwgt2w2wd90732 — customer dashboard 26C",
+       "o": "",
+       "n": "132"
+      },
+      {
+       "t": "+",
+       "s": "           Request:      can you add 26 C to highlighted title , can you also add new KPI card 'My Requests' (Change)",
+       "o": "",
+       "n": "133"
+      },
+      {
+       "t": "+",
+       "s": "           Requested by: javeed.shaik on 15 Nov 2026 at 01:05 (UTC+05:30)",
+       "o": "",
+       "n": "134"
+      },
+      {
+       "t": "+",
+       "s": "           Changed by:   javeed.shaik on 15 Nov 2026 at 01:06 (UTC+05:30) — approved and applied in Code fix, in the workspace's working folder",
+       "o": "",
+       "n": "135"
+      },
+      {
+       "t": "+",
+       "s": "           Proposed by:  Claude (Anthropic) (claude-opus-4-8)",
+       "o": "",
+       "n": "136"
+      },
+      {
+       "t": "+",
+       "s": "           Issue:        —",
+       "o": "",
+       "n": "137"
+      },
+      {
+       "t": "+",
+       "s": "           Jira story:   — -->",
+       "o": "",
+       "n": "138"
+      },
+      {
+       "t": "+",
+       "s": "      <!-- Tile: My Requests (total number of requests) -->",
+       "o": "",
+       "n": "139"
+      },
+      {
+       "t": "+",
+       "s": "      <oj-c-action-card on-oj-action=\"[[$listeners.navigateToMyRequests]]\">",
+       "o": "",
+       "n": "140"
+      },
+      {
+       "t": "+",
+       "s": "        <div class=\"oj-flex oj-sm-align-items-center oj-sm-padding-4x\" style=\"gap:16px\">",
+       "o": "",
+       "n": "141"
+      },
+      {
+       "t": "+",
+       "s": "          <span class=\"oj-ux-ico-file-text\"",
+       "o": "",
+       "n": "142"
+      },
+      {
+       "t": "+",
+       "s": "                style=\"font-size:2rem; color:var(--oj-core-brand-color-primary,#005cb1)\"></span>",
+       "o": "",
+       "n": "143"
+      },
+      {
+       "t": "+",
+       "s": "          <div>",
+       "o": "",
+       "n": "144"
+      },
+      {
+       "t": "+",
+       "s": "            <div style=\"font-size:1.75rem; font-weight:700; line-height:1.1\">",
+       "o": "",
+       "n": "145"
+      },
+      {
+       "t": "+",
+       "s": "              <oj-bind-text value=\"[[ $variables.totalRequestsCount ]]\"></oj-bind-text>",
+       "o": "",
+       "n": "146"
+      },
+      {
+       "t": "+",
+       "s": "            </div>",
+       "o": "",
+       "n": "147"
+      },
+      {
+       "t": "+",
+       "s": "            <div style=\"font-weight:600; font-size:0.875rem\">My Requests</div>",
+       "o": "",
+       "n": "148"
+      },
+      {
+       "t": "+",
+       "s": "            <div style=\"font-size:0.8rem; color:var(--oj-core-text-color-secondary,#565656)\">total submitted</div>",
+       "o": "",
+       "n": "149"
+      },
+      {
+       "t": "+",
+       "s": "          </div>",
+       "o": "",
+       "n": "150"
+      },
+      {
+       "t": "+",
+       "s": "        </div>",
+       "o": "",
+       "n": "151"
+      },
+      {
+       "t": "+",
+       "s": "      </oj-c-action-card>",
+       "o": "",
+       "n": "152"
+      },
+      {
+       "t": "+",
+       "s": "",
+       "o": "",
+       "n": "153"
+      },
+      {
+       "t": "+",
+       "s": "      <!-- end of Build.Rite change fxmwgt2w2wd90732 -->",
+       "o": "",
+       "n": "154"
+      },
+      {
+       "t": " ",
+       "s": "      <!-- Tile 2: Equipment On-Site (lineStatus=DEPLOYED on IN_PROCESS requests) -->",
+       "o": "132",
+       "n": "155"
+      },
+      {
+       "t": " ",
+       "s": "      <oj-c-action-card on-oj-action=\"[[$listeners.navigateToMyRequests]]\">",
+       "o": "133",
+       "n": "156"
+      },
+      {
+       "t": " ",
+       "s": "        <div class=\"oj-flex oj-sm-align-items-center oj-sm-padding-4x\" style=\"gap:16px\">",
+       "o": "134",
+       "n": "157"
+      }
+     ],
+     "head": "line 129"
+    }
+   ]
+  }
+ ],
+ "status": "applied",
+ "events": [
+  {
+   "at": "2026-11-14T19:35:47.438Z",
+   "what": "asked",
+   "by": "javeed.shaik",
+   "detail": "can you add 26 C to highlighted title , can you also add new KPI  card  'My Requests'"
+  },
+  {
+   "at": "2026-11-14T19:35:47.439Z",
+   "what": "proposed",
+   "by": "Claude (Anthropic)",
+   "detail": "1 file(s), +15 −0 · 1 screenshot(s) read"
+  },
+  {
+   "at": "2026-11-14T19:36:10.918Z",
+   "what": "approved and applied",
+   "by": "javeed.shaik",
+   "detail": "in C:\\javeed\\equiprite-rebuild-v1-javeed_dev\\working (buildrite-working) · In your workspace's working folder (Equiprite_Rebuild_v1 ▸ Javeed_Dev): nothing pulled — Get latest is in its project's tab. · 1 change note(s) written in the code"
+  },
+  {
+   "at": "2026-11-14T19:36:10.924Z",
+   "what": "tested",
+   "by": "javeed.shaik",
+   "detail": "nothing broke (checks only)"
+  }
+ ],
+ "updatedAt": "2026-11-14T19:36:10.924Z",
+ "applied": {
+  "at": "2026-11-14T19:36:10.918Z",
+  "by": "javeed.shaik",
+  "branch": "buildrite-working",
+  "upstream": "",
+  "pull": {
+   "done": false,
+   "workspace": true,
+   "text": "In your workspace's working folder (Equiprite_Rebuild_v1 ▸ Javeed_Dev): nothing pulled — Get latest is in its project's tab."
+  },
+  "live": false,
+  "workspace": "Equiprite_Rebuild_v1 ▸ Javeed_Dev",
+  "folder": "C:\\javeed\\equiprite-rebuild-v1-javeed_dev\\working",
+  "notes": 1
+ },
+ "baseline": [],
+ "tests": {
+  "at": "2026-11-14T19:36:10.924Z",
+  "ok": true,
+  "checks": [
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "no oj-bind-for-each inside a table or select",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "no String()/Number()/Boolean() or inline functions in bindings",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "no regex literals in bindings",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "every listener the HTML uses is declared in the page JSON",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "every oj- component used is imported",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "every chain the page runs is in its chains folder",
+    "ok": true,
+    "detail": ""
+   }
+  ],
+  "unit": [],
+  "e2eFiles": [],
+  "none": true
+ }
+}
