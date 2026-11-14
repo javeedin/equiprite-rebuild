@@ -51,6 +51,8 @@
     "codeSel": { "type": "string", "defaultValue": "", "description": "The file shown (its path)." },
     "codeText": { "type": "string", "defaultValue": "", "description": "Its text, read only." },
     "codeFind": { "type": "string", "defaultValue": "", "description": "What is searched for in it." },
+    "codeMarks": { "type": "any", "defaultValue": null, "description": "What changed in it (pages.js codeFile().changes): { base, isNew, regions: [{ from, to, kind }], added, removed }, or null (not in git)." },
+    "codeAt": { "type": "number", "defaultValue": -1, "description": "The change gone to (Previous / Next change), or -1." },
     "codeBusy": { "type": "boolean", "defaultValue": false },
     "apiPage": { "type": "string", "defaultValue": "", "description": "API tester (desktop/lib/apiTest.js): the page apiLast and apiReports belong to." },
     "apiLast": { "type": "any", "defaultValue": {}, "description": "The last run of each of its calls and reports ({ key: { status, ms, ok, rows, shape, at } }), shown beside each." },

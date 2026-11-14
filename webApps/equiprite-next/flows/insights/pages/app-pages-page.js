@@ -57,14 +57,24 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
       return [['page', 'The page'], ['chain', 'Action chains'], ['module', 'Rules modules it uses']]
         .map((g) => ({ id: g[0], title: g[1], files: files.filter((f) => f.group === g[0]) })).filter((g) => g.files.length);
     }
-    codeDoc(text, path, find) {
-      const k = path + '|' + find + '|' + (text || '').length + '|' + (text || '').slice(0, 64);
-      if (codeKept.k !== k) { codeKept.k = k; codeKept.v = CV.doc(text, path, find); }
+    codeDoc(text, path, find, marks, at) {
+      const k = path + '|' + find + '|' + (text || '').length + '|' + (text || '').slice(0, 64) + '|' + JSON.stringify((marks && marks.regions) || null) + '|' + at;
+      if (codeKept.k !== k) { codeKept.k = k; codeKept.v = CV.doc(text, path, find, marks, at); }
       return codeKept.v;
     }
+    // what changed in the file shown, against VB Studio (your workspace) or the branch's remote; where you are in it
+    codeChangesText(m) {
+      if (!m) return '';
+      const n = (m.regions || []).length;
+      if (m.isNew) return 'A new file: not in ' + m.base + ' yet (' + m.added + ' line' + (m.added === 1 ? '' : 's') + ')';
+      return n ? n + ' change' + (n === 1 ? '' : 's') + ' since ' + m.base + ': +' + m.added + ' −' + m.removed + ' line' + (m.added + m.removed === 1 ? '' : 's') : 'No change since ' + m.base;
+    }
+    codeAtText(m, at) { const n = (m && m.regions) ? m.regions.length : 0; return n && at >= 0 ? 'Change ' + (at + 1) + ' of ' + n : ''; }
+    codeHasNotes(text) { return Object.keys(CV.noteLines(text)).length > 0; }
+    codeFileBadge(f) { const c = f && f.changed; return !c ? '' : (c.isNew ? 'new' : '+' + c.added + ' −' + c.removed); }
     codeHits(text, find) { const n = CV.hits(text, find); return String(find || '').trim().length < 2 ? '' : (n ? n + ' match' + (n === 1 ? '' : 'es') : 'Not in this file'); }
     codeLines(text) { const n = String(text || '').split('\n').length; return text ? n + ' lines' : ''; }
-    codeFileClass(f, sel) { return 'nx-cv-file' + (f.path === sel ? ' nx-cv-file--on' : ''); }
+    codeFileClass(f, sel) { return 'nx-cv-file' + (f.path === sel ? ' nx-cv-file--on' : '') + (f.changed ? ' nx-cv-file--changed' : ''); }
     fixImgUrl(f, n) { return FX.imgUrl(f, n); }
     fixImgSize(x) { return (x.w ? x.w + '×' + x.h + ' · ' : '') + Math.max(1, Math.round((x.size || 0) / 1024)) + ' KB'; }
     // ── Code Fix (desktop/lib/codeFix.js) ──

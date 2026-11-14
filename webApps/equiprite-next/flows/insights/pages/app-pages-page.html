@@ -231,7 +231,7 @@
                     <oj-bind-for-each data="[[ g.data.files ]]">
                       <template data-oj-as="f">
                         <button type="button" role="listitem" :class="[[ $functions.codeFileClass(f.data, $variables.codeSel) ]]" data-act="file" :data-key="[[ f.data.path ]]" on-click="[[ $listeners.onCode ]]" :title="[[ f.data.path + (f.data.about ? ' — ' + f.data.about : '') ]]">
-                          <span class="nx-cv-fname"><oj-bind-text value="[[ f.data.name ]]"></oj-bind-text></span><span class="nx-cv-flines"><oj-bind-text value="[[ f.data.lines ]]"></oj-bind-text></span>
+                          <span class="nx-cv-fname"><oj-bind-text value="[[ f.data.name ]]"></oj-bind-text></span><oj-bind-if test="[[ !!f.data.changed ]]"><span class="nx-cv-fchg" :title="[[ 'Changed since ' + $variables.codeInfo.base ]]"><oj-bind-text value="[[ $functions.codeFileBadge(f.data) ]]"></oj-bind-text></span></oj-bind-if><span class="nx-cv-flines"><oj-bind-text value="[[ f.data.lines ]]"></oj-bind-text></span>
                         </button>
                       </template>
                     </oj-bind-for-each>
@@ -240,7 +240,20 @@
               </div>
               <div class="nx-cv-main">
                 <div class="nx-cv-head"><code id="pgCodePath"><oj-bind-text value="[[ $variables.codeSel ]]"></oj-bind-text></code><span class="nx-min-flex"></span><span class="nx-note"><oj-bind-text value="[[ $variables.codeBusy ? 'Reading…' : $functions.codeLines($variables.codeText) ]]"></oj-bind-text></span></div>
-                <iframe class="nx-cv-frame" id="pgCodeFrame" title="The file's code, read only" sandbox="allow-same-origin" :srcdoc="[[ $functions.codeDoc($variables.codeText, $variables.codeSel, $variables.codeFind) ]]"></iframe>
+                <!-- what changed: against VB Studio (your workspace) or the branch's remote; previous / next change; the colours -->
+                <oj-bind-if test="[[ !!$variables.codeMarks ]]">
+                  <div class="nx-cv-changes" id="pgCodeChanges">
+                    <span :class="[[ 'nx-cv-chg' + (($variables.codeMarks.regions || []).length ? ' nx-cv-chg--on' : '') ]]" id="pgCodeChg"><oj-bind-text value="[[ $functions.codeChangesText($variables.codeMarks) ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ ($variables.codeMarks.regions || []).length > 0 && !$variables.codeMarks.isNew ]]">
+                      <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgCodePrev" data-act="prevChange" on-click="[[ $listeners.onCode ]]" title="The change before">‹ Previous</button>
+                      <button type="button" class="nx-btn nx-btn--sm" id="pgCodeNext" data-act="nextChange" on-click="[[ $listeners.onCode ]]" title="The next change">Next change ›</button>
+                      <span class="nx-note" id="pgCodeAt"><oj-bind-text value="[[ $functions.codeAtText($variables.codeMarks, $variables.codeAt) ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                    <span class="nx-min-flex"></span>
+                    <span class="nx-cv-legend" aria-label="The colours"><i class="nx-cv-lg nx-cv-lg--a"></i>added <i class="nx-cv-lg nx-cv-lg--m"></i>changed <i class="nx-cv-lg nx-cv-lg--d"></i>taken away<oj-bind-if test="[[ $functions.codeHasNotes($variables.codeText) ]]"> <i class="nx-cv-lg nx-cv-lg--n"></i>Build.Rite note</oj-bind-if></span>
+                  </div>
+                </oj-bind-if>
+                <iframe class="nx-cv-frame" id="pgCodeFrame" title="The file's code, read only" sandbox="allow-same-origin" :srcdoc="[[ $functions.codeDoc($variables.codeText, $variables.codeSel, $variables.codeFind, $variables.codeMarks, $variables.codeAt) ]]"></iframe>
               </div>
             </div>
           </div>

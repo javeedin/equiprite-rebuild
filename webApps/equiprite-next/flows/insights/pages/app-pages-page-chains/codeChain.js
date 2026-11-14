@@ -1,7 +1,8 @@
 define(['vb/action/actionChain', 'resources/js/pagesClient', 'resources/js/codeView', 'resources/js/shellBus'], (ActionChain, PC, CV, bus) => {
   'use strict';
 
-  // The Page code tab (read only): the open page's files (desktop/lib/pages.js code()), one shown at a time; copy it.
+  // The Page code tab (read only): the open page's files (desktop/lib/pages.js code()), one shown at a time, what changed in
+  // it marked (against VB Studio, or the branch's remote) and gone through change by change; copy it.
   class codeChain extends ActionChain {
     async run(context, { act, key }) {
       const v = context.$page.variables;
@@ -14,8 +15,13 @@ define(['vb/action/actionChain', 'resources/js/pagesClient', 'resources/js/codeV
           if (v.selId !== id) return;
           v.codeSel = path;
           v.codeText = r.ok ? r.body.text : '';
+          // what changed in it: marked, and shown from its first change (unless something is searched for)
+          v.codeMarks = r.ok ? (r.body.changes || null) : null;
+          const n = (v.codeMarks && v.codeMarks.regions) ? v.codeMarks.regions.length : 0;
+          v.codeAt = n && !v.codeMarks.isNew ? 0 : -1;
           if (!r.ok) v.result = { ok: false, text: (r.body && r.body.error) || 'Could not read the file.' };
           if (v.codeFind) CV.scrollTo('pgCodeFrame');
+          else if (v.codeAt === 0) CV.scrollTo('pgCodeFrame', CV.changeLine(v.codeMarks, 0));
         } finally { v.codeBusy = false; }
       };
       if (act === 'open') {
@@ -33,6 +39,13 @@ define(['vb/action/actionChain', 'resources/js/pagesClient', 'resources/js/codeV
         return;
       }
       if (act === 'file' && key) { await show(key); return; }
+      if (act === 'nextChange' || act === 'prevChange') {
+        const n = (v.codeMarks && v.codeMarks.regions) ? v.codeMarks.regions.length : 0;
+        if (!n) return;
+        v.codeAt = act === 'nextChange' ? (v.codeAt + 1) % n : (v.codeAt <= 0 ? n - 1 : v.codeAt - 1);
+        CV.scrollTo('pgCodeFrame', CV.changeLine(v.codeMarks, v.codeAt));
+        return;
+      }
       if (act === 'copy') {
         try { await navigator.clipboard.writeText(v.codeText); bus.toast((v.codeSel.split('/').pop() || 'The file') + ' copied', 'info'); } catch (e) { bus.toast('Could not copy (select the text instead)', 'error'); }
       }

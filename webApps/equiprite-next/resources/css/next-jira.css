@@ -638,6 +638,15 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-fx-warn { flex-basis: 100%; color: #b3311f; font-size: 12.5px; }
 .nx-fx-ask { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid #cfe3ec; border-radius: 10px; background: #f6fbfd; }
 .nx-fx-kinds { display: flex; gap: 6px; flex-wrap: wrap; }
+/* Page code: what changed (against VB Studio, or the branch's remote) */
+.nx-cv-changes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 10px; border-bottom: 1px solid #e2e7ed; background: #fafcfd; font-size: 12.5px; }
+.nx-cv-chg { font-weight: 700; color: #3b4a58; }
+.nx-cv-chg--on { color: #8a5a00; }
+.nx-cv-legend { display: inline-flex; align-items: center; gap: 5px; color: #5a6876; font-size: 11.5px; }
+.nx-cv-lg { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 6px; }
+.nx-cv-lg--a { background: #1f9d55; } .nx-cv-lg--m { background: #d99400; } .nx-cv-lg--d { background: #d93838; height: 3px; } .nx-cv-lg--n { background: #b9a5f2; }
+.nx-cv-fchg { margin-left: auto; margin-right: 6px; padding: 0 5px; border-radius: 8px; background: #fff1cc; color: #8a5a00; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.nx-cv-file--changed .nx-cv-fname { font-weight: 700; }
 /* the Jira story and the issue the change is for (written into the code's change note) */
 .nx-fx-refs { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
 .nx-fx-ref { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #3b4a58; }

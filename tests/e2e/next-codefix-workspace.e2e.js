@@ -3,7 +3,8 @@
  * (a worktree on buildrite-working, as the set-up wizard makes it), and a change goes there only — the panel says
  * whose folder it is (no other to pick), approving writes the files there (nothing pulled), "Save in working" commits
  * there (no Commit & push: nothing reaches VB Studio but by Apply to main → Push, in the project's tab), and the
- * project's own checkout and its origin are left as they were.
+ * project's own checkout and its origin are left as they were. Then Page code marks what changed against VB Studio:
+ * the lines added, the change note, the file in the list; Next change goes through them.
  *
  * Run:  node tests/e2e/next-codefix-workspace.e2e.js   (after npm run build)
  */
@@ -28,7 +29,8 @@ const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8',
   const working = path.join(dir, 'BuildRite', 'rebuild-app-dev-one', 'working');
   git(pg.root, 'worktree', 'add', '-q', '-B', 'buildrite-working', working);
   const ws = { folder: working, label: 'Rebuild App ▸ Dev_One', branch: 'buildrite-working', key: 'acme-dev1/rebuild-app_100010', name: 'Rebuild App', ws: 'Dev_One' };
-  const pagesStore = require('../../desktop/lib/pages').open({ root: pg.root, rootFn: () => working, rootLabel: () => 'Rebuild App ▸ Dev_One (dev-one)', spaceFn: () => 'acme-dev1_rebuild-app_100010' });
+  const pagesStore = require('../../desktop/lib/pages').open({ root: pg.root, rootFn: () => working, rootLabel: () => 'Rebuild App ▸ Dev_One (dev-one)', spaceFn: () => 'acme-dev1_rebuild-app_100010',
+    baseFn: () => ({ ref: 'origin/pages/test', label: 'VB Studio (pages/test)' }) }); // what VB Studio has: the branch on origin
   const lines = fs.readFileSync(path.join(working, BILL + '.html'), 'utf8').replace(/\r\n/g, '\n').split('\n');
   const mainHtml = fs.readFileSync(path.join(pg.root, BILL + '.html'), 'utf8');
   const remoteHead = pg.gitRemote('rev-parse', 'pages/test');
@@ -86,6 +88,20 @@ const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8',
       && pg.gitRemote('rev-parse', 'pages/test') === remoteHead && pg.gitRemote('branch', '--list', 'buildrite-working') === '');
     T.check('…a way to its project\'s tab (Apply to main → Push)', /Open its project \(Apply to main → Push\)/.test(await text(page, '#fxOpenProject')));
     await env.shot('next-codefix-workspace-saved.png');
+
+    T.section('Page code: what changed, marked (against VB Studio)');
+    await page.click('#pgTabCode');
+    await page.waitForSelector('#pgCodeChanges', { timeout: 15000 }).catch(() => {});
+    T.check('the file: its changes since VB Studio counted; Previous / Next change; the colours (a Build.Rite note too)', /^\d+ changes? since VB Studio \(pages\/test\): \+\d+ −0 lines?$/.test(await text(page, '#pgCodeChg'))
+      && !!(await page.$('#pgCodeNext')) && /added\s*changed\s*taken away\s*Build\.Rite note/.test(await text(page, '#pgCodeChanges')), await text(page, '#pgCodeChanges'));
+    T.check('…the file marked in the list (+n −0), the others not', /^\+\d+ −0$/.test(await text(page, '#pgCodeFiles .nx-cv-file--on .nx-cv-fchg')) && (await page.$$('#pgCodeFiles .nx-cv-file--changed')).length === 1, await text(page, '#pgCodeFiles .nx-cv-file--on'));
+    const marked = await page.evaluate(() => { const d = document.getElementById('pgCodeFrame').contentDocument; const q = (s) => Array.from(d.querySelectorAll(s)).map((e) => e.textContent); return { add: q('.l.ca').length, note: q('.l.bn').join('\n'), fix: q('.l.ca').filter((t) => /Overdue invoices first \(workspace fix\)/.test(t)).length, cur: q('.l.cur').length }; });
+    T.check('…in the code: the lines added marked (the fix\'s line among them), the change note tinted, the first change outlined', marked.add >= 9 && marked.fix === 1 && /Build\.Rite change fx[a-z0-9]+ — My Billing/.test(marked.note) && /Jira story: +EQP-123/.test(marked.note) && /end of Build\.Rite change/.test(marked.note) && marked.cur > 0, JSON.stringify(marked).slice(0, 300));
+    const nChanges = Number(((await text(page, '#pgCodeChg')).match(/^(\d+)/) || [])[1] || 0);
+    await page.click('#pgCodeNext');
+    await page.waitForTimeout(300);
+    T.check('Next change: the next one (Change 2 of n)', nChanges < 2 || (await text(page, '#pgCodeAt')) === 'Change 2 of ' + nChanges, await text(page, '#pgCodeAt'));
+    await env.shot('next-codefix-workspace-pagecode.png');
     T.check('no page errors', errs().length === 0, errs().join(' | '));
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);

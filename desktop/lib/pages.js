@@ -311,15 +311,67 @@ function open(opts) {
     return { ok: true, sheet: sh };
   }
 
+  // ── What changed in the code, for the Page code tab to mark: against VB Studio's branch (your workspace: o.baseFn →
+  // { ref, label }), else what the branch has on its remote (its upstream), else its last commit — the files as they are
+  // on this PC now (saved or not, committed or not) ──
+  const gitOut = (cwd, args) => {
+    try { return { code: 0, out: require('child_process').execFileSync(o.gitPath || 'git', args, { cwd: cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 8000, windowsHide: true, maxBuffer: 16 * 1024 * 1024 }) }; } catch (e) { return { code: 1, out: str(e && e.stdout) }; }
+  };
+  function baseOf(folder) {
+    let b = null;
+    try { b = typeof o.baseFn === 'function' ? o.baseFn() : null; } catch (e) { b = null; }
+    const has = (ref) => gitOut(folder, ['rev-parse', '--verify', '--quiet', ref + '^{commit}']).code === 0;
+    if (b && b.ref && has(b.ref)) return { ref: str(b.ref), label: str(b.label) || str(b.ref) };
+    const up = gitOut(folder, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']).out.trim();
+    if (up && has(up)) return { ref: up, label: up };
+    return has('HEAD') ? { ref: 'HEAD', label: 'the last commit' } : null;
+  }
+  /** One file's changes: { base, ref, isNew, regions: [{ from, to, kind: added | changed | removed, was }], added, removed }
+   *  (lines of the file as it is; a removal: from = the line it followed, 0 at the top). null: not in git. */
+  function changesOf(folder, rel, base, text) {
+    if (!base) return null;
+    if (gitOut(folder, ['cat-file', '-e', base.ref + ':' + rel]).code !== 0) {
+      const n = str(text).replace(/\n$/, '').split('\n').length;
+      return { base: base.label, ref: base.ref, isNew: true, regions: [{ from: 1, to: n, kind: 'added', was: 0 }], added: n, removed: 0 };
+    }
+    const d = gitOut(folder, ['diff', '--no-color', '--no-ext-diff', '-U0', base.ref, '--', rel]);
+    if (d.code !== 0) return null;
+    const regions = [];
+    let added = 0, removed = 0;
+    d.out.split('\n').forEach((l) => {
+      const m = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(l);
+      if (!m) return;
+      const was = m[2] == null ? 1 : Number(m[2]), from = Number(m[3]), n = m[4] == null ? 1 : Number(m[4]);
+      added += n; removed += was;
+      regions.push(n > 0 ? { from: from, to: from + n - 1, kind: was > 0 ? 'changed' : 'added', was: was } : { from: from, to: from, kind: 'removed', was: was });
+    });
+    return { base: base.label, ref: base.ref, isNew: false, regions: regions, added: added, removed: removed };
+  }
+  /** Each file's count of lines added and taken away since the base: { path: { added, removed, isNew } } (changed ones). */
+  function filesChanged(folder, base, paths) {
+    if (!base || !paths.length) return {};
+    const out = {};
+    gitOut(folder, ['diff', '--no-color', '--no-ext-diff', '--numstat', base.ref, '--'].concat(paths)).out.split('\n').forEach((l) => {
+      const m = /^(\d+|-)\t(\d+|-)\t(.+)$/.exec(l);
+      if (m && (m[1] !== '0' || m[2] !== '0')) out[m[3]] = { added: Number(m[1]) || 0, removed: Number(m[2]) || 0, isNew: false };
+    });
+    gitOut(folder, ['ls-files', '--others', '--exclude-standard', '--'].concat(paths)).out.split('\n').filter(Boolean).forEach((p) => { out[p] = { added: 0, removed: 0, isNew: true }; });
+    return out;
+  }
+
   /** The page's code, as it is in the project now (the Page code tab, read only): its files — the page, its action
-   *  chains, the rules modules it uses — and one file's text (only a file of that page). */
+   *  chains, the rules modules it uses — and one file's text (only a file of that page), with what changed in each. */
   function code(id) {
     const facts = scan.analyze(rootNow(), id);
     if (!facts) return { ok: false, error: 'This page is not in the code.' };
     const group = (p) => (/-page-chains\//.test(p) ? 'chain' : 'page');
     const files = facts.files.map((f) => ({ path: f.path, lines: f.lines, group: group(f.path), name: path.basename(f.path) }))
       .concat((facts.logic.modules || []).filter((m) => m.file).map((m) => ({ path: m.file, lines: m.lines || 0, group: 'module', name: path.basename(m.file), about: m.about || '' })));
-    return { ok: true, id: facts.id, label: facts.label, folder: rootNow(), codeHash: facts.codeHash, files: files.filter((f, i) => files.findIndex((x) => x.path === f.path) === i) };
+    const list = files.filter((f, i) => files.findIndex((x) => x.path === f.path) === i);
+    const base = baseOf(rootNow());
+    const changed = filesChanged(rootNow(), base, list.map((f) => f.path));
+    list.forEach((f) => { if (changed[f.path]) f.changed = changed[f.path]; });
+    return { ok: true, id: facts.id, label: facts.label, folder: rootNow(), codeHash: facts.codeHash, files: list, base: base ? base.label : '' };
   }
   function codeFile(id, rel) {
     const c = code(id);
@@ -328,7 +380,7 @@ function open(opts) {
     if (!f) return { ok: false, error: 'Not a file of this page.' };
     let text;
     try { text = fs.readFileSync(path.join(rootNow(), f.path), 'utf8'); } catch (e) { return { ok: false, error: 'Could not read ' + f.path + '.' }; }
-    return { ok: true, path: f.path, abs: path.join(rootNow(), f.path), text: text, lines: text.split('\n').length, size: Buffer.byteLength(text) };
+    return { ok: true, path: f.path, abs: path.join(rootNow(), f.path), text: text, lines: text.split('\n').length, size: Buffer.byteLength(text), changes: changesOf(rootNow(), f.path, baseOf(rootNow()), text) };
   }
 
   /** A page's latest screenshots as images ({ name, mime, base64, caption, at }), newest first: Issues gives the latest to

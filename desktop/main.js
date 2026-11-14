@@ -228,7 +228,9 @@ async function pagesStore() {
       rootFn: () => { const c = current(); return c ? c.working : ''; },
       rootLabel: () => { const c = current(); return c ? c.projectName + ' ▸ ' + c.workspace + ' (' + c.branch + ')' : ''; },
       // its sheets, screenshots and stories: that VB Studio project's own (all its workspaces share them), not this project's
-      spaceFn: () => { const c = current(); return c ? String(c.orgKey).split('/').pop() + '_' + c.project : ''; } });
+      spaceFn: () => { const c = current(); return c ? String(c.orgKey).split('/').pop() + '_' + c.project : ''; },
+      // Page code marks what changed against what VB Studio has: the workspace's branch, as last fetched from VB Studio
+      baseFn: () => { const c = current(); return c && c.branch ? { ref: 'origin/' + c.branch, label: 'VB Studio (' + c.branch + ')' } : null; } });
   }
   return pagesStoreInst;
 }
