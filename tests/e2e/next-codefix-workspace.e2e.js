@@ -4,7 +4,9 @@
  * whose folder it is (no other to pick), approving writes the files there (nothing pulled), "Save in working" commits
  * there (no Commit & push: nothing reaches VB Studio but by Apply to main → Push, in the project's tab), and the
  * project's own checkout and its origin are left as they were. Then Page code marks what changed against VB Studio:
- * the lines added, the change note, the file in the list; Next change goes through them.
+ * the lines added, the change note, the file in the list; Next change goes through them. And Capture screenshot and
+ * Run it open the page from the workspace's own build (a stand-in here for the desktop app's): said so, and where a page
+ * sent the capture when it did not show itself.
  *
  * Run:  node tests/e2e/next-codefix-workspace.e2e.js   (after npm run build)
  */
@@ -21,6 +23,8 @@ const text = (page, sel) => page.$eval(sel, (e) => e.textContent.replace(/\s+/g,
 const ID = 'vbredwoodapp/customer-portal/customer-my-billing';
 const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page';
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+const opened = [];
 
 (async () => {
   const pg = await E.pagesSandbox({});
@@ -30,7 +34,10 @@ const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8',
   git(pg.root, 'worktree', 'add', '-q', '-B', 'buildrite-working', working);
   const ws = { folder: working, label: 'Rebuild App ▸ Dev_One', branch: 'buildrite-working', key: 'acme-dev1/rebuild-app_100010', name: 'Rebuild App', ws: 'Dev_One' };
   const pagesStore = require('../../desktop/lib/pages').open({ root: pg.root, rootFn: () => working, rootLabel: () => 'Rebuild App ▸ Dev_One (dev-one)', spaceFn: () => 'acme-dev1_rebuild-app_100010',
-    baseFn: () => ({ ref: 'origin/pages/test', label: 'VB Studio (pages/test)' }) }); // what VB Studio has: the branch on origin
+    baseFn: () => ({ ref: 'origin/pages/test', label: 'VB Studio (pages/test)' }), // what VB Studio has: the branch on origin
+    // the desktop app's: the page opened in the working folder's build (lib/workPreview.js) — a stand-in
+    capture: async (app, url) => { opened.push('capture ' + app + ' ' + url); return { ok: true, base64: PNG, mime: 'image/png', from: 'workspace', built: true, landed: '/vp/shell/main/main-equiprite' }; },
+    run: async (app, url) => { opened.push('run ' + app + ' ' + url); return { ok: true, url: 'http://127.0.0.1:4100' + url, from: 'workspace', built: false }; } });
   const lines = fs.readFileSync(path.join(working, BILL + '.html'), 'utf8').replace(/\r\n/g, '\n').split('\n');
   const mainHtml = fs.readFileSync(path.join(pg.root, BILL + '.html'), 'utf8');
   const remoteHead = pg.gitRemote('rev-parse', 'pages/test');
@@ -102,6 +109,20 @@ const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8',
     await page.waitForTimeout(300);
     T.check('Next change: the next one (Change 2 of n)', nChanges < 2 || (await text(page, '#pgCodeAt')) === 'Change 2 of ' + nChanges, await text(page, '#pgCodeAt'));
     await env.shot('next-codefix-workspace-pagecode.png');
+
+    T.section('Capture and Run it: from your workspace\'s working folder');
+    await page.click('#pgTabPage');
+    await page.waitForSelector('#pgRun', { timeout: 10000 }).catch(() => {});
+    T.check('Run it offered beside Capture (your workspace: its working folder, running)', !!(await page.$('#pgRun')) && /your workspace's working folder/.test((await page.getAttribute('#pgRun', 'title')) || ''));
+    await page.click('#pgCapture');
+    await page.waitForFunction(() => /Screenshot captured/.test((document.getElementById('pgResult') || {}).textContent || ''), null, { timeout: 20000 }).catch(() => {});
+    T.check('Capture: of your working folder\'s code (built just now, with your changes); the page sent it elsewhere — said', opened[0] === 'capture vbredwoodapp /vp/shell/customer-portal/customer-my-billing'
+      && /From your workspace's working folder \(built just now, with your changes\)/.test(await text(page, '#pgResult')) && /it sent you to \/vp\/shell\/main\/main-equiprite/.test(await text(page, '#pgResult')), await text(page, '#pgResult'));
+    T.check('…its thumbnail says so too', /from your workspace's working folder · the page sent it to \/vp\/shell\/main\/main-equiprite/.test((await page.getAttribute('#pgShots .nx-pg-shotbtn', 'title')) || ''), (await page.getAttribute('#pgShots .nx-pg-shotbtn', 'title')) || '');
+    await page.click('#pgRun');
+    await page.waitForFunction(() => /Opened in a window/.test((document.getElementById('pgResult') || {}).textContent || ''), null, { timeout: 20000 }).catch(() => {});
+    T.check('Run it: opened in a window, from your workspace\'s working folder', opened[1] === 'run vbredwoodapp /vp/shell/customer-portal/customer-my-billing'
+      && /Opened in a window: http:\/\/127\.0\.0\.1:4100\/vp\/shell\/customer-portal\/customer-my-billing — your workspace's working folder\./.test(await text(page, '#pgResult')), await text(page, '#pgResult'));
     T.check('no page errors', errs().length === 0, errs().join(' | '));
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);

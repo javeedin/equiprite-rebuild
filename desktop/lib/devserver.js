@@ -877,7 +877,8 @@ function createDevServer(o) {
         (async () => {
           const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
           const by = who();
-          if (pathname === '/__pages/info' && req.method === 'GET') return jsonP(200, { ok: true, canWrite: ps.canWrite(), canCapture: ps.canCapture(), data: ps.dataInfo ? ps.dataInfo() : null });
+          if (pathname === '/__pages/info' && req.method === 'GET') return jsonP(200, { ok: true, canWrite: ps.canWrite(), canCapture: ps.canCapture(), canRun: !!(ps.canRun && ps.canRun()), data: ps.dataInfo ? ps.dataInfo() : null });
+          if (pathname === '/__pages/run' && post) { const r = ps.run ? await ps.run(b.id) : { ok: false, error: 'Not here.' }; log(`Pages: run ${b.id} -> ${r.ok ? r.url : r.error}`); return jsonP(200, r); }
           if (pathname === '/__pages/git/pull' && post) return jsonP(200, ps.gitPull ? await ps.gitPull() : { ok: true, merged: false });
           if (pathname === '/__pages/catalog' && req.method === 'GET') return jsonP(200, Object.assign({ ok: true }, ps.catalog()));
           if (pathname === '/__pages/sheet' && req.method === 'GET') return jsonP(200, ps.sheet(u.searchParams.get('id') || ''));

@@ -5,7 +5,7 @@
     "checked": { "type": "boolean", "defaultValue": false },
     "noWorkspace": { "type": "boolean", "defaultValue": false, "description": "Build.Rite with no workspace set up: Application pages shows nothing (only a workspace's working folder is read)." },
     "codeFrom": { "type": "any", "defaultValue": null, "description": "Whose code is read: your workspace's working folder (Build.Rite's top bar: { source, root }), or this project (null)." },
-    "info": { "type": "object", "defaultValue": { "available": false, "canWrite": false, "canCapture": false, "data": null }, "description": "The local server: answers, can write into the project, can capture screenshots (desktop app); data: the git branch the sheets are kept on ({ separate, branch, reason }, lib/dataBranch.js)." },
+    "info": { "type": "object", "defaultValue": { "available": false, "canWrite": false, "canCapture": false, "canRun": false, "data": null }, "description": "The local server: answers, can write into the project, can capture screenshots, can run a page in a window (desktop app); data: the git branch the sheets are kept on ({ separate, branch, reason }, lib/dataBranch.js)." },
     "busy": { "type": "boolean", "defaultValue": false },
     "progress": { "type": "string", "defaultValue": "" },
     "steps": { "type": "any", "defaultValue": null, "description": "Build the sheet, step by step: { title, pct, list: [{ label, detail, state }] } (read the code, save the sheet, commit & push)." },

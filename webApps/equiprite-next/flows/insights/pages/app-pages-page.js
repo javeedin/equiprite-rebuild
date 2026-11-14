@@ -224,7 +224,7 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
     indexed(list) { return (list || []).map((x, i) => Object.assign({ i: String(i), n: String(i + 1) }, x)); }
     shotAt(sheet, i) { const l = (sheet && sheet.screenshots) || []; const k = Number(i); return k >= 0 && k < l.length ? l[k] : null; }
     shot(base, s) { return PC.shotUrl(base, s); }
-    shotText(s) { return s ? (s.caption ? s.caption + ' · ' : '') + (s.source === 'capture' ? 'Captured' : 'Uploaded') + ' ' + when(s.at) + (s.by ? ' by ' + s.by : '') : ''; }
+    shotText(s) { return s ? (s.caption ? s.caption + ' · ' : '') + (s.source === 'capture' ? 'Captured' : 'Uploaded') + ' ' + when(s.at) + (s.by ? ' by ' + s.by : '') + (s.from === 'workspace' ? ' · from your workspace\'s working folder' : '') + (s.landed ? ' · the page sent it to ' + s.landed : '') : ''; }
     /** The app's mark: this project's (OLD, NEW, NEXT…); your workspace's apps: VB (their name is beside it). */
     appShort(app, codeFrom) { return codeFrom ? 'VB' : (SHORT[app] || 'VB'); }
     firstStories(list) { const l = list || []; return l.length > 4 ? l.slice(0, 4).concat(['+' + (l.length - 4)]) : l; }

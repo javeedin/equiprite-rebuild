@@ -102,7 +102,24 @@ define([
           }
           return;
         }
-        if (act === 'capture') { v.progress = 'Opening the page in a hidden window and capturing it (up to 30 s)…'; await done(await PC.capture(id, v.commit), 'Screenshot captured.'); return; }
+        if (act === 'capture') {
+          const ws = !!v.codeFrom;
+          v.progress = ws ? 'Building your workspace\'s working folder (when its code changed), then opening the page there and capturing it…' : 'Opening the page in a hidden window and capturing it (up to 30 s)…';
+          const r = await PC.capture(id, v.commit);
+          const b = r.body || {};
+          // what the screenshot is of: your working folder's code (built just now?), and where the page went
+          const from = b.from === 'workspace' ? ' From your workspace\'s working folder' + (b.built ? ' (built just now, with your changes).' : ' (your changes included).') : '';
+          const went = b.landed ? ' Note: the page did not show itself — it sent you to ' + b.landed + ' (a guard: a module turned off, or a role it is not for), so the screenshot shows that page.' : '';
+          await done(r, 'Screenshot captured.' + from + went);
+          return;
+        }
+        if (act === 'run') {
+          v.progress = v.codeFrom ? 'Building your workspace\'s working folder (when its code changed) and opening the page in a window…' : 'Opening the page in a window…';
+          const r = await PC.run(id);
+          const b = r.body || {};
+          v.result = r.ok && b.ok ? { ok: true, text: 'Opened in a window: ' + b.url + (b.from === 'workspace' ? ' — your workspace\'s working folder' + (b.built ? ', built just now' : '') + '.' : '.') } : { ok: false, text: b.error || 'It could not be opened.' };
+          return;
+        }
         if (act === 'upload') {
           // one or several images, each added to the page's screenshots (one commit at the end)
           let files = [];

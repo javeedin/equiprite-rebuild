@@ -251,6 +251,8 @@ function open(opts) {
     write(file, buf);
     const shot = { id: 's' + n, file: file, at: now().toISOString(), by: str(b.by), source: b.source === 'capture' ? 'capture' : 'upload',
       caption: str(b.caption).slice(0, 120), bytes: buf.length };
+    if (b.source === 'capture' && b.from) shot.from = str(b.from).slice(0, 20);       // 'workspace': your working folder's code
+    if (b.source === 'capture' && b.landed) shot.landed = str(b.landed).slice(0, 200); // the page sent the capture there
     shots.push(shot);
     saveSheet(sh);
     return { ok: true, file: file, shot: shot, sheet: sh };
@@ -298,7 +300,16 @@ function open(opts) {
     if (!facts.route.url) return { ok: false, error: facts.route.needs || 'This page has no address of its own: upload a screenshot.' };
     const shot = await o.capture(facts.app, facts.route.url);
     if (!shot || !shot.ok) return { ok: false, error: (shot && shot.error) || 'The page could not be captured.' };
-    return saveShot(id, { base64: shot.base64, mime: shot.mime, source: 'capture', by: b && b.by });
+    const r = saveShot(id, { base64: shot.base64, mime: shot.mime, source: 'capture', by: b && b.by, from: shot.from, landed: shot.landed });
+    return r.ok ? Object.assign(r, { from: shot.from || '', built: !!shot.built, landed: shot.landed || '', asked: facts.route.url }) : r;
+  }
+  /** Run it: the page in a window of its own (the desktop app: your workspace's build, or this app's own copy). */
+  async function run(id) {
+    if (typeof o.run !== 'function') return { ok: false, error: 'Running a page works in the desktop app.' };
+    const facts = scan.analyze(rootNow(), id);
+    if (!facts) return { ok: false, error: 'There is no page "' + id + '" in the code.' };
+    if (!facts.route.url) return { ok: false, error: facts.route.needs || 'This page has no address of its own.' };
+    return o.run(facts.app, facts.route.url);
   }
 
   function saveAi(id, b) {
@@ -399,7 +410,7 @@ function open(opts) {
   return {
     remove: remove, restore: restore, removeShot: removeShot,
     catalog: catalog, rescan: rescan, sheet: sheet, code: code, codeFile: codeFile, shotImages: shotImages, build: build, assign: assign, unassign: unassign, forStory: forStory,
-    saveShot: saveShot, capture: capture, saveAi: saveAi, canCapture: () => typeof o.capture === 'function',
+    saveShot: saveShot, capture: capture, saveAi: saveAi, canCapture: () => typeof o.capture === 'function', run: run, canRun: () => typeof o.run === 'function',
     canWrite: () => { try { return fs.statSync(path.join(root, 'webApps', 'equiprite-next')).isDirectory(); } catch (e) { return false; } },
     gitStatus: () => repo.status(), gitSave: (b) => repo.save(b), gitPull: () => repo.pull(),
     dataInfo: () => (o.data ? o.data.info() : { separate: false, branch: '', reason: '' }),

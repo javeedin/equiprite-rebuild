@@ -32,7 +32,7 @@ define([], function () {
   function info() {
     return call('info').then(function (r) {
       local = r.status === 200 && !!r.body.ok;
-      return { available: local, canWrite: !!(local && r.body.canWrite), canCapture: !!(local && r.body.canCapture), data: (local && r.body.data) || null };
+      return { available: local, canWrite: !!(local && r.body.canWrite), canCapture: !!(local && r.body.canCapture), canRun: !!(local && r.body.canRun), data: (local && r.body.data) || null };
     });
   }
   function hasLocal() { return local === null ? info().then(function (i) { return i.available; }) : Promise.resolve(local); }
@@ -77,6 +77,7 @@ define([], function () {
     remove: function (id, commit) { return call('delete', 'POST', { id: id, commit: !!commit }); },
     restore: function (id, commit) { return call('restore', 'POST', { id: id, commit: !!commit }); },
     capture: function (id, commit) { return call('capture', 'POST', { id: id, commit: !!commit }); },
+    run: function (id) { return call('run', 'POST', { id: id }); },
     saveAi: function (id, text, provider, commit) { return call('ai', 'POST', { id: id, text: text, provider: provider, commit: !!commit }); },
     rescan: function (commit) { return call('rescan', 'POST', { commit: !!commit }); },
     gitStatus: function () { return call('git/status'); },

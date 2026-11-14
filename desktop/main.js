@@ -224,7 +224,25 @@ async function pagesStore() {
   if (!pagesStoreInst) {
     // the code: your workspace's working folder when one is set up (Build.Rite's top bar), else this project
     const current = buildWorkspace;
-    pagesStoreInst = require('./lib/pages').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git', capture: capturePage,
+    pagesStoreInst = require('./lib/pages').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git',
+      // a screenshot: in your workspace, of its working folder's code (built beside it and served: lib/workPreview.js),
+      // else of this app's own copy
+      capture: async (app, url) => {
+        const c = current();
+        if (!c) return capturePage(app, url);
+        const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: app });
+        if (!p.ok) return { ok: false, error: p.error };
+        return Object.assign(await capturePage(app, url, p.url), { from: 'workspace', built: p.built });
+      },
+      // Run it: the page in a window of its own — your workspace's build, or this app's own copy
+      run: async (app, url) => {
+        const c = current();
+        if (!c) { const u = appUrlOf(app); if (!u) return { ok: false, error: 'The app is not running in Build.Rite: build it (npm run build), then try again.' }; openAppWindow(u + url, 'EquipRite'); return { ok: true, url: u + url, from: '' }; }
+        const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: app });
+        if (!p.ok) return { ok: false, error: p.error };
+        openAppWindow(p.url + url, 'Your workspace — ' + c.projectName + ' ▸ ' + c.workspace);
+        return { ok: true, url: p.url + url, from: 'workspace', built: p.built, builtAt: p.builtAt };
+      },
       rootFn: () => { const c = current(); return c ? c.working : ''; },
       rootLabel: () => { const c = current(); return c ? c.projectName + ' ▸ ' + c.workspace + ' (' + c.branch + ')' : ''; },
       // its sheets, screenshots and stories: that VB Studio project's own (all its workspaces share them), not this project's
@@ -292,6 +310,13 @@ async function serveSandbox(s) {
   pushLog(`${new Date().toTimeString().slice(0, 8)} sandbox ${path.basename(s.dir)}: ${VERSIONS[v].label} served at ${srv.url}`);
   return srv;
 }
+// Your workspace running in Build.Rite (lib/workPreview.js): its working folder built beside it (never inside it) with
+// this project's build tool, and served like the app — what Capture screenshot and Run it open in your workspace
+let workPreviewInst = null;
+function workPreview() {
+  if (!workPreviewInst) workPreviewInst = require('./lib/workPreview').open({ buildTool: REPO_ROOT, serve: serveSandbox, log: (l) => { try { pushLog(`${new Date().toTimeString().slice(0, 8)} ${l}`); } catch (e) { console.log(l); } } });
+  return workPreviewInst;
+}
 // The app as it is now (this PC's own build), for comparing with a sandbox.
 const appUrlOf = (webApp) => { const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === webApp && !VERSIONS[k].product)[0]; return v && servers[v] ? servers[v].url : ''; };
 // A window of its own for a sandbox (or the app as it is now, beside it): links inside its own address stay in it.
@@ -333,7 +358,14 @@ async function capturePage(webApp, url, base) {
       last = sig;
     }
     const img = await shotWin.webContents.capturePage();
-    return { ok: true, base64: img.toJPEG(75).toString('base64'), mime: 'image/jpeg' };
+    // where the page ended up: a page can send you elsewhere (a guard: a module turned off, a role it is not for)
+    let landed = '';
+    try {
+      const want = new URL(String(base || srv.url).replace(/\/$/, '') + url).pathname.replace(/\/$/, '');
+      const got = new URL(shotWin.webContents.getURL()).pathname.replace(/\/$/, '');
+      if (got && got !== want) landed = got;
+    } catch (e) { /* as asked */ }
+    return { ok: true, base64: img.toJPEG(75).toString('base64'), mime: 'image/jpeg', landed: landed };
   } catch (e) {
     return { ok: false, error: 'Could not capture the page: ' + String((e && e.message) || e) };
   } finally {
