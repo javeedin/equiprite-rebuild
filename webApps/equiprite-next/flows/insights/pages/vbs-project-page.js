@@ -49,6 +49,33 @@ define(['resources/js/vbsView'], (V) => {
       const LABEL = { A: 'added', M: 'changed', D: 'deleted', R: 'renamed', C: 'copied', T: 'type changed' };
       return ((g && g.files) || []).map((f) => ({ status: f.status, label: LABEL[f.status] || f.status, path: f.path }));
     }
+    // ── the working copy ──
+    isWorking(work, key, sel, found) {
+      const c = work && work.current;
+      if (!c || c.orgKey + '/' + c.project !== key) return false;
+      const p = V.project(found, key);
+      const ws = p && sel ? p.workspaces.filter((x) => x.key === sel)[0] : null;
+      return !!ws && ws.name === c.workspace;
+    }
+    workPitch(w) {
+      return !w ? '' : 'Build.Rite clones ' + (w.repo !== '—' ? w.repo : 'its repository') + ' at ' + (w.branchName || 'its branch') + ' to this PC. Your changes are made there, committed, then pushed back to this workspace\'s branch in VB Studio — and the workspace pulls them (Git → Pull).';
+    }
+    workLine(st, busy) {
+      if (busy) return 'Working…';
+      if (!st) return 'Not checked yet.';
+      if (!st.ok) return '✗ ' + (st.error || 'It did not work.');
+      const parts = [];
+      if (st.changedCount) parts.push(V.plural(st.changedCount, 'changed file'));
+      if (st.ahead) parts.push(V.plural(st.ahead, 'commit') + ' to push');
+      if (st.behind) parts.push('VB Studio has ' + V.plural(st.behind, 'newer commit') + ': pull them');
+      return (parts.length ? parts.join(' · ') : '✓ Up to date with VB Studio') + (st.fetchError ? ' (VB Studio not checked: ' + st.fetchError + ')' : '');
+    }
+    workClass(st) { return 'nx-vbsp-wstate' + (!st ? '' : !st.ok ? ' nx-vbsp-wstate--bad' : st.changedCount || st.ahead || st.behind ? ' nx-vbsp-wstate--todo' : ' nx-vbsp-wstate--ok'); }
+    workFiles(st) {
+      return ((st && st.ok && st.changed) || []).map((f) => ({ status: f.status, label: f.label, path: f.path, css: f.status === '?' ? 'A' : f.status }));
+    }
+    lastBy(st) { const l = st && st.last; return !l ? '' : l.author + ' · ' + V.when(l.date) + ' · ' + String(l.sha || '').slice(0, 10); }
+    canPush(st) { return !!st && st.ok && st.ahead > 0; }
     stepCount(refresh) { return ((refresh && refresh.steps) || []).length; }
     stepsText(refresh) { return ((refresh && refresh.steps) || []).map((s) => clock(s.at) + '  ' + s.text).join('\n'); }
   }

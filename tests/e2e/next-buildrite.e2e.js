@@ -154,12 +154,12 @@ const BUILD_SCREENS = ['projects', 'issues', 'jira', 'minutes', 'followups', 'fd
     await page.waitForSelector('#pgRows .nx-pg-row', { timeout: 20000 }).catch(() => {});
     T.check('…and each one opens its screen (Code fix → Application pages)', (await page.$$('#pgRows .nx-pg-row')).length > 100 && !!(await page.$('.nx-tab--on[data-tab-id="app-pages"]'))
       && !(await page.evaluate(() => document.getElementById('hwPlay').open)));
-    await page.click('#nxScope [data-scope="equiprite-next"]');
+    await page.click('#pgApps [data-value="equiprite-next"]');
     await page.waitForTimeout(400);
     const nextRows = await page.$$eval('#pgRows .nx-pg-row', (r) => r.map((x) => x.textContent));
-    T.check('the build in scope (top bar: Next): Application pages shows that build\'s pages', /EquipRite Next/.test(await text(page, '#pgApps .nx-chip--on')) && nextRows.length > 10
+    T.check('a build chosen (Next): Application pages shows that build\'s pages', /EquipRite Next/.test(await text(page, '#pgApps .nx-chip--on')) && nextRows.length > 10
       && nextRows.every((t) => /EquipRite Next/.test(t)), (await text(page, '#pgApps .nx-chip--on')) + ' ' + nextRows.length);
-    await page.click('#nxScope [data-scope=""]');
+    await page.click('#pgApps [data-value="all"]');
     await page.waitForTimeout(400);
     T.check('…All builds: every page again', (await page.$$('#pgRows .nx-pg-row')).length > 100 && /^All/.test(await text(page, '#pgApps .nx-chip--on')));
     await env.shot('buildrite.png');

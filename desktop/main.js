@@ -249,6 +249,7 @@ async function appServerOptions(v) {
     // Setup → Organizations & projects (Build.Rite): VB Studio organizations and projects
     vbsStore: v === 'build' ? vbsStore() : undefined,
     vbsFind: v === 'build' ? openVbsFinder : undefined,
+    vbsOpenPath: v === 'build' ? (p) => shell.openPath(p) : undefined,
     backendOverrides: backendOverridesFromEnv(process.env),
     onLog: pushLog,
     onProblem: backendProblem,

@@ -27,6 +27,11 @@
     "jiraKind": { "type": "string", "defaultValue": "all", "description": "Which updates: all, mine, new, status, assign, comment, priority, sprint, attach, edit." },
     "jiraSeen": { "type": "string", "defaultValue": "", "description": "When the panel was last opened (kept on this PC): what came after is new." },
     "jiraNew": { "type": "number", "defaultValue": 0, "description": "How many updates came since it was last opened (the bell's count)." },
+    "work": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "Build.Rite: the working copy — the VB Studio project ▸ workspace cloned on this PC (desktop/lib/vbs.js work())."
+    },
     "scope": {
       "type": "string",
       "defaultValue": "",
@@ -346,6 +351,14 @@
           "parameters": {
             "navId": "{{ $event.currentTarget.dataset.navId }}"
           }
+        }
+      ]
+    },
+    "onWork": {
+      "chains": [
+        {
+          "chain": "workChain",
+          "parameters": { "act": "open" }
         }
       ]
     },

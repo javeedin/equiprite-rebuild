@@ -68,27 +68,46 @@
             </oj-bind-if>
           </dl>
           <div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--sm" id="vbspGitRead" data-act="gitRead" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.wsGitBusy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Read its Git again</button></div>
+
+          <!-- the working copy: this workspace cloned on this PC; changes made there, committed, pushed back to its branch -->
+          <h3 class="nx-pg-h3 nx-vbs-h3">Working copy</h3>
+          <oj-bind-if test="[[ !$functions.isWorking($variables.work, $variables.key, $variables.wsSel, $variables.found) ]]">
+            <div class="nx-vbsp-work" id="vbspWorkNone">
+              <p class="nx-note"><oj-bind-text value="[[ $functions.workPitch($functions.wsChosen($variables.found, $variables.key, $variables.wsSel)) ]]"></oj-bind-text></p>
+              <oj-bind-if test="[[ !!$variables.work && !!$variables.work.current ]]"><p class="nx-note" id="vbspWorkNow"><oj-bind-text value="[[ 'Your working copy now: ' + $variables.work.current.projectName + ' ▸ ' + $variables.work.current.workspace + ' (' + $variables.work.current.branch + ').' ]]"></oj-bind-text></p></oj-bind-if>
+              <button type="button" class="nx-btn nx-btn--primary" id="vbspWorkUse" data-act="workUse" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.workBusy ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Make it my working copy</button>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $functions.isWorking($variables.work, $variables.key, $variables.wsSel, $variables.found) ]]">
+            <div class="nx-vbsp-work nx-vbsp-work--on" id="vbspWork">
+              <div :class="[[ $functions.workClass($variables.workSt) ]]" id="vbspWorkState"><oj-bind-if test="[[ $variables.workBusy ]]"><span class="nx-spin" aria-hidden="true"></span> </oj-bind-if><oj-bind-text value="[[ $functions.workLine($variables.workSt, $variables.workBusy) ]]"></oj-bind-text></div>
+              <dl class="nx-vbsp-git">
+                <dt>Folder</dt><dd><code id="vbspWorkPath"><oj-bind-text value="[[ $variables.work.current.path ]]"></oj-bind-text></code>
+                  <button type="button" class="nx-btn nx-btn--sm" data-act="copyText" :data-key="[[ $variables.work.current.path ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy</button>
+                  <button type="button" class="nx-btn nx-btn--sm" id="vbspWorkOpen" data-act="workOpen" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-folder" aria-hidden="true"></span>Open the folder</button></dd>
+                <dt>Pushes to</dt><dd><code><oj-bind-text value="[[ $variables.work.current.branch ]]"></oj-bind-text></code> <span class="nx-note"><oj-bind-text value="[[ 'in ' + $variables.work.current.repo + '.git, VB Studio' ]]"></oj-bind-text></span></dd>
+                <oj-bind-if test="[[ !!$variables.workSt && !!$variables.workSt.last ]]"><dt>Last commit</dt><dd><b><oj-bind-text value="[[ $variables.workSt.last.subject ]]"></oj-bind-text></b><span class="nx-note nx-vbsp-by"><oj-bind-text value="[[ $functions.lastBy($variables.workSt) ]]"></oj-bind-text></span></dd></oj-bind-if>
+              </dl>
+              <oj-bind-if test="[[ $functions.workFiles($variables.workSt).length > 0 ]]">
+                <ul class="nx-vbsp-files nx-vbsp-wfiles" id="vbspWorkFiles">
+                  <oj-bind-for-each data="[[ $functions.workFiles($variables.workSt) ]]">
+                    <template data-oj-as="f"><li><span :class="[[ 'nx-vbsp-fs nx-vbsp-fs--' + f.data.css ]]" :title="[[ f.data.label ]]"><oj-bind-text value="[[ f.data.status ]]"></oj-bind-text></span><code><oj-bind-text value="[[ f.data.path ]]"></oj-bind-text></code></li></template>
+                  </oj-bind-for-each>
+                </ul>
+                <div class="nx-vbsp-commit"><input type="text" id="vbspWorkMsg" class="nx-flib-filter" data-field="workMsg" on-input="[[ $listeners.onField ]]" placeholder="What the change is — a Jira story, an issue, what it fixes" aria-label="The commit's message" autocomplete="off">
+                  <button type="button" class="nx-btn nx-btn--primary" id="vbspWorkCommit" data-act="workCommit" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.workBusy ]]">Commit</button></div>
+              </oj-bind-if>
+              <div class="nx-fx-row nx-vbsp-workacts">
+                <button type="button" class="nx-btn nx-btn--sm" id="vbspWorkCheck" data-act="workCheck" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.workBusy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Check VB Studio</button>
+                <button type="button" class="nx-btn nx-btn--sm" id="vbspWorkPull" data-act="workPull" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.workBusy ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Pull from VB Studio</button>
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="vbspWorkPush" data-act="workPush" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.workBusy || !$functions.canPush($variables.workSt) ]]"><span class="oj-ux-ico-upload" aria-hidden="true"></span>Push to VB Studio</button>
+              </div>
+              <p class="nx-note nx-vbsp-wsnote">After a push, the workspace in VB Studio takes the changes with Git → Pull (its designer shows them then).</p>
+            </div>
+          </oj-bind-if>
         </div>
       </oj-bind-if>
       <oj-bind-if test="[[ $functions.wsRows($variables.found, $variables.key, $variables.wsQ).length === 0 ]]"><div class="nx-empty" id="vbspNoWs"><oj-bind-text value="[[ $functions.noWs($variables.refresh, $variables.refreshing, $variables.wsQ) ]]"></oj-bind-text></div></oj-bind-if>
-    </section>
-
-    <!-- its repositories -->
-    <section class="nx-card" id="vbspRepos" aria-labelledby="vbspReposTitle">
-      <div class="nx-card-head"><h2 id="vbspReposTitle"><oj-bind-text value="[[ $functions.reposTitle($variables.found, $variables.key) ]]"></oj-bind-text></h2></div>
-      <div class="nx-vbs-pvrepos" id="vbspRepoList">
-        <oj-bind-for-each data="[[ $functions.proj($variables.found, $variables.key).repos ]]">
-          <template data-oj-as="r">
-            <span class="nx-vbs-repo"><span class="nx-vbs-chip"><oj-bind-text value="[[ r.data.repo ]]"></oj-bind-text></span><code class="nx-vbs-url"><oj-bind-text value="[[ r.data.url ]]"></oj-bind-text></code>
-              <oj-bind-if test="[[ r.data.added ]]"><span class="nx-vbs-st nx-vbs-st--ok">✓ Added to Build.Rite</span></oj-bind-if>
-              <oj-bind-if test="[[ !r.data.added ]]"><button type="button" class="nx-btn nx-btn--sm nx-btn--primary" data-act="addRepo" :data-key="[[ r.data.url ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Checks the sign-in, its branches and build jobs; Build.Rite then works with it">Add to Build.Rite</button></oj-bind-if></span>
-          </template>
-        </oj-bind-for-each>
-        <oj-bind-if test="[[ $functions.proj($variables.found, $variables.key).repos.length === 0 ]]">
-          <span class="nx-vbs-repo"><span class="nx-note">Its Git address is not known yet.</span>
-            <button type="button" class="nx-btn nx-btn--sm" id="vbspFindRepos" data-act="findRepos" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Asks VB Studio for its repositories; else tries the names VB Studio usually gives, each checked with git — only one that exists is shown">Find its repositories</button></span>
-        </oj-bind-if>
-      </div>
     </section>
 
     <!-- what the last refresh did -->

@@ -29,6 +29,7 @@ const SECRET = 'Pa55-w0rd#e2e';
   const dec = (b) => Buffer.from(b.toString().slice(4), 'base64').toString('utf8');
   const gitSeen = [];
   let wsBranchPushed = false; // the workspace's branch, pushed to its repository
+  const work = { changed: false, ahead: 0 }; // the working copy, as the git stand-in sees it
   let branches = 'ref: refs/heads/main\tHEAD\n1111111\tHEAD\n1111111\trefs/heads/main\n2222222\trefs/heads/release-26c\n3333333\trefs/heads/ws-javeed\n';
   const vbs = V.open({ file: path.join(dir, 'vbs.json'), encrypt: enc, decrypt: dec,
     git: (args, auth) => {
@@ -39,6 +40,16 @@ const SECRET = 'Pa55-w0rd#e2e';
       if (args.indexOf('log') !== -1) return { code: 0, stdout: 'abcdef1234567890abcdef\x1fDemo User\x1fdemo@example.com\x1f2026-11-14T01:37:00Z\x1fTitles on the customer dashboard\n', stderr: '' };
       if (args.indexOf('show') !== -1) return { code: 0, stdout: 'M\twebApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html\nA\tdocs/titles.md\n', stderr: '' };
       if (args[0] === 'init' || args.indexOf('fetch') !== -1) return { code: 0, stdout: '', stderr: '' };
+      if (args[0] === 'clone') { fs.mkdirSync(path.join(args[args.length - 1], '.git'), { recursive: true }); work.cloned = args.slice(); return { code: 0, stdout: '', stderr: '' }; }
+      if (args.indexOf('status') !== -1) {
+        const files = work.changed ? ' M webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html\n?? docs/titles.md\n' : '';
+        return { code: 0, stdout: (args.indexOf('-b') !== -1 ? '## ws-javeed...origin/ws-javeed' + (work.ahead ? ' [ahead ' + work.ahead + ']' : '') + '\n' : '') + files, stderr: '' };
+      }
+      if (args.indexOf('config') !== -1) return { code: 0, stdout: 'javeed@example.com\n', stderr: '' };
+      if (args.indexOf('add') !== -1) return { code: 0, stdout: '', stderr: '' };
+      if (args.indexOf('commit') !== -1) { work.changed = false; work.ahead = 1; work.message = args[args.length - 1]; return { code: 0, stdout: '', stderr: '' }; }
+      if (args.indexOf('push') !== -1) { work.pushed = args.slice(); work.ahead = 0; return { code: 0, stdout: '', stderr: '' }; }
+      if (args.indexOf('pull') !== -1) return { code: 0, stdout: '', stderr: '' };
       return { code: 0, stdout: branches + (wsBranchPushed && /ls-remote/.test(a) ? '5555555aaaa\trefs/heads/ws-javeed\n' : ''), stderr: '' };
     },
     // VB Studio's API: its builds (jobs); for Sync, the organization's projects (10 a page, 23 in all; the calls its pages
@@ -171,19 +182,13 @@ const SECRET = 'Pa55-w0rd#e2e';
     const forg = await page.$$eval('#vbsFoundOrgs .nx-vbs-foundrow', (l) => l.map((x) => Array.from(x.querySelectorAll('b, code, button')).map((y) => y.textContent.trim()).join('|')));
     T.check('another organization in VB Studio, not set up here: with Set up', forg.join(' || ') === 'other-dev2-demo-iad|https://other-dev2-demo-iad.developer.ocp.oraclecloud.com/other-dev2-demo-iad/|Set up', forg.join(' || '));
 
-    T.section('a project, in a tab of its own: its workspaces read at once; its repository added to Build.Rite');
+    T.section('a project, in a tab of its own: its workspaces read at once');
     await page.click('#vbsFoundProjects [data-found="' + HOST + '/' + ORG + '/billing"] .nx-vbs-plink');
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspResult')).some((e) => e.offsetParent && /Read from VB Studio/.test(e.textContent)), null, { timeout: 10000 }).catch(() => {});
-    T.check('Billing portal opened in a tab: its name, id; no workspace read yet — read from VB Studio at once (none in it); its repository', (await text(page, '#vbspTitle:visible')) === 'Billing portal' && (await text(page, '#vbspSub:visible')) === 'Project billing · acme-dev1-demo-phx'
-      && /^Read from VB Studio: 0 workspaces, 1 repository\.$/.test(await text(page, '#vbspResult:visible')) && (await text(page, '#vbspNoWs:visible')) === 'VB Studio lists no workspace in this project.'
-      && /billing-ui\s*https:\/\/\S*_billing\/scm\/billing-ui\.git\s*Add to Build\.Rite/.test(await text(page, '#vbspRepoList:visible')), await text(page, '#vbspResult:visible') + ' / ' + await text(page, '#vbspWorkspaces:visible'));
-    await page.click('#vbspRepoList:visible [data-act="addRepo"]');
-    await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspResult')).some((e) => e.offsetParent && /^Added to Build\.Rite/.test(e.textContent.trim())), null, { timeout: 8000 }).catch(() => {});
-    T.check('Add to Build.Rite: checked (signed in, its branches, build jobs) and marked added', /^Added to Build\.Rite and checked: billing-ui — signed in; 2 branches, 2 build jobs\.$/.test(await text(page, '#vbspResult:visible'))
-      && /billing-ui.*✓ Added to Build\.Rite/.test(await text(page, '#vbspRepoList:visible')) && vbs.state().projects.some((x) => x.repoUrl === B + '/s/' + ORG + '_billing/scm/billing-ui.git'), await text(page, '#vbspResult:visible'));
+    T.check('Billing portal opened in a tab: its name, id; no workspace read yet — read from VB Studio at once (none in it); no repositories card', (await text(page, '#vbspTitle:visible')) === 'Billing portal' && (await text(page, '#vbspSub:visible')) === 'Project billing · acme-dev1-demo-phx'
+      && /^Read from VB Studio: 0 workspaces, 1 repository\.$/.test(await text(page, '#vbspResult:visible')) && (await text(page, '#vbspNoWs:visible')) === 'VB Studio lists no workspace in this project.' && !(await page.$('#vbspRepos')), await text(page, '#vbspResult:visible') + ' / ' + await text(page, '#vbspWorkspaces:visible'));
     await page.click('#nxNav [data-nav-id="projects"]');
     await page.waitForSelector('#vbsFoundProjects', { state: 'visible', timeout: 5000 }).catch(() => {});
-    T.check('back on Organizations & projects: the repository listed as added to Build.Rite', (await page.$$('#vbsProjects .nx-vbs-project')).length === 1 && /Billing portal/.test(await text(page, '#vbsProjects')), await text(page, '#vbsProjects'));
     await page.click('#vbsFoundOrgs [data-act="setupOrg"]');
     await page.waitForSelector('#vbsOrgForm', { timeout: 3000 }).catch(() => {});
     T.check('Set up another organization: its form with its address and name; its sign-in asked', (await page.inputValue('#vbsOUrl')) === 'https://other-dev2-demo-iad.developer.ocp.oraclecloud.com/other-dev2-demo-iad/'
@@ -278,12 +283,46 @@ const SECRET = 'Pa55-w0rd#e2e';
     await page.click('#vbspWsOpen');
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspResult')).some((e) => e.offsetParent && /Opening the workspace/.test(e.textContent)), null, { timeout: 5000 }).catch(() => {});
     T.check('Open in VB Studio: the designer opened at the workspace, in Build.Rite\'s VB Studio window', opened.length === nOpened + 1 && opened[opened.length - 1] === designer && /^Opening the workspace in Build\.Rite's VB Studio window/.test(await text(page, '#vbspResult:visible')), opened.slice(-1)[0]);
+
+    T.section('the working copy: the workspace cloned on this PC; a change committed and pushed back to its branch');
+    T.check('the top bar: no build selector — the working copy, none chosen yet', !(await page.$('#nxScope')) && /^Working copy\s*Choose a workspace$/.test(await text(page, '#nxWork')), await text(page, '#nxWork'));
+    T.check('…the workspace\'s panel: what making it the working copy does', /Build\.Rite clones equiprite at ws-javeed to this PC\. Your changes are made there, committed, then pushed back/.test(await text(page, '#vbspWorkNone')), await text(page, '#vbspWorkNone'));
+    await page.click('#vbspWorkUse');
+    await page.waitForSelector('#vbspWork', { state: 'visible', timeout: 8000 }).catch(() => {});
+    const wdir = path.join(dir, 'vbs-work', 'equiprite', 'javeed-26c-titles');
+    T.check('Make it my working copy: cloned at its branch into this app\'s data folder; up to date; its folder and branch shown', !!work.cloned && work.cloned.join(' ') === 'clone --no-tags --branch ws-javeed ' + REPO + ' ' + wdir
+      && /^Cloned: your working copy is javeed-26c-titles \(ws-javeed\), in /.test(await text(page, '#vbspResult:visible')) && (await text(page, '#vbspWorkState')) === '✓ Up to date with VB Studio' && (await text(page, '#vbspWorkPath')) === wdir, await text(page, '#vbspResult:visible') + ' / ' + (work.cloned || []).join(' '));
+    await page.waitForFunction(() => /EquipRite ▸ javeed-26c-titles/.test((document.getElementById('nxWork') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    T.check('…the top bar: EquipRite ▸ javeed-26c-titles, its branch', /^Working copy\s*EquipRite ▸ javeed-26c-titles\s*ws-javeed$/.test(await text(page, '#nxWork')), await text(page, '#nxWork'));
+    work.changed = true; // a change made in the working copy (by Build.Rite, or by hand)
+    await page.click('#vbspWorkCheck');
+    await page.waitForSelector('#vbspWorkFiles', { state: 'visible', timeout: 5000 }).catch(() => {});
+    T.check('Check VB Studio: its changes (a page changed, a new file), Commit offered; nothing to push yet', (await text(page, '#vbspWorkState')) === '2 changed files' && /M\s*webApps\/vbredwoodapp\/flows\/customer-portal\/pages\/customer-dashboard-page\.html\s*\?\s*docs\/titles\.md/.test(await text(page, '#vbspWorkFiles'))
+      && (await page.$eval('#vbspWorkPush', (e) => e.disabled)), await text(page, '#vbspWorkState'));
+    await page.fill('#vbspWorkMsg', 'EQP-901: titles on the customer dashboard');
+    await page.click('#vbspWorkCommit');
+    await page.waitForFunction(() => /1 commit to push/.test((document.getElementById('vbspWorkState') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    T.check('Commit: with its message; 1 commit to push; the top bar says so', work.message === 'EQP-901: titles on the customer dashboard' && (await text(page, '#vbspWorkState')) === '1 commit to push' && !(await page.$('#vbspWorkFiles')), await text(page, '#vbspWorkState'));
+    await page.waitForFunction(() => /1 to push/.test((document.getElementById('nxWork') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    T.check('…the top bar: ws-javeed · 1 to push', /ws-javeed · 1 to push$/.test(await text(page, '#nxWork')), await text(page, '#nxWork'));
+    let asked = '';
+    page.once('dialog', (d) => { asked = d.message(); d.accept(); });
+    await page.click('#vbspWorkPush');
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspResult')).some((e) => e.offsetParent && /^Pushed to ws-javeed/.test(e.textContent.trim())), null, { timeout: 8000 }).catch(() => {});
+    T.check('Push to VB Studio: asked first (what, where; nothing forced); pushed to the workspace\'s branch (with the sign-in); up to date', /^Push 1 commit to ws-javeed in equiprite\.git \(VB Studio\)\?/.test(asked) && /Nothing is forced/.test(asked)
+      && !!work.pushed && work.pushed.join(' ') === '-C ' + wdir + ' push -q origin HEAD:refs/heads/ws-javeed' && gitSeen.some((x) => x.args.indexOf('push') !== -1 && x.auth && /^Basic /.test(x.auth.header))
+      && /^Pushed to ws-javeed in VB Studio: the workspace javeed-26c-titles takes it with Git → Pull\.$/.test(await text(page, '#vbspResult:visible')) && (await text(page, '#vbspWorkState')) === '✓ Up to date with VB Studio', asked + ' / ' + (work.pushed || []).join(' '));
     await page.click('#vbspWsTable [data-ws="w2"] [data-act="selectWs"]');
     await page.waitForFunction(() => /Release 26D/.test((document.getElementById('vbspWsName') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
     await page.waitForFunction(() => /release-26d/.test((document.getElementById('vbspGitBranch') || {}).textContent || '') && !/Reading/.test((document.getElementById('vbspGitHead') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
-    T.check('another workspace chosen: its own Git (release-26d: its head)', (await text(page, '#vbspGitBranch')) === 'release-26d' && (await text(page, '#vbspGitHead')) === '4444444', await text(page, '#vbspGitHead'));
+    T.check('another workspace chosen: its own Git (release-26d: its head); not the working copy (which one is, said)', (await text(page, '#vbspGitBranch')) === 'release-26d' && (await text(page, '#vbspGitHead')) === '4444444'
+      && /^Your working copy now: EquipRite ▸ javeed-26c-titles \(ws-javeed\)\.$/.test(await text(page, '#vbspWorkNow')), await text(page, '#vbspGitHead'));
+    await page.click('#nxNav [data-nav-id="projects"]');
+    await page.click('#nxWork');
+    await page.waitForFunction(() => { const t = document.querySelector('.nx-tab--on'); return t && /EquipRite/.test(t.textContent); }, null, { timeout: 5000 }).catch(() => {});
+    T.check('the top bar\'s working copy opens its project', /EquipRite/.test(await text(page, '.nx-tab--on')), await text(page, '.nx-tab--on'));
     await page.click('#vbspWsTable [data-ws="w1"] [data-act="selectWs"]');
-    await page.waitForSelector('#vbspGitCommit', { state: 'visible', timeout: 8000 }).catch(() => {});
+    await page.waitForSelector('#vbspWork', { state: 'visible', timeout: 8000 }).catch(() => {});
     await env.shot('buildrite-vbs-project.png');
     T.check('no errors in the browser console', errs().length === 0, errs().join(' | '));
   } catch (e) {

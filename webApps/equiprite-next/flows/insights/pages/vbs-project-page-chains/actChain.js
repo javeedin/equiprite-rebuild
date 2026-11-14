@@ -49,6 +49,48 @@ define(['vb/action/actionChain', 'resources/js/vbsClient', 'resources/js/vbsView
         v.result = r.ok ? { ok: true, text: 'Opening the workspace in Build.Rite\'s VB Studio window (sign in there if VB Studio asks).' } : { ok: false, text: r.body.error || 'Could not open VB Studio.' };
         return;
       }
+      // ── the working copy (never blocked by a refresh; one action at a time) ──
+      const workDone = (r) => {
+        if (r.body && r.body.work) v.work = r.body.work;
+        v.workSt = r.body;
+        bus.emit('vbs-changed', { key: v.key, work: true });
+      };
+      if (/^work/.test(act)) {
+        if (v.workBusy) return;
+        const c = v.work && v.work.current;
+        const w = p && p.workspaces.filter((x) => x.key === v.wsSel)[0];
+        if (act === 'workPush') {
+          const n = (v.workSt && v.workSt.ahead) || 0;
+          const ok = typeof window === 'undefined' || !window.confirm ? true : window.confirm('Push ' + n + ' commit' + (n === 1 ? '' : 's') + ' to ' + c.branch + ' in ' + c.repo + '.git (VB Studio)?\n\nThe workspace ' + c.workspace + ' takes them with Git → Pull. Nothing is forced: if VB Studio has newer commits, Build.Rite stops and asks you to pull first.');
+          if (!ok) return;
+        }
+        v.workBusy = true;
+        try {
+          let r;
+          if (act === 'workUse') {
+            if (!w) return;
+            v.result = { ok: true, text: 'Cloning ' + w.repo + ' at ' + w.branchName + ' to this PC…' };
+            r = await VC.workUse({ orgKey: orgKey, project: pid, projectName: p.name, workspace: w.name, repo: w.repo, branch: w.branchName });
+            if (r.body && r.body.work) v.work = r.body.work;
+            v.workSt = r.body;
+            v.result = r.ok ? { ok: true, text: (r.body.reused ? 'Your working copy again: ' : 'Cloned: your working copy is ') + w.name + ' (' + w.branchName + '), in ' + r.body.copy.path + '.' } : { ok: false, text: r.body.error || 'Not cloned.' };
+            bus.emit('vbs-changed', { key: v.key, work: true });
+            return;
+          }
+          if (!c) return;
+          if (act === 'workCheck') r = await VC.workStatus(c.id, true);
+          else if (act === 'workPull') r = await VC.workPull(c.id);
+          else if (act === 'workCommit') r = await VC.workCommit(c.id, v.workMsg);
+          else if (act === 'workPush') r = await VC.workPush(c.id);
+          else if (act === 'workOpen') { r = await VC.workOpen(c.id); v.result = r.ok ? { ok: true, text: 'Opened ' + r.body.path + '.' } : { ok: false, text: r.body.error || 'Could not open it.' }; return; }
+          else return;
+          workDone(r);
+          if (act === 'workCommit' && r.ok) { v.workMsg = ''; try { const e = document.getElementById('vbspWorkMsg'); if (e) e.value = ''; } catch (er) { /* not drawn */ } }
+          const done = { workCheck: 'Checked against VB Studio.', workPull: 'Pulled VB Studio\'s commits into your working copy.', workCommit: 'Committed.', workPush: 'Pushed to ' + c.branch + ' in VB Studio: the workspace ' + c.workspace + ' takes it with Git → Pull.' };
+          v.result = r.ok ? { ok: true, text: done[act] } : { ok: false, text: r.body.error || 'It did not work.' };
+        } finally { v.workBusy = false; }
+        return;
+      }
       if (act === 'copySteps') {
         const ok = await copy(((v.refresh && v.refresh.steps) || []).map((s) => s.at + '  ' + s.text).join('\n'));
         v.result = ok ? { ok: true, text: 'Copied what the refresh did (addresses with their ids hidden, no password). Paste it to Claude.' } : { ok: false, text: 'Could not copy here.' };

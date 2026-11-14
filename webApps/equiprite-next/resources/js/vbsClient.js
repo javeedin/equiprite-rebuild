@@ -34,6 +34,15 @@ define([], function () {
     /** Find a project's repositories: VB Studio's API, else the names VB Studio usually gives (each checked with git). */
     /** A workspace's Git: its branch, head commit and last commit (who, when, what, the files it changed). */
     workspaceGit: function (orgKey, project, repo, branch) { return post('workspace-git', { orgKey: orgKey, project: project, repo: repo, branch: branch }); },
+    /** The working copy: a workspace cloned on this PC; checked, pulled, committed, pushed back to VB Studio. */
+    work: function () { return call('work'); },
+    workUse: function (b) { return post('work/use', b); },
+    workStatus: function (id, fetch) { return post('work/status', { id: id || '', fetch: !!fetch }); },
+    workPull: function (id) { return post('work/pull', { id: id || '' }); },
+    workCommit: function (id, message) { return post('work/commit', { id: id || '', message: message }); },
+    workPush: function (id) { return post('work/push', { id: id || '' }); },
+    workForget: function (id, removeFolder) { return post('work/forget', { id: id || '', removeFolder: !!removeFolder }); },
+    workOpen: function (id) { return post('work/open', { id: id || '' }); },
     findRepos: function (orgKey, project, name) { return post('repos', { orgKey: orgKey, project: project, name: name || '' }); },
   };
 });

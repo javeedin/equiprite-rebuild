@@ -1606,3 +1606,25 @@ html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, htm
 .nx-vbsp-fs--D { background: #fbe6e1; color: #a1381b; }
 .nx-vbsp-fs--M { background: #e3edf8; color: #1d5fae; }
 @media (max-width: 640px) { .nx-vbsp-git { grid-template-columns: minmax(0, 1fr); } }
+/* Build.Rite's top bar: the working copy (project ▸ workspace, its branch and what waits) */
+.nx-work { display: inline-flex; align-items: center; gap: 8px; max-width: 520px; margin-left: 14px; padding: 4px 6px 4px 12px; border-radius: 999px; border: 1px solid #dde4ea; background: #eef2f6; color: #16212c; font: inherit; cursor: pointer; min-width: 0; }
+.nx-work:hover { background: #fff; border-color: #2a78d6; }
+.nx-work:focus-visible { outline: 2px solid #2a78d6; outline-offset: 2px; }
+.nx-work-lbl { flex: none; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #6b7886; }
+.nx-work-val { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 700; }
+.nx-work-badge { flex: none; padding: 2px 9px; border-radius: 999px; background: #2c5266; color: #fff; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.nx-work--todo .nx-work-badge { background: #b35a00; }
+.nx-work--none .nx-work-val { color: #6b7886; font-weight: 600; }
+@media (max-width: 1100px) { .nx-work-lbl { display: none; } .nx-work { max-width: 300px; } }
+/* a project's tab: the workspace's working copy */
+.nx-vbsp-work { margin-top: 4px; }
+.nx-vbsp-work--on { padding: 12px; border: 1px solid var(--nx-line); border-radius: 10px; background: rgba(42, 120, 214, .03); }
+.nx-vbsp-wstate { font-size: 13.5px; font-weight: 700; margin-bottom: 10px; }
+.nx-vbsp-wstate--ok { color: #1f6d3c; }
+.nx-vbsp-wstate--todo { color: #8a4b00; }
+.nx-vbsp-wstate--bad { color: #a1381b; }
+.nx-vbsp-wfiles { margin: 10px 0; max-height: 220px; overflow: auto; }
+.nx-vbsp-commit { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.nx-vbsp-commit input { flex: 1 1 280px; min-width: 0; }
+.nx-vbsp-workacts { flex-wrap: wrap; }
+.nx-vbsp-fs--\? { background: #e3f3e8; color: #1f6d3c; }

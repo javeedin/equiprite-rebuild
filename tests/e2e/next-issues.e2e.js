@@ -349,18 +349,8 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     await page.waitForSelector('#isIssue', { timeout: 5000 });
     T.check('a row opens its issue (back beside the list)', /EQP-901/.test(await text(page, '#isKey')) && !(await page.$('#isTable')));
 
-    T.section('the build in scope (the top bar)');
-    T.check('the top bar: All, Old, New, Next, Mobile, Future — All chosen', (await page.$$('#nxScope .nx-scope-btn')).length === 6 && /All/.test(await text(page, '#nxScope .nx-scope-btn--on')));
-    await page.click('#nxScope [data-scope="equiprite-future"]');
-    await page.waitForFunction(() => /^Future:/.test((document.getElementById('isSub') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
-    T.check('Future: only its issues (none here); the subtitle says so', /^Future: 0 open · 0 waiting for approval · 0 in review · 0 closed/.test(await text(page, '#isSub')) && !/EQP-901/.test(await text(page, '#isRows')), await text(page, '#isSub'));
-    await page.click('#isNewBtn');
-    T.check('…a new issue starts in the build in scope (Future), its pages to pick', /Future/.test(await text(page, '#isBuilds .nx-chip--on')) && /pages of Future/.test((await page.getAttribute('#isPageQ', 'placeholder')) || ''));
-    await page.click('#nxScope [data-scope="vbredwoodapp"]');
-    await page.waitForFunction(() => /^Old EquipRite:/.test((document.getElementById('isSub') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
-    T.check('Old EquipRite: its issue; kept for next time', /^Old EquipRite: 0 open · 0 waiting for approval · 0 in review · 1 closed/.test(await text(page, '#isSub'))
-      && (await page.evaluate(() => localStorage.getItem('eqr.build.scope'))) === 'vbredwoodapp', await text(page, '#isSub'));
-    await page.click('#nxScope [data-scope=""]');
+    T.section('the top bar: the working copy (no build selector); every build\'s issues');
+    T.check('the top bar: the working copy (none chosen yet), no build selector; the issues of every build', !(await page.$('#nxScope')) && /Choose a workspace/.test(await text(page, '#nxWork')) && /EQP-901/.test(await text(page, '#isRows')), await text(page, '#nxWork'));
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {
     T.check('no exception: ' + (e && e.message), false);

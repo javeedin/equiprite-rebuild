@@ -89,17 +89,13 @@
       </oj-bind-if>
     </div>
 
-    <!-- Build.Rite: the build in scope — which app the issues and pages are about (resources/js/shellBus.js scope) -->
+    <!-- Build.Rite: the working copy — the VB Studio project ▸ workspace cloned on this PC, where changes are made -->
     <oj-bind-if test="[[ $application.functions.isBuild() ]]">
-      <div class="nx-scope" id="nxScope" role="radiogroup" aria-label="The build in scope">
-        <span class="nx-scope-lbl">Build</span>
-        <oj-bind-for-each data="[[ $functions.scopes() ]]">
-          <template data-oj-as="b">
-            <button type="button" role="radio" :class="[[ 'nx-scope-btn nx-scope-btn--' + b.data.short + ($variables.scope === b.data.id ? ' nx-scope-btn--on' : '') ]]" :data-scope="[[ b.data.id ]]"
-              :aria-checked="[[ $variables.scope === b.data.id ? 'true' : 'false' ]]" :title="[[ b.data.title ]]" on-click="[[ $listeners.onScope ]]"><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></button>
-          </template>
-        </oj-bind-for-each>
-      </div>
+      <button type="button" :class="[[ $functions.workClass($variables.work) ]]" id="nxWork" on-click="[[ $listeners.onWork ]]" :title="[[ $functions.workTitle($variables.work) ]]">
+        <span class="nx-work-lbl">Working copy</span>
+        <span class="nx-work-val"><oj-bind-text value="[[ $functions.workText($variables.work) ]]"></oj-bind-text></span>
+        <oj-bind-if test="[[ !!$functions.workBadge($variables.work) ]]"><span class="nx-work-badge"><oj-bind-text value="[[ $functions.workBadge($variables.work) ]]"></oj-bind-text></span></oj-bind-if>
+      </button>
     </oj-bind-if>
 
     <oj-bind-if test="[[ !$application.functions.isBuild() && $application.functions.canOpen('new-request', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
