@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-14T18:17:44.154Z",
+ "scannedAt": "2026-11-14T18:41:38.195Z",
  "pages": [
   {
    "id": "vbredwoodapp//shell",
@@ -75,7 +75,15 @@
    ],
    "menu": "Customer Dashboard",
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-14T18:41:38.160Z",
+    "by": "javeed.shaik",
+    "codeHash": "9817dc1243317488",
+    "screenshots": 1,
+    "ai": false,
+    "rest": 3,
+    "chains": 9
+   }
   },
   {
    "id": "vbredwoodapp/customer-portal/customer-my-billing",
