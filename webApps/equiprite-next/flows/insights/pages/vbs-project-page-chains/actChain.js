@@ -59,6 +59,16 @@ define(['vb/action/actionChain', 'resources/js/vbsClient', 'resources/js/vbsView
         if (v.workBusy) return;
         const c = v.work && v.work.current;
         const w = p && p.workspaces.filter((x) => x.key === v.wsSel)[0];
+        if (act === 'workStop' || act === 'workRemove') {
+          const wsName = c ? String(c.workspace) : ''; // read now: v.work is replaced below
+          const r = act === 'workStop' ? await VC.workStop() : await VC.workRemove(c);
+          if (r.body && r.body.cancelled) return;
+          if (!r.ok) { v.result = { ok: false, text: r.body.error || 'It could not be done.' }; return; }
+          v.work = r.body; v.workSt = null;
+          v.result = { ok: true, text: act === 'workStop' ? 'Stopped using ' + wsName + ': its folders are kept — set it up again to use it.' : 'Removed ' + wsName + ' from this PC: its folders are deleted.' };
+          bus.emit('vbs-changed', { key: v.key, work: true, switched: true });
+          return;
+        }
         if (act === 'workSetup') {
           // the wizard, on this workspace: its folder next
           bus.open({ record: 'vbs-setup', params: { key: v.key, ws: w ? w.name : '' } });

@@ -91,11 +91,24 @@
 
     <!-- Build.Rite: the working copy — the VB Studio project ▸ workspace cloned on this PC, where changes are made -->
     <oj-bind-if test="[[ $application.functions.isBuild() ]]">
-      <button type="button" :class="[[ $functions.workClass($variables.work) ]]" id="nxWork" on-click="[[ $listeners.onWork ]]" :title="[[ $functions.workTitle($variables.work) ]]">
-        <span class="nx-work-lbl">Workspace</span>
-        <span class="nx-work-val"><oj-bind-text value="[[ $functions.workText($variables.work) ]]"></oj-bind-text></span>
-        <oj-bind-if test="[[ !!$functions.workBadge($variables.work) ]]"><span class="nx-work-badge"><oj-bind-text value="[[ $functions.workBadge($variables.work) ]]"></oj-bind-text></span></oj-bind-if>
-      </button>
+      <div class="nx-work-wrap" id="nxWorkWrap">
+        <button type="button" :class="[[ $functions.workClass($variables.work) ]]" id="nxWork" on-click="[[ $listeners.onWork ]]" :title="[[ $functions.workTitle($variables.work) ]]">
+          <span class="nx-work-lbl">Workspace</span>
+          <span class="nx-work-val"><oj-bind-text value="[[ $functions.workText($variables.work) ]]"></oj-bind-text></span>
+          <oj-bind-if test="[[ !!$functions.workBadge($variables.work) ]]"><span class="nx-work-badge"><oj-bind-text value="[[ $functions.workBadge($variables.work) ]]"></oj-bind-text></span></oj-bind-if>
+        </button>
+        <oj-bind-if test="[[ !!$variables.work && !!$variables.work.current ]]">
+          <button type="button" class="nx-work-caret" id="nxWorkMenuBtn" data-act="menu" on-click="[[ $listeners.onWorkAct ]]" aria-haspopup="menu" :aria-expanded="[[ $variables.workMenu ? 'true' : 'false' ]]" aria-label="Your workspace: open, change, stop using or remove it"><span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.workMenu ]]">
+          <div class="nx-work-menu" id="nxWorkMenu" role="menu" aria-label="Your workspace">
+            <button type="button" role="menuitem" id="nxWorkOpen" data-act="open" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-folder" aria-hidden="true"></span>Open its project</button>
+            <button type="button" role="menuitem" id="nxWorkSwitch" data-act="switch" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-settings" aria-hidden="true"></span>Set up another workspace…</button>
+            <button type="button" role="menuitem" id="nxWorkStop" data-act="stop" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span><span>Stop using it<span class="nx-work-mnote">its folders kept, to use again</span></span></button>
+            <button type="button" role="menuitem" id="nxWorkRemove" class="nx-work-danger" data-act="remove" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-trash" aria-hidden="true"></span><span>Remove it from this PC…<span class="nx-work-mnote">its folders deleted (asked first)</span></span></button>
+          </div>
+        </oj-bind-if>
+      </div>
     </oj-bind-if>
 
     <oj-bind-if test="[[ !$application.functions.isBuild() && $application.functions.canOpen('new-request', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,

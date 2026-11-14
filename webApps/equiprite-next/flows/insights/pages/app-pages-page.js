@@ -164,7 +164,11 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
     needsPush(g) { return !!(g && g.available && ((g.pending && g.pending.length) || (g.unpushed && g.unpushed.length))); }
     appChips(pages, showDeleted) {
       const ps = (pages || []).filter((p) => showDeleted || !p.deleted);
-      return APPS.map((a) => ({ id: a[0], label: a[1], n: a[0] === 'all' ? ps.length : ps.filter((p) => p.app === a[0]).length })).filter((c) => c.id === 'all' || c.n > 0);
+      const order = APPS.map((a) => a[0]);
+      const apps = ps.map((p) => p.app).filter((a, i, l) => a && l.indexOf(a) === i)
+        .sort((a, b) => ((order.indexOf(a) + 1) || 99) - ((order.indexOf(b) + 1) || 99) || a.localeCompare(b));
+      const name = (id) => { const p = ps.filter((x) => x.app === id)[0]; return (p && p.appName) || id; };
+      return [{ id: 'all', label: 'All', n: ps.length }].concat(apps.map((id) => ({ id: id, label: name(id), n: ps.filter((p) => p.app === id).length })));
     }
     shown(pages, q, appF, onlyMapped, onlySheet, showDeleted) {
       const k = JSON.stringify([(pages || []).length, (pages || []).map((p) => (p.stories || []).length + (p.sheet ? 's' + (p.sheet.screenshots || 0) : '') + (p.deleted ? 'd' : '')).join(''), q, appF, onlyMapped, onlySheet, showDeleted]);
@@ -182,7 +186,8 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
     shotAt(sheet, i) { const l = (sheet && sheet.screenshots) || []; const k = Number(i); return k >= 0 && k < l.length ? l[k] : null; }
     shot(base, s) { return PC.shotUrl(base, s); }
     shotText(s) { return s ? (s.caption ? s.caption + ' · ' : '') + (s.source === 'capture' ? 'Captured' : 'Uploaded') + ' ' + when(s.at) + (s.by ? ' by ' + s.by : '') : ''; }
-    appShort(app) { return SHORT[app] || 'VB'; }
+    /** The app's mark: this project's (OLD, NEW, NEXT…); your workspace's apps: VB (their name is beside it). */
+    appShort(app, codeFrom) { return codeFrom ? 'VB' : (SHORT[app] || 'VB'); }
     firstStories(list) { const l = list || []; return l.length > 4 ? l.slice(0, 4).concat(['+' + (l.length - 4)]) : l; }
     stateText(sh, saved) {
       if (!sh) return '';

@@ -1693,3 +1693,17 @@ html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, htm
 /* Application pages: whose code is read (your workspace's working folder) */
 .nx-pg-codefrom { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, .14); font-size: 13px; font-weight: 600; max-width: 100%; }
 .nx-pg-codefrom span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-pg-appmark--ws { background: #2a78d6; }
+/* Build.Rite's top bar: the workspace's menu */
+.nx-work-wrap { position: relative; display: inline-flex; align-items: center; gap: 4px; margin-left: 14px; min-width: 0; }
+.nx-work-wrap .nx-work { margin-left: 0; }
+.nx-work-caret { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid #dde4ea; background: #eef2f6; color: #3b4a58; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.nx-work-caret:hover, .nx-work-caret[aria-expanded="true"] { background: #fff; border-color: #2a78d6; }
+.nx-work-caret:focus-visible { outline: 2px solid #2a78d6; outline-offset: 2px; }
+.nx-work-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; min-width: 280px; padding: 6px; border-radius: 12px; border: 1px solid #dde4ea; background: #fff; box-shadow: 0 12px 32px rgba(20, 40, 60, .18); display: flex; flex-direction: column; }
+.nx-work-menu button { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: none; color: #16212c; font: inherit; font-size: 13.5px; font-weight: 600; text-align: left; cursor: pointer; }
+.nx-work-menu button:hover, .nx-work-menu button:focus-visible { background: #eef2f6; outline: none; }
+.nx-work-menu button > span:first-child { margin-top: 2px; }
+.nx-work-mnote { display: block; font-size: 12px; font-weight: 500; color: #6b7886; }
+.nx-work-menu .nx-work-danger { color: #a1381b; }
+.nx-vbsp-workend { justify-content: flex-end; margin-top: 8px; }

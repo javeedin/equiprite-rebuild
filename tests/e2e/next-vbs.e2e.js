@@ -385,6 +385,36 @@ const SECRET = 'Pa55-w0rd#e2e';
     await page.click('#vbspWsTable [data-ws="w1"] [data-act="selectWs"]');
     await page.waitForSelector('#vbspWork', { state: 'visible', timeout: 8000 }).catch(() => {});
     await env.shot('buildrite-vbs-project.png');
+
+    T.section('your workspace: stop using it (its folders kept); set it up again (used again); remove it from this PC (asked first)');
+    const wb = path.join(dir, 'My Projects', 'equiprite-javeed-26c-titles');
+    await page.click('#nxWorkMenuBtn');
+    await page.waitForSelector('#nxWorkMenu', { state: 'visible', timeout: 3000 }).catch(() => {});
+    T.check('the top bar\'s workspace menu: open its project, set up another, stop using it, remove it', /Open its project\s*Set up another workspace…\s*Stop using it\s*its folders kept, to use again\s*Remove it from this PC…\s*its folders deleted \(asked first\)/.test(await text(page, '#nxWorkMenu')), await text(page, '#nxWorkMenu'));
+    await page.click('#nxWorkStop');
+    await page.waitForFunction(() => /Set up your workspace/.test((document.getElementById('nxWork') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    T.check('Stop using it: none in the top bar; its folders kept, known', /^Workspace\s*Set up your workspace$/.test(await text(page, '#nxWork')) && fs.existsSync(path.join(wb, 'main')) && fs.existsSync(path.join(wb, 'working')) && vbs.work().current === null && vbs.work().copies.length === 1
+      && !(await page.$('#nxWorkMenu')), await text(page, '#nxWork'));
+    await page.waitForSelector('#vbspWorkSetup', { state: 'visible', timeout: 5000 }).catch(() => {});
+    T.check('…its project\'s tab: Set it up as my workspace offered again', !!(await page.$('#vbspWorkSetup:visible')));
+    await page.click('#vbspWorkSetup');
+    await page.waitForSelector('#vbsuStep2', { state: 'visible', timeout: 5000 }).catch(() => {});
+    await page.fill('#vbsuFolder', path.join(dir, 'My Projects'));
+    await page.click('#vbsuNext2');
+    await page.waitForSelector('#vbsuReuse', { state: 'visible', timeout: 5000 }).catch(() => {});
+    T.check('set up again (the wizard on that workspace, its folder): already on this PC — used again, nothing copied', /Already on this PC/.test(await text(page, '#vbsuReuse')));
+    const clonesBefore = gitSeen.filter((x) => x.args[0] === 'clone').length;
+    await page.click('#vbsuSet');
+    await page.waitForSelector('#vbsuDone', { state: 'visible', timeout: 8000 }).catch(() => {});
+    T.check('…set: used again (no new copy); the top bar shows it', gitSeen.filter((x) => x.args[0] === 'clone').length === clonesBefore && /used again/.test(await text(page, '#vbsuResult')) && /EquipRite ▸ javeed-26c-titles/.test(await text(page, '#nxWork')), await text(page, '#vbsuResult'));
+    await page.click('#vbsuStart');
+    await page.waitForSelector('#vbspWorkRemove', { state: 'visible', timeout: 8000 }).catch(() => {});
+    let askedRm = '';
+    page.once('dialog', (d) => { askedRm = d.message(); d.accept(); });
+    await page.click('#vbspWorkRemove');
+    await page.waitForFunction(() => /Set up your workspace/.test((document.getElementById('nxWork') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    T.check('Remove from this PC: asked first — which, its folder, what would be lost (nothing: all in VB Studio), nothing changes in VB Studio; its folder deleted, forgotten', /^Remove EquipRite ▸ javeed-26c-titles from this PC\?/.test(askedRm) && askedRm.indexOf(wb) !== -1 && /nothing is lost/.test(askedRm) && /Nothing changes in VB Studio/.test(askedRm)
+      && !fs.existsSync(wb) && vbs.work().copies.length === 0 && /^Workspace\s*Set up your workspace$/.test(await text(page, '#nxWork')) && /^Removed javeed-26c-titles from this PC/.test(await text(page, '#vbspResult:visible')), askedRm);
     T.check('no errors in the browser console', errs().length === 0, errs().join(' | '));
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);

@@ -49,6 +49,27 @@ define([], function () {
     workCommit: function (id, message) { return post('work/commit', { id: id || '', message: message }); },
     workPush: function (id) { return post('work/push', { id: id || '' }); },
     workForget: function (id, removeFolder) { return post('work/forget', { id: id || '', removeFolder: !!removeFolder }); },
+    /** Stop using the current workspace (its folders kept). */
+    workStop: function () { return post('work/stop', {}); },
+    /**
+     * Remove the current workspace from this PC, asked first — what would be lost said (changes not saved, not applied, not
+     * pushed): its folders deleted, forgotten. → { ok, body } or { ok: false, body: { cancelled } } when not confirmed.
+     */
+    workRemove: function (c) {
+      if (!c) return Promise.resolve({ ok: false, status: 0, body: { error: 'No workspace is in use.' } });
+      return post('work/status', { id: c.id, fetch: false }).then(function (st) {
+        var s = (st.ok && st.body) || {};
+        var lost = [];
+        if (s.changed) lost.push(s.changed + ' change' + (s.changed === 1 ? '' : 's') + ' in working not saved');
+        if (s.toApply) lost.push(s.toApply + ' saved change' + (s.toApply === 1 ? '' : 's') + ' not applied to main');
+        if (s.toPush) lost.push(s.toPush + ' commit' + (s.toPush === 1 ? '' : 's') + ' not pushed to VB Studio');
+        var msg = 'Remove ' + c.projectName + ' ▸ ' + c.workspace + ' from this PC?\n\nIts folder is deleted (working and main):\n' + c.base +
+          (lost.length ? '\n\nThese would be lost: ' + lost.join('; ') + '.' : '\n\nEverything in it is in VB Studio already: nothing is lost.') + '\n\nNothing changes in VB Studio.';
+        var ok = typeof window === 'undefined' || !window.confirm ? true : window.confirm(msg);
+        if (!ok) return { ok: false, status: 0, body: { cancelled: true } };
+        return post('work/forget', { id: c.id, removeFolder: true });
+      });
+    },
     workOpen: function (id, which) { return post('work/open', { id: id || '', which: which || 'working' }); },
     findRepos: function (orgKey, project, name) { return post('repos', { orgKey: orgKey, project: project, name: name || '' }); },
   };

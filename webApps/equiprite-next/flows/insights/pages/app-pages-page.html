@@ -57,7 +57,7 @@
         <oj-bind-for-each data="[[ $functions.shown($variables.pages, $variables.q, $variables.appF, $variables.onlyMapped, $variables.onlySheet, $variables.showDeleted) ]]">
           <template data-oj-as="p">
             <button type="button" role="listitem" :class="[[ 'nx-pg-row' + ($variables.selId === p.data.id ? ' nx-pg-row--on' : '') + (p.data.deleted ? ' nx-pg-row--deleted' : '') ]]" :data-id="[[ p.data.id ]]" on-click="[[ $listeners.onSelect ]]">
-              <span :class="[[ 'nx-pg-appmark nx-pg-appmark--' + p.data.app ]]"><oj-bind-text value="[[ $functions.appShort(p.data.app) ]]"></oj-bind-text></span>
+              <span :class="[[ 'nx-pg-appmark nx-pg-appmark--' + ($variables.codeFrom ? 'ws' : p.data.app) ]]"><oj-bind-text value="[[ $functions.appShort(p.data.app, $variables.codeFrom) ]]"></oj-bind-text></span>
               <span class="nx-pg-rowmain">
                 <span class="nx-pg-rowtitle"><oj-bind-text value="[[ p.data.label ]]"></oj-bind-text>
                   <oj-bind-if test="[[ !!p.data.sheet ]]"><span class="nx-pg-sheetmark" title="Has a technical sheet">●</span></oj-bind-if>

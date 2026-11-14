@@ -21,7 +21,16 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/vbsClient', 
         else { v.selWs = ''; v.step = 1; }
       };
       if (v.key) pick(v.key, v.ws);
-      bus.on('vbs-setup', 'vbs-setup', (d) => { if (d && d.key) pick(d.key, d.ws); });
+      // opened again: on a workspace (a project's tab), or from the start (the top bar: set up another)
+      bus.on('vbs-setup', 'vbs-setup', async (d) => {
+        if (d && d.key) { pick(d.key, d.ws); return; }
+        if (d && d.reset && !v.busy) {
+          v.step = 1; v.selWs = ''; v.plan = null; v.done = null; v.result = null; v.prog = null;
+          const [f, w] = await Promise.all([VC.discovered(), VC.work()]);
+          if (f.ok) v.found = f.body;
+          if (w.ok) v.work = w.body;
+        }
+      });
       void Actions;
     }
   }

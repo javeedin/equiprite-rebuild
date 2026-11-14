@@ -788,6 +788,14 @@ function open(opts) {
     }
     return Object.assign(await workStatus(id), { pulled: true });
   }
+  /** Stop using the current workspace: none current (its folders and its record kept: set it up again at once). */
+  function workStop() {
+    const c = workOf();
+    if (!c) return Object.assign(work(), { ok: false, error: 'No workspace is in use.' });
+    works().current = '';
+    save();
+    return Object.assign(work(), { stopped: c.workspace });
+  }
   /** A workspace removed from this PC: forgotten, and its folders deleted when asked (only the folder Build.Rite made). */
   function workForget(id, removeFolder) {
     const c = workOf(id);
@@ -804,7 +812,7 @@ function open(opts) {
   return { state: state, saveOrg: saveOrg, removeOrg: removeOrg, addProject: addProject, checkProject: checkProject, removeProject: removeProject, auth: auth, git: git,
     learn: learn, discovered: discovered, clearDiscovered: clearDiscovered, diagnostic: diagnostic, setFinder: setFinder, finderLog: finderLog,
     sync: sync, findRepos: findRepos, workspaceGit: workspaceGit, windowSignIn: windowSignIn,
-    work: work, workPlan: workPlan, workUse: workUse, workProgress: workProgress, workCancel: workCancel, workStatus: workStatus, workPull: workPull, workCommit: workCommit, workApply: workApply, workPush: workPush, workForget: workForget };
+    work: work, workPlan: workPlan, workUse: workUse, workProgress: workProgress, workCancel: workCancel, workStop: workStop, workStatus: workStatus, workPull: workPull, workCommit: workCommit, workApply: workApply, workPush: workPush, workForget: workForget };
 }
 
 module.exports = { open, parseOrgUrl, parseRepoUrl, branchesOf, jobsOf, why, parseProgress, BUILT_IN };

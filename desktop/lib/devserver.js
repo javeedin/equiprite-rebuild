@@ -1021,6 +1021,7 @@ function createDevServer(o) {
           else if (pathname === '/__vbs/work/commit') r = await vs.workCommit(String(b.id || ''), String(b.message || ''), who());
           else if (pathname === '/__vbs/work/push') r = await vs.workPush(String(b.id || ''));
           else if (pathname === '/__vbs/work/forget') r = vs.workForget(String(b.id || ''), !!b.removeFolder);
+          else if (pathname === '/__vbs/work/stop') r = vs.workStop();
           else if (pathname === '/__vbs/work/open') { const c = (vs.work().copies || []).filter((x) => x.id === String(b.id || ''))[0]; const dir = c ? (b.which === 'main' ? c.main : b.which === 'base' ? c.base : c.working) : ''; r = c && typeof o.vbsOpenPath === 'function' ? (await o.vbsOpenPath(dir), { ok: true, path: dir }) : { ok: false, error: c ? 'Opening a folder needs the desktop app.' : 'No such workspace on this PC.' }; }
           // a workspace's Git: its branch, head commit and last commit (git, the saved sign-in)
           else if (pathname === '/__vbs/workspace-git') r = vs.workspaceGit ? await vs.workspaceGit({ orgKey: String(b.orgKey || ''), project: String(b.project || ''), repo: String(b.repo || ''), branch: String(b.branch || '') }) : { ok: false, error: 'Needs the desktop app.' };

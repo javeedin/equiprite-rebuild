@@ -114,6 +114,10 @@
                 <button type="button" class="nx-btn nx-btn--sm" id="vbspWorkCheck" data-act="workCheck" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.workBusy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Check VB Studio</button>
                 <span class="nx-note">After a push, the workspace in VB Studio takes the changes with Git → Pull.</span>
               </div>
+              <div class="nx-fx-row nx-vbsp-workend">
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="vbspWorkStop" data-act="workStop" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.workBusy ]]" title="Its folders are kept: set it up again to use it">Stop using it</button>
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-pg-delete" id="vbspWorkRemove" data-act="workRemove" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.workBusy ]]"><span class="oj-ux-ico-trash" aria-hidden="true"></span>Remove from this PC…</button>
+              </div>
             </div>
           </oj-bind-if>
         </div>

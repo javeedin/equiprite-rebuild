@@ -41,7 +41,7 @@ define([], function () {
     return hasLocal().then(function (yes) {
       if (yes) return call('catalog').then(function (r) { return r.ok ? r : getJson(rel(base, 'resources/pages/catalog.json') + '?t=' + Date.now()); });
       return getJson(rel(base, 'resources/pages/catalog.json') + '?t=' + Date.now());
-    }).then(function (r) { var b = r.body || {}; return { ok: r.ok, status: r.status, body: { pages: Array.isArray(b.pages) ? b.pages : [], scannedAt: b.scannedAt || '' } }; });
+    }).then(function (r) { var b = r.body || {}; return { ok: r.ok, status: r.status, body: { pages: Array.isArray(b.pages) ? b.pages : [], scannedAt: b.scannedAt || '', root: b.root || '', source: b.source || '' } }; });
   }
 
   /** One page's sheet: { sheet, codeChanged, saved } (in VBCS only a saved sheet can be read). */
