@@ -6,7 +6,7 @@
     <div>
       <div class="nx-kicker">Setup</div>
       <h1 id="vbsTitle">Organizations &amp; projects</h1>
-      <div class="nx-sub" id="vbsSub"><oj-bind-text value="[[ $functions.subText($variables.orgs, $variables.projects) ]]"></oj-bind-text></div>
+      <div class="nx-sub" id="vbsSub"><oj-bind-text value="[[ $functions.subText($variables.orgs, $variables.found) ]]"></oj-bind-text></div>
       <!-- the filter: an organization (its projects), the projects by name -->
       <oj-bind-if test="[[ $functions.showFilters($variables.found, $variables.orgs) ]]">
         <div class="nx-vbs-filters" id="vbsFilters" role="group" aria-label="Filter by organization">
@@ -27,11 +27,11 @@
   </div>
 
   <oj-bind-if test="[[ !!$variables.result ]]"><div :class="[[ 'nx-flib-result ' + ($variables.result.ok ? 'nx-flib-result--ok' : 'nx-flib-result--err') ]]" id="vbsResult"><oj-bind-text value="[[ $variables.result.text ]]"></oj-bind-text></div></oj-bind-if>
-  <!-- Find in VB Studio: what VB Studio's own pages showed, read in a window of Build.Rite -->
-  <oj-bind-if test="[[ $functions.hasFound($variables.found) ]]">
+  <!-- the projects: each one opens in a tab of its own (its workspaces, Refresh workspaces) -->
+  <oj-bind-if test="[[ $variables.available && ($variables.orgs.length > 0 || $functions.hasFound($variables.found)) ]]">
     <section class="nx-card nx-vbs-found" id="vbsFound" aria-labelledby="vbsFoundTitle">
-      <div class="nx-card-head"><h2 id="vbsFoundTitle">Found in VB Studio</h2><span class="nx-note" id="vbsFoundCounts"><oj-bind-text value="[[ $functions.foundCounts($variables.found, $variables.fOrg, $variables.fText) ]]"></oj-bind-text></span></div>
-      <!-- Sync from VB Studio (API): what it did, live while it runs -->
+      <div class="nx-card-head"><h2 id="vbsFoundTitle">Projects</h2><span class="nx-note" id="vbsFoundCounts"><oj-bind-text value="[[ $functions.foundCounts($variables.found, $variables.fOrg, $variables.fText) ]]"></oj-bind-text></span></div>
+      <!-- Sync from VB Studio: the last one in a line; what it did (live while it runs) -->
       <oj-bind-if test="[[ $functions.syncStepCount($variables.found) > 0 ]]">
         <div :class="[[ $functions.syncClass($variables.found) ]]" id="vbsSyncBox">
           <div class="nx-vbs-syncline" id="vbsSyncLine"><oj-bind-if test="[[ $variables.syncing ]]"><span class="nx-spin" aria-hidden="true"></span> </oj-bind-if><oj-bind-text value="[[ $functions.syncLine($variables.found, $variables.syncing) ]]"></oj-bind-text></div>
@@ -41,118 +41,26 @@
           </details>
         </div>
       </oj-bind-if>
-      <p class="nx-vbs-foundnote" id="vbsFoundNote"><oj-bind-if test="[[ $variables.watching ]]"><span class="nx-spin" aria-hidden="true"></span> </oj-bind-if><oj-bind-text value="[[ $functions.foundNote($variables.found, $variables.watching) ]]"></oj-bind-text></p>
-      <oj-bind-if test="[[ !!$variables.fOrg || !!$variables.fProject ]]">
-        <nav class="nx-vbs-crumbs" id="vbsCrumbs" aria-label="Where you are">
-          <button type="button" class="nx-vbs-crumb" data-act="filterOrg" data-key="" on-click="[[ $listeners.onAct ]]">All organizations</button>
-          <oj-bind-if test="[[ !!$variables.fOrg ]]"><span class="nx-vbs-crumbsep" aria-hidden="true">›</span>
-            <button type="button" class="nx-vbs-crumb" data-act="filterOrg" :data-key="[[ $variables.fOrg ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ $functions.crumbOrg($variables.found, $variables.orgs, $variables.fOrg) ]]"></oj-bind-text></button></oj-bind-if>
-          <oj-bind-if test="[[ !!$functions.projectView($variables.found, $variables.fProject) ]]"><span class="nx-vbs-crumbsep" aria-hidden="true">›</span>
-            <span class="nx-vbs-crumb nx-vbs-crumb--here" aria-current="page"><oj-bind-text value="[[ $functions.crumbProject($variables.found, $variables.fProject) ]]"></oj-bind-text></span></oj-bind-if>
-        </nav>
-      </oj-bind-if>
-      <!-- a project opened: its repositories and its workspaces -->
-      <oj-bind-if test="[[ !!$functions.projectView($variables.found, $variables.fProject) ]]">
-        <div class="nx-vbs-pview" id="vbsProjectView">
-          <div class="nx-vbs-pvhead"><span class="nx-vbs-ico nx-vbs-ico--proj" aria-hidden="true"><span class="oj-ux-ico-folder"></span></span>
-            <span class="nx-vbs-pbody"><b id="vbsPvName"><oj-bind-text value="[[ $functions.projectView($variables.found, $variables.fProject).name ]]"></oj-bind-text></b>
-              <span class="nx-note"><oj-bind-text value="[[ 'Project ' + $functions.projectView($variables.found, $variables.fProject).project + ' · ' + $functions.projectView($variables.found, $variables.fProject).org + ($functions.projectView($variables.found, $variables.fProject).description ? ' · ' + $functions.projectView($variables.found, $variables.fProject).description : '') ]]"></oj-bind-text></span></span>
-            <oj-bind-if test="[[ $functions.projectView($variables.found, $variables.fProject).canRefresh ]]"><button type="button" class="nx-btn nx-btn--sm" id="vbsSyncProject" data-act="syncProject" :data-key="[[ $variables.fProject ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Its repositories and workspaces again, through VB Studio's API"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh from VB Studio</button></oj-bind-if>
-            <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="vbsCloseProject" data-act="closeProject" on-click="[[ $listeners.onAct ]]">‹ Its organization's projects</button></div>
-          <h3 class="nx-pg-h3 nx-vbs-h3">Repositories</h3>
-          <div class="nx-vbs-pvrepos" id="vbsPvRepos">
-            <oj-bind-for-each data="[[ $functions.projectView($variables.found, $variables.fProject).repos ]]">
-              <template data-oj-as="r">
-                <span class="nx-vbs-repo"><span class="nx-vbs-chip"><oj-bind-text value="[[ r.data.repo ]]"></oj-bind-text></span><code class="nx-vbs-url"><oj-bind-text value="[[ r.data.url ]]"></oj-bind-text></code>
-                  <oj-bind-if test="[[ r.data.added ]]"><span class="nx-vbs-st nx-vbs-st--ok">✓ Added</span></oj-bind-if>
-                  <oj-bind-if test="[[ !r.data.added && $functions.projectView($variables.found, $variables.fProject).orgSetUp ]]"><button type="button" class="nx-btn nx-btn--sm nx-btn--primary" data-act="addFound" :data-key="[[ r.data.url ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Add to Build.Rite</button></oj-bind-if></span>
-              </template>
-            </oj-bind-for-each>
-            <oj-bind-if test="[[ $functions.projectView($variables.found, $variables.fProject).noRepo ]]">
-              <span class="nx-vbs-repo"><span class="nx-note">Its Git address is not known yet.</span>
-                <button type="button" class="nx-btn nx-btn--sm" id="vbsPvFindRepos" data-act="findRepos" :data-key="[[ $variables.fProject ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Asks VB Studio's API for its repositories; else tries the names VB Studio usually gives, each checked with git — only one that exists is shown">Find its repositories</button></span>
-            </oj-bind-if>
-          </div>
-          <h3 class="nx-pg-h3 nx-vbs-h3" id="vbsPvWsTitle"><oj-bind-text value="[[ $functions.projectView($variables.found, $variables.fProject).wsTitle ]]"></oj-bind-text></h3>
-          <oj-bind-if test="[[ $functions.projectView($variables.found, $variables.fProject).workspaces.length > 0 ]]">
-            <div class="nx-vbs-wtable" id="vbsPvWorkspaces" role="table" aria-label="The project's workspaces">
-              <div class="nx-vbs-wtr nx-vbs-wtr--p nx-vbs-wth" role="row"><span role="columnheader">Workspace</span><span role="columnheader">Repository</span><span role="columnheader">Branch</span><span role="columnheader">Environment</span><span role="columnheader">Last opened</span></div>
-              <oj-bind-for-each data="[[ $functions.projectView($variables.found, $variables.fProject).workspaces ]]">
-                <template data-oj-as="w">
-                  <div class="nx-vbs-wtr nx-vbs-wtr--p" role="row"><span role="cell"><b><oj-bind-text value="[[ w.data.name ]]"></oj-bind-text></b><oj-bind-if test="[[ !!w.data.owner ]]"><span class="nx-note nx-vbs-wowner"><oj-bind-text value="[[ w.data.owner ]]"></oj-bind-text></span></oj-bind-if></span>
-                    <span role="cell"><oj-bind-text value="[[ w.data.repo ]]"></oj-bind-text></span><span role="cell"><code><oj-bind-text value="[[ w.data.branch ]]"></oj-bind-text></code></span><span role="cell"><oj-bind-text value="[[ w.data.environment ]]"></oj-bind-text></span>
-                    <span role="cell"><oj-bind-text value="[[ w.data.lastOpened ]]"></oj-bind-text><oj-bind-if test="[[ !!w.data.url ]]"> <button type="button" class="nx-vbs-plink nx-vbs-plink--sm" data-act="openVbs" :data-key="[[ w.data.url ]]" on-click="[[ $listeners.onAct ]]">Open in VB Studio</button></oj-bind-if></span></div>
-                </template>
-              </oj-bind-for-each>
-            </div>
-          </oj-bind-if>
-          <oj-bind-if test="[[ !!$functions.projectView($variables.found, $variables.fProject).wsNote ]]"><p class="nx-vbs-foundnote" id="vbsPvWsNote"><oj-bind-text value="[[ $functions.projectView($variables.found, $variables.fProject).wsNote ]]"></oj-bind-text></p></oj-bind-if>
-        </div>
-      </oj-bind-if>
-      <oj-bind-if test="[[ !$functions.projectView($variables.found, $variables.fProject) ]]">
+      <oj-bind-if test="[[ !!$functions.foundNote($variables.found, $variables.watching) ]]"><p class="nx-vbs-foundnote" id="vbsFoundNote"><oj-bind-if test="[[ $variables.watching ]]"><span class="nx-spin" aria-hidden="true"></span> </oj-bind-if><oj-bind-text value="[[ $functions.foundNote($variables.found, $variables.watching) ]]"></oj-bind-text></p></oj-bind-if>
       <oj-bind-if test="[[ !!$functions.filterNote($variables.found, $variables.fOrg, $variables.fText) ]]"><p class="nx-vbs-foundnote" id="vbsFilterNote"><oj-bind-text value="[[ $functions.filterNote($variables.found, $variables.fOrg, $variables.fText) ]]"></oj-bind-text></p></oj-bind-if>
-      <oj-bind-if test="[[ $functions.foundOrgs($variables.found, $variables.fOrg).length > 0 ]]">
-        <h3 class="nx-pg-h3 nx-vbs-h3">Organizations</h3>
-        <div class="nx-vbs-foundlist" id="vbsFoundOrgs">
-          <oj-bind-for-each data="[[ $functions.foundOrgs($variables.found, $variables.fOrg) ]]">
-            <template data-oj-as="o">
-              <div class="nx-vbs-foundrow"><span class="nx-vbs-ico" aria-hidden="true"><span class="oj-ux-ico-building"></span></span>
-                <span class="nx-vbs-pbody"><b><oj-bind-text value="[[ o.data.org ]]"></oj-bind-text></b><code class="nx-vbs-url"><oj-bind-text value="[[ o.data.url ]]"></oj-bind-text></code></span>
-                <oj-bind-if test="[[ o.data.show ]]"><button type="button" class="nx-btn nx-btn--sm" data-act="filterOrg" :data-key="[[ o.data.key ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ o.data.showText ]]"></oj-bind-text></button></oj-bind-if>
-                <oj-bind-if test="[[ o.data.setUp ]]"><span class="nx-vbs-st nx-vbs-st--ok">✓ Set up</span></oj-bind-if>
-                <oj-bind-if test="[[ !o.data.setUp ]]"><button type="button" class="nx-btn nx-btn--sm" data-act="setupOrg" :data-key="[[ o.data.url ]]" on-click="[[ $listeners.onAct ]]">Set up</button></oj-bind-if></div>
-            </template>
-          </oj-bind-for-each>
-        </div>
-      </oj-bind-if>
-      <oj-bind-if test="[[ $functions.foundProjects($variables.found, $variables.fOrg, $variables.fText).length > 0 ]]">
-        <h3 class="nx-pg-h3 nx-vbs-h3">Projects</h3>
-        <div class="nx-vbs-foundlist" id="vbsFoundProjects">
-          <oj-bind-for-each data="[[ $functions.foundProjects($variables.found, $variables.fOrg, $variables.fText) ]]">
+      <oj-bind-if test="[[ $functions.projectRows($variables.found, $variables.fOrg, $variables.fText).length === 0 ]]"><div class="nx-empty" id="vbsNoProjects"><oj-bind-text value="[[ $functions.noProjects($variables.found, $variables.fOrg, $variables.fText) ]]"></oj-bind-text></div></oj-bind-if>
+      <oj-bind-if test="[[ $functions.projectRows($variables.found, $variables.fOrg, $variables.fText).length > 0 ]]">
+        <div class="nx-vbs-ptable" id="vbsFoundProjects" role="table" aria-label="Projects in VB Studio">
+          <div class="nx-vbs-ptr nx-vbs-wth" role="row"><span role="columnheader">Project</span><span role="columnheader">Organization</span><span role="columnheader">Repositories</span><span role="columnheader">Workspaces</span><span role="columnheader"><span class="nx-sr">Open</span></span></div>
+          <oj-bind-for-each data="[[ $functions.projectRows($variables.found, $variables.fOrg, $variables.fText) ]]">
             <template data-oj-as="p">
-              <div class="nx-vbs-foundrow nx-vbs-foundrow--proj" :data-found="[[ p.data.key ]]"><span class="nx-vbs-ico nx-vbs-ico--proj" aria-hidden="true"><span class="oj-ux-ico-folder"></span></span>
-                <span class="nx-vbs-pbody"><button type="button" class="nx-vbs-plink" data-act="openProject" :data-key="[[ p.data.key ]]" on-click="[[ $listeners.onAct ]]" title="Open the project: its repositories and workspaces"><oj-bind-text value="[[ p.data.name ]]"></oj-bind-text></button><span class="nx-note"><oj-bind-text value="[[ 'Project ' + p.data.project + ' · ' + p.data.org + (p.data.description ? ' · ' + p.data.description : '') ]]"></oj-bind-text></span>
-                  <oj-bind-for-each data="[[ p.data.repos ]]">
-                    <template data-oj-as="r">
-                      <span class="nx-vbs-repo"><span class="nx-vbs-chip"><oj-bind-text value="[[ r.data.repo ]]"></oj-bind-text></span>
-                        <oj-bind-if test="[[ r.data.added ]]"><span class="nx-vbs-st nx-vbs-st--ok">✓ Added</span></oj-bind-if>
-                        <oj-bind-if test="[[ !r.data.added && p.data.orgSetUp ]]"><button type="button" class="nx-btn nx-btn--sm nx-btn--primary" data-act="addFound" :data-key="[[ r.data.url ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Add</button></oj-bind-if>
-                        <oj-bind-if test="[[ !r.data.added && !p.data.orgSetUp ]]"><span class="nx-note">Set up its organization first</span></oj-bind-if></span>
-                    </template>
-                  </oj-bind-for-each>
-                  <oj-bind-if test="[[ p.data.noRepo ]]"><span class="nx-vbs-repo"><span class="nx-note">Its Git address is not known yet.</span>
-                    <button type="button" class="nx-btn nx-btn--sm" data-act="findRepos" :data-key="[[ p.data.key ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Asks VB Studio's API for its repositories; else tries the names VB Studio usually gives, each checked with git — only one that exists is shown">Find its repositories</button></span></oj-bind-if>
-                </span>
-                <button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-vbs-wslink" data-act="openProject" :data-key="[[ p.data.key ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ p.data.wsText ]]"></oj-bind-text></button></div>
+              <div class="nx-vbs-ptr" role="row" :data-found="[[ p.data.key ]]">
+                <span role="cell"><button type="button" class="nx-vbs-plink" data-act="openProject" :data-key="[[ p.data.key ]]" on-click="[[ $listeners.onAct ]]" title="Open the project in a tab of its own: its workspaces"><oj-bind-text value="[[ p.data.name ]]"></oj-bind-text></button>
+                  <span class="nx-note"><oj-bind-text value="[[ p.data.project + (p.data.description ? ' · ' + p.data.description : '') ]]"></oj-bind-text></span></span>
+                <span role="cell" class="nx-note"><oj-bind-text value="[[ p.data.org ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ p.data.reposText ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ p.data.wsText ]]"></oj-bind-text></span>
+                <span role="cell"><button type="button" class="nx-btn nx-btn--sm" data-act="openProject" :data-key="[[ p.data.key ]]" on-click="[[ $listeners.onAct ]]">Open ›</button></span>
+              </div>
             </template>
           </oj-bind-for-each>
         </div>
       </oj-bind-if>
-      <oj-bind-if test="[[ $functions.foundWorkspaces($variables.found, $variables.fOrg, $variables.fText).length > 0 ]]">
-        <h3 class="nx-pg-h3 nx-vbs-h3">Workspaces</h3>
-        <div class="nx-vbs-wtable" id="vbsFoundWorkspaces" role="table" aria-label="Workspaces found in VB Studio">
-          <div class="nx-vbs-wtr nx-vbs-wtr--all nx-vbs-wth" role="row"><span role="columnheader">Workspace</span><span role="columnheader">Project</span><span role="columnheader">Repository</span><span role="columnheader">Branch</span><span role="columnheader">Environment</span><span role="columnheader">Last opened</span></div>
-          <oj-bind-for-each data="[[ $functions.foundWorkspaces($variables.found, $variables.fOrg, $variables.fText) ]]">
-            <template data-oj-as="w">
-              <div class="nx-vbs-wtr nx-vbs-wtr--all" role="row"><span role="cell"><b><oj-bind-text value="[[ w.data.name ]]"></oj-bind-text></b><oj-bind-if test="[[ !!w.data.owner ]]"><span class="nx-note nx-vbs-wowner"><oj-bind-text value="[[ w.data.owner ]]"></oj-bind-text></span></oj-bind-if></span><span role="cell"><oj-bind-if test="[[ !!w.data.projectKey ]]"><button type="button" class="nx-vbs-plink nx-vbs-plink--sm" data-act="openProject" :data-key="[[ w.data.projectKey ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ w.data.project ]]"></oj-bind-text></button></oj-bind-if><oj-bind-if test="[[ !w.data.projectKey ]]"><oj-bind-text value="[[ w.data.project ]]"></oj-bind-text></oj-bind-if></span>
-                <span role="cell"><oj-bind-text value="[[ w.data.repo ]]"></oj-bind-text></span><span role="cell"><code><oj-bind-text value="[[ w.data.branch ]]"></oj-bind-text></code></span><span role="cell"><oj-bind-text value="[[ w.data.environment ]]"></oj-bind-text></span>
-                    <span role="cell"><oj-bind-text value="[[ w.data.lastOpened ]]"></oj-bind-text><oj-bind-if test="[[ !!w.data.url ]]"> <button type="button" class="nx-vbs-plink nx-vbs-plink--sm" data-act="openVbs" :data-key="[[ w.data.url ]]" on-click="[[ $listeners.onAct ]]">Open in VB Studio</button></oj-bind-if></span></div>
-            </template>
-          </oj-bind-for-each>
-        </div>
-      </oj-bind-if>
-      </oj-bind-if>
-      <oj-bind-if test="[[ $functions.finderLogCount($variables.found) > 0 ]]">
-        <details class="nx-vbs-log" id="vbsFinderLog" :open="[[ $variables.watching ]]">
-          <summary><oj-bind-text value="[[ 'VB Studio window log · ' + $functions.finderLogCount($variables.found) + ' lines' ]]"></oj-bind-text></summary>
-          <pre class="nx-vbs-logtext" id="vbsFinderLogText"><oj-bind-text value="[[ $functions.finderLogText($variables.found) ]]"></oj-bind-text></pre>
-        </details>
-      </oj-bind-if>
-      <div class="nx-fx-row nx-vbs-foundacts">
-        <oj-bind-if test="[[ $functions.finderLogCount($variables.found) > 0 ]]"><button type="button" class="nx-btn nx-btn--sm" id="vbsCopyLog" data-act="copyLog" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy the log</button></oj-bind-if>
-        <button type="button" class="nx-btn nx-btn--sm" id="vbsDiag" data-act="diag" on-click="[[ $listeners.onAct ]]" title="The calls VB Studio's pages made, as paths and field names only — no names, no values, no password"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy what Build.Rite saw (no values)</button>
-        <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="vbsClearFound" data-act="clearFound" on-click="[[ $listeners.onAct ]]">Clear what was found</button>
-      </div>
     </section>
   </oj-bind-if>
   <oj-bind-if test="[[ $variables.checked && !$variables.available ]]"><div class="nx-empty" id="vbsUnavailable">Organizations and projects are kept on this PC by the desktop app (the sign-in stays here), so this page is not available in the browser.</div></oj-bind-if>
@@ -175,6 +83,17 @@
             </template>
           </oj-bind-for-each>
         </div>
+        <oj-bind-if test="[[ $functions.otherOrgs($variables.found).length > 0 ]]">
+          <div class="nx-vbs-others" id="vbsFoundOrgs">
+            <h3 class="nx-pg-h3 nx-vbs-h3">Also in VB Studio</h3>
+            <oj-bind-for-each data="[[ $functions.otherOrgs($variables.found) ]]">
+              <template data-oj-as="o">
+                <div class="nx-vbs-foundrow"><span class="nx-vbs-pbody"><b><oj-bind-text value="[[ o.data.org ]]"></oj-bind-text></b><code class="nx-vbs-url"><oj-bind-text value="[[ o.data.url ]]"></oj-bind-text></code></span>
+                  <button type="button" class="nx-btn nx-btn--sm" data-act="setupOrg" :data-key="[[ o.data.url ]]" on-click="[[ $listeners.onAct ]]">Set up</button></div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
         <!-- add / edit an organization -->
         <oj-bind-if test="[[ $variables.formOrg ]]">
           <div class="nx-vbs-form" id="vbsOrgForm">
@@ -209,8 +128,8 @@
             <span class="nx-note"><oj-bind-text value="[[ 'Signed in as ' + $functions.org($variables.orgs, $variables.selOrg).user + '. ' + $functions.keyNote($functions.org($variables.orgs, $variables.selOrg)) ]]"></oj-bind-text></span>
           </div>
 
-          <h3 class="nx-pg-h3 nx-vbs-h3">Projects</h3>
-          <oj-bind-if test="[[ $functions.projectsOf($variables.projects, $variables.selOrg).length === 0 ]]"><div class="nx-empty" id="vbsNoProject">No project yet: add one below by its Git address.</div></oj-bind-if>
+          <h3 class="nx-pg-h3 nx-vbs-h3">Repositories added to Build.Rite</h3>
+          <oj-bind-if test="[[ $functions.projectsOf($variables.projects, $variables.selOrg).length === 0 ]]"><div class="nx-empty" id="vbsNoProject">None yet: open a project above and Add its repository, or paste a Git address below.</div></oj-bind-if>
           <div class="nx-vbs-projects" id="vbsProjects">
             <oj-bind-for-each data="[[ $functions.projectsOf($variables.projects, $variables.selOrg) ]]">
               <template data-oj-as="p">
@@ -234,7 +153,7 @@
           </div>
 
           <div class="nx-vbs-form nx-vbs-addproj" id="vbsAddProject">
-            <h3 class="nx-pg-h3">Add a project</h3>
+            <h3 class="nx-pg-h3">Add a repository by its Git address</h3>
             <p class="nx-note">In VB Studio: the project → <b>Repositories</b> → its repository → <b>Clone</b> (HTTPS): paste that address. Build.Rite reads the project from it, then checks the sign-in, its branches and its build jobs.</p>
             <label class="nx-vbs-field"><span>Git address</span><input type="url" id="vbsPRepo" class="nx-flib-filter" data-field="pRepo" :value="[[ $variables.pRepo ]]" on-input="[[ $listeners.onField ]]" :placeholder="[[ $functions.repoHint($functions.org($variables.orgs, $variables.selOrg)) ]]" autocomplete="off" spellcheck="false"></label>
             <label class="nx-vbs-field"><span>Name (optional)</span><input type="text" id="vbsPName" class="nx-flib-filter" data-field="pName" :value="[[ $variables.pName ]]" on-input="[[ $listeners.onField ]]" placeholder="e.g. EquipRite" autocomplete="off"></label>
@@ -243,5 +162,23 @@
         </oj-bind-if>
       </section>
     </div>
+  </oj-bind-if>
+
+  <!-- the VB Studio window: its log; what Build.Rite saw (no values); clear -->
+  <oj-bind-if test="[[ $functions.hasFound($variables.found) ]]">
+    <section class="nx-card nx-vbs-conn" id="vbsConn" aria-labelledby="vbsConnTitle">
+      <div class="nx-card-head"><h2 id="vbsConnTitle">VB Studio connection</h2></div>
+      <oj-bind-if test="[[ $functions.finderLogCount($variables.found) > 0 ]]">
+        <details class="nx-vbs-log" id="vbsFinderLog" :open="[[ $variables.watching ]]">
+          <summary><oj-bind-text value="[[ 'VB Studio window log · ' + $functions.finderLogCount($variables.found) + ' lines' ]]"></oj-bind-text></summary>
+          <pre class="nx-vbs-logtext" id="vbsFinderLogText"><oj-bind-text value="[[ $functions.finderLogText($variables.found) ]]"></oj-bind-text></pre>
+        </details>
+      </oj-bind-if>
+      <div class="nx-fx-row nx-vbs-foundacts">
+        <oj-bind-if test="[[ $functions.finderLogCount($variables.found) > 0 ]]"><button type="button" class="nx-btn nx-btn--sm" id="vbsCopyLog" data-act="copyLog" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy the log</button></oj-bind-if>
+        <button type="button" class="nx-btn nx-btn--sm" id="vbsDiag" data-act="diag" on-click="[[ $listeners.onAct ]]" title="The calls VB Studio's pages made, as paths and field names only — no names, no values, no password"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy what Build.Rite saw (no values)</button>
+        <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="vbsClearFound" data-act="clearFound" on-click="[[ $listeners.onAct ]]">Clear what was found</button>
+      </div>
+    </section>
   </oj-bind-if>
 </div>

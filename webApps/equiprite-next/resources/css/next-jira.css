@@ -1568,3 +1568,18 @@ html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, htm
 .nx-vbs-wtr > span { overflow-wrap: anywhere; }
 .nx-vbs-wowner { display: block; font-size: 12px; }
 @media (max-width: 760px) { .nx-vbs-wtr--all, .nx-vbs-wtr--p { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .nx-vbs-wth { display: none; } }
+/* the projects: a row each (its name opens its tab) */
+.nx-vbs-ptable { padding: 4px 16px 16px; }
+.nx-vbs-ptr { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.3fr) minmax(0, .8fr) minmax(0, .8fr) auto; gap: 12px; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--nx-line); font-size: 13px; }
+.nx-vbs-ptr > span { min-width: 0; overflow-wrap: anywhere; }
+.nx-vbs-ptr:not(.nx-vbs-wth):hover { background: rgba(42, 120, 214, .05); }
+.nx-vbs-ptr .nx-vbs-plink { font-size: 14px; }
+.nx-vbs-others { padding: 4px 16px 8px; display: flex; flex-direction: column; gap: 6px; }
+.nx-vbs-conn { margin-top: 14px; }
+.nx-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.nx-vbsp .nx-card { margin-top: 14px; }
+.nx-vbsp .nx-card-head { gap: 12px; flex-wrap: wrap; }
+.nx-vbsp-q { max-width: 260px; }
+.nx-vbsp-steps { margin: 14px 0 0; }
+.nx-vbsp-steps .nx-btn { margin-top: 8px; }
+@media (max-width: 760px) { .nx-vbs-ptr { grid-template-columns: minmax(0, 1fr) auto; } .nx-vbs-ptr > span:nth-child(2), .nx-vbs-ptr > span:nth-child(3) { display: none; } }

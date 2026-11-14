@@ -220,6 +220,11 @@ define(['resources/js/rules'], function (rules) {
     'jira-sprint': { flow: 'insights', page: 'jira-sprint', icon: 'oj-ux-ico-list', navId: 'jira',
       key: function (p) { return p ? String(p.id || p.name || '') : ''; },
       title: function (p) { return 'Sprint ' + ((p && (p.name || p.id)) || ''); } },
+    // A VB Studio project ({ key: '<host>/<org>/<project>', name }), from Build.Rite's Organizations & projects: its
+    // workspaces (Refresh workspaces), its repositories, in a tab of its own (flows/insights vbs-project).
+    'vbs-project': { flow: 'insights', page: 'vbs-project', icon: 'oj-ux-ico-folder', navId: 'projects',
+      key: function (p) { return p ? String(p.key || '') : ''; },
+      title: function (p) { return (p && (p.name || String(p.key || '').split('/').pop())) || 'Project'; } },
     // Jira · Daily progress (Jira stories → Daily progress, the Jira updates bell): what moved in Jira day by day — closed,
     // new, reopened, moved, touched, by whom — in a tab of its own (flows/insights jira-progress). One tab.
     'jira-progress': { flow: 'insights', page: 'jira-progress', icon: 'oj-ux-ico-chart-bar', navId: 'jira',

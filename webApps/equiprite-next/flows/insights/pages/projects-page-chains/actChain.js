@@ -1,4 +1,4 @@
-define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) => {
+define(['vb/action/actionChain', 'resources/js/vbsClient', 'resources/js/shellBus'], (ActionChain, VC, bus) => {
   'use strict';
 
   // Setup → Organizations & projects: an organization chosen, added, edited (its sign-in saved encrypted on this PC; the
@@ -60,12 +60,16 @@ define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) =>
         v.result = { ok: true, text: 'Enter how you sign in to ' + org + ', then Save: its projects can then be added with one click.' };
         return;
       }
-      // the filter: an organization (its projects); a project opened (its repositories and workspaces), closed
-      const toFound = () => setTimeout(() => { try { const e = document.getElementById('vbsFound'); if (e && e.scrollIntoView) e.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (er) { /* not drawn */ } }, 30);
+      // the filter: an organization (its projects); a project opened in a tab of its own
       const savedOf = (k) => (v.orgs || []).filter((o) => o.host + '/' + o.org === k)[0];
-      if (act === 'filterOrg') { v.fOrg = String(key || ''); v.fProject = ''; const so = savedOf(v.fOrg); if (so) v.selOrg = so.id; return; }
-      if (act === 'openProject') { const k = String(key || ''); v.fProject = k; v.fOrg = k.split('/').slice(0, 2).join('/'); const so = savedOf(v.fOrg); if (so) v.selOrg = so.id; toFound(); return; }
-      if (act === 'closeProject') { v.fProject = ''; toFound(); return; }
+      if (act === 'filterOrg') { v.fOrg = String(key || ''); const so = savedOf(v.fOrg); if (so) v.selOrg = so.id; return; }
+      if (act === 'openProject') {
+        // a project in a tab of its own: its workspaces (Refresh workspaces), its repositories
+        const k = String(key || '');
+        const p = ((v.found && v.found.projects) || []).filter((x) => x.host + '/' + x.org + '/' + x.project === k)[0];
+        bus.open({ record: 'vbs-project', params: { key: k, name: p ? (p.name || p.project) : k.split('/').pop() } });
+        return;
+      }
       if (act === 'cancelOrg') { v.formOrg = false; v.editId = ''; v.oPass = ''; clearBox('vbsOPass'); return; }
       if (v.busy) return;
       v.busy = true; v.result = null;
@@ -114,23 +118,6 @@ define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) =>
           if (!r.ok) { v.result = { ok: false, text: r.body.error || 'Could not open VB Studio.' }; return; }
           v.result = { ok: true, text: 'Opened in Build.Rite\'s VB Studio window.' };
           watch(v);
-          return;
-        }
-        if (act === 'findRepos' || act === 'syncProject') {
-          // one project: its repositories (VB Studio's API, else the names VB Studio usually gives, checked with git), or
-          // its repositories and workspaces again through the API
-          const k = String(key || '').split('/');
-          const ok = k.slice(0, 2).join('/'), pid = k.slice(2).join('/');
-          const fp = ((v.found && v.found.projects) || []).filter((p) => p.host + '/' + p.org + '/' + p.project === String(key || ''))[0] || {};
-          const r = act === 'findRepos' ? await VC.findRepos(ok, pid, fp.name || '') : await VC.sync({ orgKey: ok, project: pid });
-          if (r.body && Array.isArray(r.body.projects)) v.found = r.body;
-          if (!r.ok) { v.result = { ok: false, text: r.body.error || 'Not found.' }; return; }
-          const np = ((v.found && v.found.projects) || []).filter((p) => p.host + '/' + p.org + '/' + p.project === String(key || ''))[0] || {};
-          const nr = (np.repos || []).length;
-          const nw = ((v.found && v.found.workspaces) || []).filter((w) => w.host + '/' + w.org + '/' + w.project === String(key || '')).length;
-          v.result = act === 'findRepos'
-            ? { ok: true, text: 'Found ' + (fp.name || pid) + '\'s repositor' + (nr === 1 ? 'y' : 'ies') + ': ' + (np.repos || []).map((x) => x.repo).join(', ') + (r.body.via === 'git' ? ' (checked with git: it exists).' : ' (from VB Studio\'s API).') + ' Add it to Build.Rite to work with it.' }
-            : { ok: true, text: (fp.name || pid) + ' refreshed from VB Studio: ' + nr + ' repositor' + (nr === 1 ? 'y' : 'ies') + ', ' + nw + ' workspace' + (nw === 1 ? '' : 's') + '.' };
           return;
         }
         if (act === 'addFound') {

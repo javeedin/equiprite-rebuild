@@ -1,0 +1,29 @@
+{
+  "description": "A VB Studio project in a tab of its own (Build.Rite: Organizations & projects → a project): all its workspaces as VB Studio lists them (workspace, owner, repository, branch, environment, last opened), Refresh workspaces (read again from VB Studio, from inside its own page: desktop/lib/vbs.js sync of that one project), its repositories (Add to Build.Rite), and what the last refresh did.",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "key": { "type": "string", "defaultValue": "", "input": "fromCaller", "description": "The project: '<host>/<org>/<project>' (the tab's key)." },
+    "name": { "type": "string", "defaultValue": "", "input": "fromCaller", "description": "Its name as listed (the tab's title)." },
+    "found": { "type": "any", "defaultValue": null, "description": "What Build.Rite knows from VB Studio (desktop/lib/vbs.js discovered())." },
+    "loading": { "type": "boolean", "defaultValue": true },
+    "busy": { "type": "boolean", "defaultValue": false },
+    "refreshing": { "type": "boolean", "defaultValue": false },
+    "result": { "type": "any", "defaultValue": null, "description": "{ ok, text } of the last action." },
+    "refresh": { "type": "any", "defaultValue": null, "description": "The last refresh on this tab: { at, ok, error, signIn, steps }." },
+    "stepsOpen": { "type": "boolean", "defaultValue": false },
+    "wsQ": { "type": "string", "defaultValue": "", "description": "The workspaces filtered by name, owner, branch or environment." },
+    "signingIn": { "type": "boolean", "defaultValue": false, "description": "The VB Studio window is open to sign in: refreshed again once it is closed." }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
+    "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
+    "onField": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.value }}" } } ] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

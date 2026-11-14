@@ -22,8 +22,7 @@
     "syncing": { "type": "boolean", "defaultValue": false, "description": "Sync from VB Studio (API) is running: its steps read again every second or so." },
     "syncOpen": { "type": "boolean", "defaultValue": false, "description": "What the last sync did, shown open (right after it ran)." },
     "fOrg": { "type": "string", "defaultValue": "", "description": "The organization filtered on ('<host>/<org>'; empty: all)." },
-    "fText": { "type": "string", "defaultValue": "", "description": "Projects filtered by their name, id or description." },
-    "fProject": { "type": "string", "defaultValue": "", "description": "The project opened ('<host>/<org>/<project>'): its repositories and workspaces." }
+    "fText": { "type": "string", "defaultValue": "", "description": "Projects filtered by their name, id or description." }
   },
   "eventListeners": {
     "vbEnter": { "chains": [ { "chain": "loadChain" } ] },

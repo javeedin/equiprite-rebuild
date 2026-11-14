@@ -1,30 +1,18 @@
-define([], () => {
+define(['resources/js/vbsView'], (V) => {
   'use strict';
 
   // Setup → Organizations & projects: binding helpers (desktop/lib/vbs.js does the work; the chains call it through
-  // resources/js/vbsClient.js). None uses `this`.
-  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const when = (at) => { const d = new Date(at); if (isNaN(d.getTime())) return ''; const p2 = (n) => (n < 10 ? '0' : '') + n; return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear() + ', ' + p2(d.getHours()) + ':' + p2(d.getMinutes()); };
-  const plural = (n, one, many) => n + ' ' + (n === 1 ? one : (many || one + 's'));
-  const orgKey = (o) => o.host + '/' + o.org;
-  const projKey = (p) => p.host + '/' + p.org + '/' + p.project;
+  // resources/js/vbsClient.js; resources/js/vbsView.js turns what was found into rows). None uses `this`.
+  const when = V.when;
+  const plural = V.plural;
+  const orgKey = V.orgKey;
   const inOrg = (x, fOrg) => !fOrg || orgKey(x) === fOrg;
-  const matches = (p, t) => { const q = String(t || '').trim().toLowerCase(); return !q || [p.name, p.project, p.description].some((v) => String(v || '').toLowerCase().indexOf(q) !== -1); };
-  /** A workspace of a project: by the project's id, or (read without it) its short name (the id without its number), its name. */
-  const wsMatch = (w, p) => w.host === p.host && w.org === p.org && !!w.project && (w.project === p.project || w.project === String(p.project).replace(/_\d+$/, '') || (!!p.name && w.project === p.name));
-  const wsOf = (f, p) => ((f && f.workspaces) || []).filter((w) => wsMatch(w, p));
-  /** When a workspace was last opened: a date (or seconds / milliseconds) shown as a date, else as VB Studio says it. */
-  const opened = (v) => { const t = String(v || ''); if (!t) return '—'; const n = /^\d{10}$/.test(t) ? Number(t) * 1000 : /^\d{12,13}$/.test(t) ? Number(t) : t; const d = new Date(n); return isNaN(d.getTime()) ? t : when(d.toISOString()); };
-  const wsRow = (w, f) => {
-    const p = ((f && f.projects) || []).filter((x) => wsMatch(w, x))[0];
-    return { name: w.name, owner: w.owner || '', project: p ? (p.name || p.project) : (w.project || '—'), projectKey: p ? projKey(p) : '', branch: w.branch || '—', repo: w.repo || '—',
-      environment: w.environment || '—', lastOpened: opened(w.lastOpened), url: w.url || '' };
-  };
+  const matches = V.matches;
   /** Sync from VB Studio's steps: live while it runs, else the last sync's. */
   const stepsOf = (f) => (f && (f.syncLive || (f.sync && f.sync.steps))) || [];
 
   class PageModule {
-    subText(orgs, projects) { return !(orgs || []).length ? 'Start by adding your Visual Builder Studio organization.' : plural(orgs.length, 'organization') + ' · ' + plural((projects || []).length, 'project'); }
+    subText(orgs, found) { return !(orgs || []).length ? 'Start by adding your Visual Builder Studio organization.' : plural(orgs.length, 'organization') + ' · ' + plural(((found && found.projects) || []).length, 'project') + ' in VB Studio'; }
     orgClass(id, sel) { return 'nx-vbs-org' + (id === sel ? ' nx-vbs-org--on' : ''); }
     org(orgs, sel) { return (orgs || []).filter((o) => o.id === sel)[0] || null; }
     /** Signed in (the last check), refused, or not checked yet. */
@@ -68,21 +56,6 @@ define([], () => {
       if (!fOrg && !String(fText || '').trim()) return '';
       return 'Showing ' + shown + ' of ' + plural(all.length, 'project') + (String(fText || '').trim() ? ' matching “' + String(fText).trim() + '”' : '') + '.';
     }
-    /** The breadcrumb: All organizations ▸ the organization ▸ the project. */
-    crumbOrg(f, orgs, fOrg) { if (!fOrg) return ''; const s = (orgs || []).filter((o) => orgKey(o) === fOrg)[0]; return s ? (s.name || s.org) : fOrg.split('/').pop(); }
-    crumbProject(f, fProject) { const p = ((f && f.projects) || []).filter((x) => projKey(x) === fProject)[0]; return p ? (p.name || p.project) : ''; }
-    /** The project opened: its repositories (Add) and its workspaces. */
-    projectView(f, fProject) {
-      const p = ((f && f.projects) || []).filter((x) => projKey(x) === fProject)[0];
-      if (!p) return null;
-      const ws = wsOf(f, p);
-      const learned = (f && f.learned) || {};
-      return { key: projKey(p), orgKey: p.host + '/' + p.org, name: p.name || p.project, project: p.project, org: p.org, description: p.description || '', orgSetUp: !!p.orgId,
-        repos: (p.repos || []).map((r) => ({ repo: r.repo, url: r.url, added: !!r.added })), noRepo: !(p.repos || []).length,
-        workspaces: ws.map((w) => wsRow(w, f)), wsTitle: 'Workspaces · ' + ws.length,
-        wsNote: ws.length ? '' : learned.workspaces ? 'No workspace found in this project yet (as of the last sync): Refresh it from VB Studio.' : 'Build.Rite has not seen VB Studio\'s Workspaces page yet: Open VB Studio, open this project\'s Workspaces page (Designer → Workspaces), close the window — then Sync reads every project\'s workspaces itself.',
-        canRefresh: !!(learned.repos || learned.workspaces) };
-    }
     // ── Sync from VB Studio (API) ──
     syncStepCount(f) { return stepsOf(f).length; }
     syncStepsText(f) {
@@ -111,28 +84,23 @@ define([], () => {
     foundNote(f, watching) {
       if (!f) return '';
       if ((f.finder && f.finder.open) || watching) return 'The VB Studio window is open: sign in as usual, open the organization\'s page, then a project\'s Repositories and Workspaces — what VB Studio shows appears here.';
-      if (f.sync && f.sync.ok) return 'Sync from VB Studio reads these through VB Studio\'s API, without a window. Open VB Studio only to teach Build.Rite a page it has not seen.';
-      return f.at ? 'Read from VB Studio\'s pages, last on ' + when(f.at) + '. Sync from VB Studio now makes the same calls itself (no window).' : '';
+      if (f.sync && f.sync.ok) return 'Open a project to see its workspaces.';
+      return f.at ? 'Read from VB Studio, last on ' + when(f.at) + '. Open a project to see its workspaces.' : '';
     }
     foundCounts(f, fOrg, fText) {
       if (!f) return '';
-      const pr = (f.projects || []).filter((p) => inOrg(p, fOrg) && matches(p, fText));
-      const ws = (f.workspaces || []).filter((w) => inOrg(w, fOrg) && (!String(fText || '').trim() || pr.some((p) => wsMatch(w, p))));
-      return plural((f.orgs || []).filter((o) => inOrg(o, fOrg)).length, 'organization') + ' · ' + plural(pr.length, 'project') + ' · ' + plural(pr.reduce((n, p) => n + (p.repos || []).length, 0), 'repository', 'repositories') + ' · ' + plural(ws.length, 'workspace');
+      const rows = V.projectRows(f, fOrg, fText);
+      return plural(rows.length, 'project') + ' · ' + plural(rows.reduce((n, r) => n + r.repos, 0), 'repository', 'repositories') + ' · ' + plural(rows.reduce((n, r) => n + r.ws, 0), 'workspace');
     }
-    foundOrgs(f, fOrg) {
-      const all = (f && f.projects) || [];
-      return ((f && f.orgs) || []).filter((o) => inOrg(o, fOrg)).map((o) => { const n = all.filter((p) => p.host === o.host && p.org === o.org).length; return { key: orgKey(o), url: o.url, org: o.org, host: o.host, setUp: !!o.orgId, n: n, show: fOrg !== orgKey(o) && n > 0, showText: 'Its projects · ' + n }; });
+    /** The projects listed: name (opens its tab), id, organization, repositories, workspaces. */
+    projectRows(f, fOrg, fText) { return V.projectRows(f, fOrg, fText); }
+    noProjects(f, fOrg, fText) {
+      if (String(fText || '').trim()) return 'No project matches “' + String(fText).trim() + '”.';
+      if (((f && f.projects) || []).length) return 'No project in this organization.';
+      return 'No project read yet: click Sync from VB Studio.';
     }
-    foundProjects(f, fOrg, fText) {
-      return ((f && f.projects) || []).filter((p) => inOrg(p, fOrg) && matches(p, fText)).map((p) => { const n = wsOf(f, p).length; return { key: projKey(p), name: p.name || p.project, project: p.project, org: p.org, description: p.description || '', orgSetUp: !!p.orgId,
-        noRepo: !(p.repos || []).length, wsText: 'Workspaces · ' + n + ' ›',
-        repos: (p.repos || []).map((r) => ({ repo: r.repo, url: r.url, added: !!r.added })) }; });
-    }
-    foundWorkspaces(f, fOrg, fText) {
-      const shown = ((f && f.projects) || []).filter((p) => matches(p, fText));
-      return ((f && f.workspaces) || []).filter((w) => inOrg(w, fOrg) && (!String(fText || '').trim() || shown.some((p) => wsMatch(w, p)))).map((w) => wsRow(w, f));
-    }
+    /** Organizations found in VB Studio, not set up here (Set up: their sign-in). */
+    otherOrgs(f) { return ((f && f.orgs) || []).filter((o) => !o.orgId).map((o) => ({ key: orgKey(o), url: o.url, org: o.org })); }
     repoHint(o) { return o ? 'https://' + o.host + '/' + o.org + '/s/' + o.org + '_<project>/scm/<repository>.git' : ''; }
   }
 

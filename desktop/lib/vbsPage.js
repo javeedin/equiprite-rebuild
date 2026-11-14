@@ -17,7 +17,7 @@ function create(o) {
   const partition = o.partition || 'persist:vbstudio';
   const isHost = o.isHost || (() => false);
   const signInUrl = o.signInUrl || /identity\.oraclecloud\.com|\/sso\/|signin|login\.|\/oauth2\//i;
-  const apiPath = o.apiPath || /\/api2\/|\/rest\//;
+  const apiPath = o.apiPath || /\/(api2|rest|s2)\//;
   const log = o.log || (() => {});
   const idleMs = o.idleMs || 60000;
   const readyMs = o.readyMs || 35000;

@@ -19,6 +19,7 @@ define([], function () {
   var SCOPE_KEY = 'eqr.build.scope';
   var scope = (function () { try { return (typeof localStorage !== 'undefined' && localStorage.getItem(SCOPE_KEY)) || ''; } catch (e) { return ''; } }());
   var scopeFns = {};
+  var topicFns = {}; // topic → { screen: fn }: what one tab changed, heard by the others (bus.emit / bus.on)
 
   function send(req) {
     if (handler) handler(req);
@@ -68,6 +69,10 @@ define([], function () {
     },
     /** A screen that follows the build in scope: fn(app) runs when it changes (one per screen: a new page replaces it). */
     onScope: function (screen, fn) { scopeFns[screen] = fn; },
+    /** Something changed that other tabs show (a VB Studio repository added in a project's tab): each screen listening reads it again. */
+    emit: function (topic, data) { var fns = topicFns[topic] || {}; Object.keys(fns).forEach(function (k) { try { fns[k](data); } catch (e) { /* a closed tab's page */ } }); },
+    /** A screen listens to a topic (one listener per screen: the latest page of it). */
+    on: function (topic, screen, fn) { (topicFns[topic] = topicFns[topic] || {})[screen] = fn; },
     /** What was handed to a screen, once; null when nothing waits. */
     takeFocus: function (navId) {
       var w = focusWaiting[navId] || null;

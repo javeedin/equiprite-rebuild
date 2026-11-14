@@ -1,0 +1,68 @@
+<!-- A VB Studio project in a tab of its own (Build.Rite): its workspaces — as VB Studio lists them — with Refresh
+     workspaces (read again from VB Studio), its repositories, and what the last refresh did. desktop/lib/vbs.js. -->
+<div class="nx-page nx-vbs nx-vbsp">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">VB Studio project</div>
+      <h1 id="vbspTitle"><oj-bind-text value="[[ $functions.title($variables.found, $variables.key, $variables.name) ]]"></oj-bind-text></h1>
+      <div class="nx-sub" id="vbspSub"><oj-bind-text value="[[ $functions.sub($variables.found, $variables.key) ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--primary" id="vbspRefresh" data-act="refresh" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy || $variables.loading ]]" title="Read this project's workspaces and repositories again from VB Studio"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh workspaces</button>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.result ]]"><div :class="[[ 'nx-flib-result ' + ($variables.result.ok ? 'nx-flib-result--ok' : 'nx-flib-result--err') ]]" id="vbspResult"><oj-bind-text value="[[ $variables.result.text ]]"></oj-bind-text>
+    <oj-bind-if test="[[ !$variables.result.ok && !!$variables.refresh && $variables.refresh.signIn ]]"> <button type="button" class="nx-btn nx-btn--sm" id="vbspSignIn" data-act="signIn" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.signingIn ]]">Open VB Studio to sign in</button></oj-bind-if></div></oj-bind-if>
+  <oj-bind-if test="[[ $variables.loading ]]"><div class="nx-empty" id="vbspLoading"><span class="nx-spin" aria-hidden="true"></span> Reading the project…</div></oj-bind-if>
+  <oj-bind-if test="[[ !$variables.loading && !$functions.proj($variables.found, $variables.key) ]]"><div class="nx-empty" id="vbspNotFound">This project is not among what Build.Rite has read from VB Studio. Go back to Organizations &amp; projects and Sync from VB Studio.</div></oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.loading && !!$functions.proj($variables.found, $variables.key) ]]">
+    <!-- its workspaces -->
+    <section class="nx-card" id="vbspWorkspaces" aria-labelledby="vbspWsTitle">
+      <div class="nx-card-head"><h2 id="vbspWsTitle"><oj-bind-text value="[[ $functions.wsTitle($variables.found, $variables.key) ]]"></oj-bind-text></h2>
+        <input type="search" id="vbspWsQ" class="nx-flib-filter nx-vbsp-q" data-field="wsQ" on-input="[[ $listeners.onField ]]" placeholder="Filter workspaces…" aria-label="Filter workspaces" autocomplete="off" spellcheck="false"></div>
+      <p class="nx-vbs-foundnote" id="vbspStatus"><oj-bind-if test="[[ $variables.refreshing ]]"><span class="nx-spin" aria-hidden="true"></span> </oj-bind-if><oj-bind-text value="[[ $functions.status($variables.refresh, $variables.refreshing, $variables.found, $variables.key) ]]"></oj-bind-text></p>
+      <oj-bind-if test="[[ $functions.wsRows($variables.found, $variables.key, $variables.wsQ).length > 0 ]]">
+        <div class="nx-vbs-wtable" id="vbspWsTable" role="table" aria-label="The project's workspaces">
+          <div class="nx-vbs-wtr nx-vbs-wtr--p nx-vbs-wth" role="row"><span role="columnheader">Workspace</span><span role="columnheader">Repository</span><span role="columnheader">Branch</span><span role="columnheader">Environment</span><span role="columnheader">Last opened</span></div>
+          <oj-bind-for-each data="[[ $functions.wsRows($variables.found, $variables.key, $variables.wsQ) ]]">
+            <template data-oj-as="w">
+              <div class="nx-vbs-wtr nx-vbs-wtr--p" role="row" :data-ws="[[ w.data.key ]]"><span role="cell"><b><oj-bind-text value="[[ w.data.name ]]"></oj-bind-text></b><oj-bind-if test="[[ !!w.data.owner ]]"><span class="nx-note nx-vbs-wowner"><oj-bind-text value="[[ w.data.owner ]]"></oj-bind-text></span></oj-bind-if></span>
+                <span role="cell"><oj-bind-text value="[[ w.data.repo ]]"></oj-bind-text></span><span role="cell"><code><oj-bind-text value="[[ w.data.branch ]]"></oj-bind-text></code></span><span role="cell"><oj-bind-text value="[[ w.data.environment ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ w.data.lastOpened ]]"></oj-bind-text><oj-bind-if test="[[ !!w.data.url ]]"> <button type="button" class="nx-vbs-plink nx-vbs-plink--sm" data-act="openVbs" :data-key="[[ w.data.url ]]" on-click="[[ $listeners.onAct ]]">Open in VB Studio</button></oj-bind-if></span></div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $functions.wsRows($variables.found, $variables.key, $variables.wsQ).length === 0 ]]"><div class="nx-empty" id="vbspNoWs"><oj-bind-text value="[[ $functions.noWs($variables.refresh, $variables.refreshing, $variables.wsQ) ]]"></oj-bind-text></div></oj-bind-if>
+    </section>
+
+    <!-- its repositories -->
+    <section class="nx-card" id="vbspRepos" aria-labelledby="vbspReposTitle">
+      <div class="nx-card-head"><h2 id="vbspReposTitle"><oj-bind-text value="[[ $functions.reposTitle($variables.found, $variables.key) ]]"></oj-bind-text></h2></div>
+      <div class="nx-vbs-pvrepos" id="vbspRepoList">
+        <oj-bind-for-each data="[[ $functions.proj($variables.found, $variables.key).repos ]]">
+          <template data-oj-as="r">
+            <span class="nx-vbs-repo"><span class="nx-vbs-chip"><oj-bind-text value="[[ r.data.repo ]]"></oj-bind-text></span><code class="nx-vbs-url"><oj-bind-text value="[[ r.data.url ]]"></oj-bind-text></code>
+              <oj-bind-if test="[[ r.data.added ]]"><span class="nx-vbs-st nx-vbs-st--ok">✓ Added to Build.Rite</span></oj-bind-if>
+              <oj-bind-if test="[[ !r.data.added ]]"><button type="button" class="nx-btn nx-btn--sm nx-btn--primary" data-act="addRepo" :data-key="[[ r.data.url ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Checks the sign-in, its branches and build jobs; Build.Rite then works with it">Add to Build.Rite</button></oj-bind-if></span>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-if test="[[ $functions.proj($variables.found, $variables.key).repos.length === 0 ]]">
+          <span class="nx-vbs-repo"><span class="nx-note">Its Git address is not known yet.</span>
+            <button type="button" class="nx-btn nx-btn--sm" id="vbspFindRepos" data-act="findRepos" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Asks VB Studio for its repositories; else tries the names VB Studio usually gives, each checked with git — only one that exists is shown">Find its repositories</button></span>
+        </oj-bind-if>
+      </div>
+    </section>
+
+    <!-- what the last refresh did -->
+    <oj-bind-if test="[[ $functions.stepCount($variables.refresh) > 0 ]]">
+      <details class="nx-vbs-log nx-vbsp-steps" id="vbspSteps" :open="[[ $variables.stepsOpen ]]">
+        <summary><oj-bind-text value="[[ 'What the refresh did · ' + $functions.stepCount($variables.refresh) + ' steps' ]]"></oj-bind-text></summary>
+        <pre class="nx-vbs-logtext" id="vbspStepsText"><oj-bind-text value="[[ $functions.stepsText($variables.refresh) ]]"></oj-bind-text></pre>
+        <button type="button" class="nx-btn nx-btn--sm" id="vbspCopySteps" data-act="copySteps" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy (no password in it)</button>
+      </details>
+    </oj-bind-if>
+  </oj-bind-if>
+</div>
