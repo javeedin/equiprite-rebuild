@@ -76,11 +76,12 @@
           <h3 class="nx-pg-h3 nx-vbs-h3" id="vbsPvWsTitle"><oj-bind-text value="[[ $functions.projectView($variables.found, $variables.fProject).wsTitle ]]"></oj-bind-text></h3>
           <oj-bind-if test="[[ $functions.projectView($variables.found, $variables.fProject).workspaces.length > 0 ]]">
             <div class="nx-vbs-wtable" id="vbsPvWorkspaces" role="table" aria-label="The project's workspaces">
-              <div class="nx-vbs-wtr nx-vbs-wth" role="row"><span role="columnheader">Workspace</span><span role="columnheader">Project</span><span role="columnheader">Branch</span><span role="columnheader">Repository</span><span role="columnheader">Owner</span></div>
+              <div class="nx-vbs-wtr nx-vbs-wtr--p nx-vbs-wth" role="row"><span role="columnheader">Workspace</span><span role="columnheader">Repository</span><span role="columnheader">Branch</span><span role="columnheader">Environment</span><span role="columnheader">Last opened</span></div>
               <oj-bind-for-each data="[[ $functions.projectView($variables.found, $variables.fProject).workspaces ]]">
                 <template data-oj-as="w">
-                  <div class="nx-vbs-wtr" role="row"><span role="cell"><b><oj-bind-text value="[[ w.data.name ]]"></oj-bind-text></b></span><span role="cell"><oj-bind-text value="[[ w.data.project ]]"></oj-bind-text></span>
-                    <span role="cell"><code><oj-bind-text value="[[ w.data.branch ]]"></oj-bind-text></code></span><span role="cell"><oj-bind-text value="[[ w.data.repo ]]"></oj-bind-text></span><span role="cell"><oj-bind-text value="[[ w.data.owner ]]"></oj-bind-text></span></div>
+                  <div class="nx-vbs-wtr nx-vbs-wtr--p" role="row"><span role="cell"><b><oj-bind-text value="[[ w.data.name ]]"></oj-bind-text></b><oj-bind-if test="[[ !!w.data.owner ]]"><span class="nx-note nx-vbs-wowner"><oj-bind-text value="[[ w.data.owner ]]"></oj-bind-text></span></oj-bind-if></span>
+                    <span role="cell"><oj-bind-text value="[[ w.data.repo ]]"></oj-bind-text></span><span role="cell"><code><oj-bind-text value="[[ w.data.branch ]]"></oj-bind-text></code></span><span role="cell"><oj-bind-text value="[[ w.data.environment ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ w.data.lastOpened ]]"></oj-bind-text><oj-bind-if test="[[ !!w.data.url ]]"> <button type="button" class="nx-vbs-plink nx-vbs-plink--sm" data-act="openVbs" :data-key="[[ w.data.url ]]" on-click="[[ $listeners.onAct ]]">Open in VB Studio</button></oj-bind-if></span></div>
                 </template>
               </oj-bind-for-each>
             </div>
@@ -130,11 +131,12 @@
       <oj-bind-if test="[[ $functions.foundWorkspaces($variables.found, $variables.fOrg, $variables.fText).length > 0 ]]">
         <h3 class="nx-pg-h3 nx-vbs-h3">Workspaces</h3>
         <div class="nx-vbs-wtable" id="vbsFoundWorkspaces" role="table" aria-label="Workspaces found in VB Studio">
-          <div class="nx-vbs-wtr nx-vbs-wth" role="row"><span role="columnheader">Workspace</span><span role="columnheader">Project</span><span role="columnheader">Branch</span><span role="columnheader">Repository</span><span role="columnheader">Owner</span></div>
+          <div class="nx-vbs-wtr nx-vbs-wtr--all nx-vbs-wth" role="row"><span role="columnheader">Workspace</span><span role="columnheader">Project</span><span role="columnheader">Repository</span><span role="columnheader">Branch</span><span role="columnheader">Environment</span><span role="columnheader">Last opened</span></div>
           <oj-bind-for-each data="[[ $functions.foundWorkspaces($variables.found, $variables.fOrg, $variables.fText) ]]">
             <template data-oj-as="w">
-              <div class="nx-vbs-wtr" role="row"><span role="cell"><b><oj-bind-text value="[[ w.data.name ]]"></oj-bind-text></b></span><span role="cell"><oj-bind-if test="[[ !!w.data.projectKey ]]"><button type="button" class="nx-vbs-plink nx-vbs-plink--sm" data-act="openProject" :data-key="[[ w.data.projectKey ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ w.data.project ]]"></oj-bind-text></button></oj-bind-if><oj-bind-if test="[[ !w.data.projectKey ]]"><oj-bind-text value="[[ w.data.project ]]"></oj-bind-text></oj-bind-if></span>
-                <span role="cell"><code><oj-bind-text value="[[ w.data.branch ]]"></oj-bind-text></code></span><span role="cell"><oj-bind-text value="[[ w.data.repo ]]"></oj-bind-text></span><span role="cell"><oj-bind-text value="[[ w.data.owner ]]"></oj-bind-text></span></div>
+              <div class="nx-vbs-wtr nx-vbs-wtr--all" role="row"><span role="cell"><b><oj-bind-text value="[[ w.data.name ]]"></oj-bind-text></b><oj-bind-if test="[[ !!w.data.owner ]]"><span class="nx-note nx-vbs-wowner"><oj-bind-text value="[[ w.data.owner ]]"></oj-bind-text></span></oj-bind-if></span><span role="cell"><oj-bind-if test="[[ !!w.data.projectKey ]]"><button type="button" class="nx-vbs-plink nx-vbs-plink--sm" data-act="openProject" :data-key="[[ w.data.projectKey ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ w.data.project ]]"></oj-bind-text></button></oj-bind-if><oj-bind-if test="[[ !w.data.projectKey ]]"><oj-bind-text value="[[ w.data.project ]]"></oj-bind-text></oj-bind-if></span>
+                <span role="cell"><oj-bind-text value="[[ w.data.repo ]]"></oj-bind-text></span><span role="cell"><code><oj-bind-text value="[[ w.data.branch ]]"></oj-bind-text></code></span><span role="cell"><oj-bind-text value="[[ w.data.environment ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ w.data.lastOpened ]]"></oj-bind-text><oj-bind-if test="[[ !!w.data.url ]]"> <button type="button" class="nx-vbs-plink nx-vbs-plink--sm" data-act="openVbs" :data-key="[[ w.data.url ]]" on-click="[[ $listeners.onAct ]]">Open in VB Studio</button></oj-bind-if></span></div>
             </template>
           </oj-bind-for-each>
         </div>

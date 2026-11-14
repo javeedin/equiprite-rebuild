@@ -6,6 +6,7 @@ define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) =>
   // build jobs), checked again, removed.
   // Find in VB Studio: what the VB Studio window finds, read again every few seconds while it is open (at most 30 minutes)
   let watcher = null;
+  let syncAfterSignIn = false; // Sync needed a sign-in: run again once the VB Studio window (signed in there) is closed
   const watch = (v) => {
     if (watcher) clearInterval(watcher);
     const until = Date.now() + 30 * 60000;
@@ -18,6 +19,17 @@ define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) =>
         clearInterval(watcher); watcher = null; v.watching = false;
         const s = await VC.state();
         if (s.ok) { v.orgs = s.body.orgs; v.projects = s.body.projects; }
+        if (syncAfterSignIn && !v.busy) {
+          syncAfterSignIn = false;
+          v.busy = true; v.syncing = true;
+          v.result = { ok: true, text: 'Signed in: syncing from VB Studio again…' };
+          try {
+            const r = await VC.sync(v.fOrg ? { orgKey: v.fOrg } : '');
+            if (r.body && Array.isArray(r.body.projects)) v.found = r.body;
+            const c = (r.body && r.body.counts) || {};
+            v.result = r.ok ? { ok: true, text: 'Synced from VB Studio: ' + c.projects + ' projects, ' + c.repos + ' repositories, ' + c.workspaces + ' workspaces.' } : { ok: false, text: (r.body && r.body.error) || 'Sync did not work.' };
+          } finally { v.busy = false; v.syncing = false; }
+        }
       }
     }, 2500);
   };
@@ -87,9 +99,21 @@ define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) =>
           v.syncOpen = !r.ok; // what Sync did: shown open when something went wrong
           const s = await VC.state();
           if (s.ok) { v.orgs = s.body.orgs; v.projects = s.body.projects; }
-          if (!r.ok) { v.result = { ok: false, text: r.body.error || 'Sync did not work.' }; return; }
+          if (!r.ok) {
+            syncAfterSignIn = !!r.body.signIn;
+            v.result = { ok: false, text: (r.body.error || 'Sync did not work.') + (r.body.signIn ? ' Build.Rite syncs again by itself when you close the VB Studio window.' : '') };
+            return;
+          }
           const c = r.body.counts || {};
           v.result = { ok: true, text: 'Synced from VB Studio (API, no window): ' + c.projects + ' project' + (c.projects === 1 ? '' : 's') + ', ' + c.repos + ' repositor' + (c.repos === 1 ? 'y' : 'ies') + ', ' + c.workspaces + ' workspace' + (c.workspaces === 1 ? '' : 's') + '.' };
+          return;
+        }
+        if (act === 'openVbs') {
+          // a workspace in VB Studio: opened in Build.Rite's VB Studio window (VB Studio's own address only)
+          const r = await VC.find(String(key || ''));
+          if (!r.ok) { v.result = { ok: false, text: r.body.error || 'Could not open VB Studio.' }; return; }
+          v.result = { ok: true, text: 'Opened in Build.Rite\'s VB Studio window.' };
+          watch(v);
           return;
         }
         if (act === 'findRepos' || act === 'syncProject') {

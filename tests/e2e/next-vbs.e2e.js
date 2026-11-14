@@ -67,7 +67,7 @@ const SECRET = 'Pa55-w0rd#e2e';
       lr.see({ url: B + '/rest/' + ORG + '/projects', status: 200, json: { items: [{ identifier: 'equiprite_1234', displayName: 'EquipRite', description: 'Rentals' }, { identifier: 'billing', displayName: 'Billing portal' }, { identifier: 'reports', displayName: 'Reports' }] } });
       lr.see({ url: B + '/rest/' + ORG + '_billing/scm/v2/repositories', status: 200, json: [{ name: 'billing-ui', httpUrl: B + '/s/' + ORG + '_billing/scm/billing-ui.git' }] });
       lr.see({ url: B + '/rest/' + ORG + '_equiprite_1234/scm/v2/repositories', status: 200, json: [{ name: 'equiprite', httpUrl: REPO }] });
-      lr.see({ url: B + '/rest/' + ORG + '_equiprite_1234/workspaces/v1/workspaces', status: 200, json: { items: [{ id: 'w1', name: 'javeed-26c-titles', branch: 'ws-javeed', repository: { name: 'equiprite' }, owner: { username: 'javeed.shaik' } },
+      lr.see({ url: B + '/rest/' + ORG + '_equiprite_1234/workspaces/v1/workspaces', status: 200, json: { items: [{ id: 'w1', name: 'javeed-26c-titles', branch: 'ws-javeed', repository: { name: 'equiprite' }, owner: { username: 'javeed.shaik' }, environment: { name: 'OICDEMO' }, lastOpened: new Date(2026, 10, 14, 1, 37).toISOString() },
         { id: 'w2', name: 'Release 26D', branch: 'release-26d', repository: { name: 'equiprite' }, owner: { username: 'demo.user' } }] } });
       lr.see({ url: B + '/rest/me/organizations', status: 200, json: { items: [{ url: 'https://other-dev2-demo-iad.developer.ocp.oraclecloud.com/other-dev2-demo-iad/' }] } });
       vbs.learn(Object.assign(lr.found(), { calls: lr.calls() }));
@@ -158,7 +158,7 @@ const SECRET = 'Pa55-w0rd#e2e';
     T.check('its projects: name, id, description; their repositories with Add; one not known yet (Find its repositories)', /EquipRite\s*Project equiprite_1234 · acme-dev1-demo-phx · Rentals\s*equiprite\s*Add/.test(fpr) && /Billing portal\s*Project billing · acme-dev1-demo-phx\s*billing-ui\s*Add/.test(fpr)
       && /Reports\s*Project reports · acme-dev1-demo-phx\s*Its Git address is not known yet\.\s*Find its repositories/.test(fpr), fpr);
     const fws = await page.$$eval('#vbsFoundWorkspaces .nx-vbs-wtr:not(.nx-vbs-wth)', (l) => l.map((x) => Array.from(x.querySelectorAll('[role="cell"]')).map((y) => y.textContent.trim()).join('|')));
-    T.check('its workspaces: name, project, branch, repository, owner', fws.join(' || ') === 'javeed-26c-titles|equiprite_1234|ws-javeed|equiprite|javeed.shaik || Release 26D|equiprite_1234|release-26d|equiprite|demo.user', fws.join(' || '));
+    T.check('its workspaces as VB Studio lists them: name (owner), project, repository, branch, environment, last opened', fws.join(' || ') === 'javeed-26c-titlesjaveed.shaik|EquipRite|equiprite|ws-javeed|OICDEMO|14 Nov 2026, 01:37 || Release 26Ddemo.user|EquipRite|equiprite|release-26d|—|—', fws.join(' || '));
     await page.click('#vbsFoundProjects [data-found="' + HOST + '/' + ORG + '/billing"] [data-act="addFound"]');
     await page.waitForFunction(() => /^Added and checked: Billing portal/.test((document.getElementById('vbsResult') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
     T.check('Add: the project added with one click (checked: signed in, its branches) — marked added', /^Added and checked: Billing portal — signed in; 2 branches, 2 build jobs\.$/.test(await text(page, '#vbsResult'))
@@ -189,7 +189,7 @@ const SECRET = 'Pa55-w0rd#e2e';
     T.check('the last sync in one line (how it signed in); what it did (closed when it went well): each call, pages and items', /^✓ Synced through VB Studio's API on .*: 25 projects · 25 repositories · 1 workspace — signed in with your username and password and the VB Studio window's session$/.test(await text(page, '#vbsSyncLine'))
       && (await page.getAttribute('#vbsSyncSteps', 'open')) === null && /\/<org>\/rest\/<org>\/projects — projects: 3 pages, 23 items/.test(await text(page, '#vbsSyncStepsText')), await text(page, '#vbsSyncBox'));
     const fws2 = await text(page, '#vbsFoundWorkspaces');
-    T.check('…a workspace found by Sync joins the ones seen before', /app7-hotfix\s*app_7\s*ws-hotfix/.test(fws2) && /javeed-26c-titles/.test(fws2), fws2);
+    T.check('…a workspace found by Sync joins the ones seen before', /app7-hotfix\s*demo\.user\s*App 7\s*app_7-ui\s*ws-hotfix/.test(fws2) && /javeed-26c-titles/.test(fws2), fws2);
     T.check('…the password never in the page', (await page.evaluate((s) => document.documentElement.outerHTML.indexOf(s), SECRET)) === -1);
     await env.shot('buildrite-sync-vbs.png');
 
@@ -213,7 +213,7 @@ const SECRET = 'Pa55-w0rd#e2e';
     await page.waitForSelector('#vbsProjectView', { timeout: 3000 }).catch(() => {});
     T.check('a project opened: All organizations › its organization › it; its repository (Add to Build.Rite); its workspaces', /^All organizations › Rite demo \(DEV\) › App 7$/.test(await text(page, '#vbsCrumbs'))
       && (await text(page, '#vbsPvName')) === 'App 7' && /app_7-ui\s*https:\/\/.*_app_7\/scm\/app_7-ui\.git\s*Add to Build\.Rite/.test(await text(page, '#vbsPvRepos'))
-      && (await text(page, '#vbsPvWsTitle')) === 'Workspaces · 1' && /app7-hotfix\s*app_7\s*ws-hotfix\s*app_7-ui\s*demo\.user/.test(await text(page, '#vbsPvWorkspaces')) && !(await page.$('#vbsFoundProjects')), await text(page, '#vbsProjectView'));
+      && (await text(page, '#vbsPvWsTitle')) === 'Workspaces · 1' && /app7-hotfix\s*demo\.user\s*app_7-ui\s*ws-hotfix/.test(await text(page, '#vbsPvWorkspaces')) && !(await page.$('#vbsFoundProjects')), await text(page, '#vbsProjectView'));
     await page.click('#vbsSyncProject');
     await page.waitForFunction(() => /refreshed from VB Studio/.test((document.getElementById('vbsResult') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
     T.check('…Refresh from VB Studio: that project only (its repositories and workspaces, through VB Studio\'s API)', /^App 7 refreshed from VB Studio: 1 repository, 1 workspace\.$/.test(await text(page, '#vbsResult')), await text(page, '#vbsResult'));

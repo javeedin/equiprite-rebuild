@@ -101,12 +101,18 @@ function why(text, status) {
 /** How a call was signed in, in words. */
 const WAYS = { basic: 'username and password', page: 'your VB Studio session, inside VB Studio\'s own page', session: 'the VB Studio window\'s session', window: 'the VB Studio window\'s sign-in' };
 /**
- * VB Studio's own calls Build.Rite knows without being shown (seen in VB Studio's pages: its organization page lists the
- * organization's projects with this one). The ones learned from VB Studio's pages come first.
+ * VB Studio's own calls Build.Rite knows without being shown (seen in VB Studio's pages: the organization's page lists its
+ * projects with the first; a project's home, its workspaces and its repositories with the others). Each is used only when
+ * no call for the same thing was learned from VB Studio's pages.
  */
 const BUILT_IN = [
   { path: '/<org>/api2/v2/organization/projects', role: 'projects', query: '', builtIn: true },
+  { path: '/<org>/s2/<org>_<project>/vbdt/design/workspaces', role: 'workspaces', query: '', builtIn: true },
+  { path: '/<org>/s2/<org>_<project>/scm/api/repository', role: 'repos', query: '', builtIn: true },
 ];
+const inProject = (c) => str(c.path).indexOf('<org>_<project>') !== -1;
+/** The learned calls, and each built-in one for what none of them does. */
+const withBuiltIn = (known) => known.concat(BUILT_IN.filter((c) => !known.some((x) => x.path === c.path || (x.role === c.role && inProject(x) === inProject(c)))));
 
 function open(opts) {
   const o = opts || {};
@@ -241,7 +247,7 @@ function open(opts) {
     const orgIdOf = (host, o) => (data.orgs.filter((x) => x.host === host && x.org === o)[0] || {}).id || '';
     const added = (url) => data.projects.some((p) => p.repoUrl === url);
     const roles = {};
-    (d.calls || []).forEach((c) => { const r = c.role || L.roleOfPath(c.path); if (r && !/\{n\}|\{id\}/.test(c.path)) roles[r + (c.path.indexOf('<org>_<project>') !== -1 ? ':project' : '')] = true; });
+    withBuiltIn((d.calls || []).map((c) => Object.assign({}, c, { role: c.role || L.roleOfPath(c.path) }))).forEach((c) => { if (c.role && !/\{n\}|\{id\}/.test(c.path)) roles[c.role + (inProject(c) ? ':project' : '')] = true; });
     return { ok: true, at: d.at || '', finder: finder, sync: data.lastSync || null, syncing: !!syncing, syncLive: syncing && live ? live.slice() : null,
       learned: { projects: !!roles.projects, repos: !!roles['repos:project'], workspaces: !!(roles['workspaces:project'] || roles.workspaces) },
       orgs: (d.orgs || []).filter((o) => L.isOrgId(o.org)).map((o) => Object.assign({}, o, { orgId: orgIdOf(o.host, o.org) })),
@@ -360,7 +366,7 @@ function open(opts) {
     pageOff = {};
     const known = (d.calls || []).map((c) => Object.assign({}, c, { role: c.role || L.roleOfPath(c.path) }))
       .filter((c) => c.role && !/\{n\}|\{id\}/.test(c.path) && (c.path.indexOf('<org>_<project>') !== -1 || !c.shape || /\[\d+\]/.test(c.shape)));
-    const calls = known.concat(BUILT_IN.filter((c) => !known.some((x) => x.path === c.path)));
+    const calls = withBuiltIn(known);
     const pick = (role, inProject) => calls.filter((c) => c.role === role && (c.path.indexOf('<org>_<project>') !== -1) === inProject);
     const projCalls = pick('projects', false), orgCalls = pick('orgs', false);
     const perOrg = pick('workspaces', false);

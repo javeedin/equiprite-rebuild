@@ -163,10 +163,25 @@ function learned(withRoles) {
     T.check('one project: only its repositories and workspaces asked (no project list); the last sync line kept', r8.ok && vb8.seen.every((x) => /proj_9\//.test(x.path)) && vb8.seen.length >= 2 && r8.projects.filter((p) => p.project === 'proj_9')[0].repos.length === 1 && !st8.discovered().sync, vb8.seen.map((x) => x.path).join());
     const r9 = await st8.sync({ orgKey: HOST + '/other-org-x', project: 'p' });
     T.check('…an organization not set up (nor on its VB Studio): said', !r9.ok && /Set up that organization first/.test(r9.error));
-    const st9 = V.open({ file: path.join(tmp, 'i.json'), encrypt: enc, decrypt: dec, fetch: vb8.fetch });
+    T.section('as VB Studio answers (nothing learned): the project list, then each project\'s workspaces and repositories (…/s2/…), from inside its page');
+    const PID = 'rebuild-app_100010';
+    const s2 = '/' + ORG + '/s2/' + ORG + '_' + PID;
+    const vbsAnswers = {
+      ['/' + ORG + '/api2/v2/organization/projects']: { items: [{ id: PID, name: 'Rebuild_App', description: 'The rebuild' }, { id: 'other-app_100011', name: 'Other_App' }] },
+      [s2 + '/vbdt/design/workspaces']: { items: [
+        { id: 'w1', name: 'Dev_One', repository: 'app.git', branch: 'dev-one', environment: { name: 'OICDEMO' }, lastOpened: '2026-11-14T01:37:00Z', owner: 'demo.user' },
+        { id: 'w2', name: 'QA_Two', repository: 'app.git', branch: 'qa-two', lastOpened: '2026-11-13T12:25:00Z', owner: 'demo.user' }] },
+      [s2 + '/scm/api/repository']: [{ name: 'app', httpUrl: base + '/s/' + ORG + '_' + PID + '/scm/app.git' }, { name: 'tools', httpUrl: base + '/s/' + ORG + '_' + PID + '/scm/tools.git' }],
+    };
+    const st9 = V.open({ file: path.join(tmp, 'i.json'), encrypt: enc, decrypt: dec, fetch: api2,
+      pageFetch: async (url) => { const a = vbsAnswers[new URL(url).pathname]; return a ? res(200, a) : res(404, {}); } });
     st9.saveOrg({ name: 'Rite demo', url: base + '/', user: 'demo.user', password: 'S3cret!#' });
-    const r10 = await st9.sync({ orgKey: HOST + '/' + ORG, project: 'proj_9' });
-    T.check('…a project\'s calls never seen: said what to open once in VB Studio', !r10.ok && r10.needLearn === 'repos' && /Repositories and Workspaces pages/.test(r10.error), r10.error);
+    const r10 = await st9.sync({});
+    const rp = (r10.projects || []).filter((p) => p.project === PID)[0] || {};
+    const w1 = (r10.workspaces || []).filter((w) => w.name === 'Dev_One')[0] || {};
+    T.check('its projects; each one\'s repositories (their Git addresses) and workspaces — inside their project, with their environment and when last opened', r10.ok && r10.projects.length === 2 && rp.repos.map((x) => x.repo).join() === 'app,tools'
+      && r10.workspaces.length === 2 && w1.project === PID && w1.environment === 'OICDEMO' && w1.lastOpened === '2026-11-14T01:37:00Z' && w1.repo === 'app' && w1.branch === 'dev-one' && st9.discovered().learned.workspaces && st9.discovered().learned.repos,
+    JSON.stringify(r10.workspaces) + ' ' + r10.steps.map((x) => x.text).join(' | '));
 
     T.section('Find its repositories: VB Studio\'s API when known, else the names VB Studio usually gives (each checked with git)');
     const gitSeen = [];

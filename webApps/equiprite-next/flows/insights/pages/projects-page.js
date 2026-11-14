@@ -10,8 +10,16 @@ define([], () => {
   const projKey = (p) => p.host + '/' + p.org + '/' + p.project;
   const inOrg = (x, fOrg) => !fOrg || orgKey(x) === fOrg;
   const matches = (p, t) => { const q = String(t || '').trim().toLowerCase(); return !q || [p.name, p.project, p.description].some((v) => String(v || '').toLowerCase().indexOf(q) !== -1); };
-  const wsOf = (f, p) => ((f && f.workspaces) || []).filter((w) => w.host === p.host && w.org === p.org && w.project === p.project);
-  const wsRow = (w) => ({ name: w.name, project: w.project || '—', projectKey: w.project ? w.host + '/' + w.org + '/' + w.project : '', branch: w.branch || '—', repo: w.repo || '—', owner: w.owner || '—' });
+  /** A workspace of a project: by the project's id, or (read without it) its short name (the id without its number), its name. */
+  const wsMatch = (w, p) => w.host === p.host && w.org === p.org && !!w.project && (w.project === p.project || w.project === String(p.project).replace(/_\d+$/, '') || (!!p.name && w.project === p.name));
+  const wsOf = (f, p) => ((f && f.workspaces) || []).filter((w) => wsMatch(w, p));
+  /** When a workspace was last opened: a date (or seconds / milliseconds) shown as a date, else as VB Studio says it. */
+  const opened = (v) => { const t = String(v || ''); if (!t) return '—'; const n = /^\d{10}$/.test(t) ? Number(t) * 1000 : /^\d{12,13}$/.test(t) ? Number(t) : t; const d = new Date(n); return isNaN(d.getTime()) ? t : when(d.toISOString()); };
+  const wsRow = (w, f) => {
+    const p = ((f && f.projects) || []).filter((x) => wsMatch(w, x))[0];
+    return { name: w.name, owner: w.owner || '', project: p ? (p.name || p.project) : (w.project || '—'), projectKey: p ? projKey(p) : '', branch: w.branch || '—', repo: w.repo || '—',
+      environment: w.environment || '—', lastOpened: opened(w.lastOpened), url: w.url || '' };
+  };
   /** Sync from VB Studio's steps: live while it runs, else the last sync's. */
   const stepsOf = (f) => (f && (f.syncLive || (f.sync && f.sync.steps))) || [];
 
@@ -71,7 +79,7 @@ define([], () => {
       const learned = (f && f.learned) || {};
       return { key: projKey(p), orgKey: p.host + '/' + p.org, name: p.name || p.project, project: p.project, org: p.org, description: p.description || '', orgSetUp: !!p.orgId,
         repos: (p.repos || []).map((r) => ({ repo: r.repo, url: r.url, added: !!r.added })), noRepo: !(p.repos || []).length,
-        workspaces: ws.map(wsRow), wsTitle: 'Workspaces · ' + ws.length,
+        workspaces: ws.map((w) => wsRow(w, f)), wsTitle: 'Workspaces · ' + ws.length,
         wsNote: ws.length ? '' : learned.workspaces ? 'No workspace found in this project yet (as of the last sync): Refresh it from VB Studio.' : 'Build.Rite has not seen VB Studio\'s Workspaces page yet: Open VB Studio, open this project\'s Workspaces page (Designer → Workspaces), close the window — then Sync reads every project\'s workspaces itself.',
         canRefresh: !!(learned.repos || learned.workspaces) };
     }
@@ -109,9 +117,7 @@ define([], () => {
     foundCounts(f, fOrg, fText) {
       if (!f) return '';
       const pr = (f.projects || []).filter((p) => inOrg(p, fOrg) && matches(p, fText));
-      const keys = {};
-      pr.forEach((p) => { keys[projKey(p)] = true; });
-      const ws = (f.workspaces || []).filter((w) => inOrg(w, fOrg) && (!String(fText || '').trim() || keys[w.host + '/' + w.org + '/' + w.project]));
+      const ws = (f.workspaces || []).filter((w) => inOrg(w, fOrg) && (!String(fText || '').trim() || pr.some((p) => wsMatch(w, p))));
       return plural((f.orgs || []).filter((o) => inOrg(o, fOrg)).length, 'organization') + ' · ' + plural(pr.length, 'project') + ' · ' + plural(pr.reduce((n, p) => n + (p.repos || []).length, 0), 'repository', 'repositories') + ' · ' + plural(ws.length, 'workspace');
     }
     foundOrgs(f, fOrg) {
@@ -124,9 +130,8 @@ define([], () => {
         repos: (p.repos || []).map((r) => ({ repo: r.repo, url: r.url, added: !!r.added })) }; });
     }
     foundWorkspaces(f, fOrg, fText) {
-      const keys = {};
-      ((f && f.projects) || []).filter((p) => matches(p, fText)).forEach((p) => { keys[projKey(p)] = true; });
-      return ((f && f.workspaces) || []).filter((w) => inOrg(w, fOrg) && (!String(fText || '').trim() || keys[w.host + '/' + w.org + '/' + w.project])).map(wsRow);
+      const shown = ((f && f.projects) || []).filter((p) => matches(p, fText));
+      return ((f && f.workspaces) || []).filter((w) => inOrg(w, fOrg) && (!String(fText || '').trim() || shown.some((p) => wsMatch(w, p)))).map((w) => wsRow(w, f));
     }
     repoHint(o) { return o ? 'https://' + o.host + '/' + o.org + '/s/' + o.org + '_<project>/scm/<repository>.git' : ''; }
   }

@@ -67,6 +67,30 @@ T.check('…each call: what it is for (projects, repositories, workspaces), its 
   return c[0].role === 'projects' && c[0].query === 'offset=0&limit=25' && c[1].role === 'repos' && c[2].role === 'workspaces' && c[2].query === 'limit=50' && JSON.stringify(c).indexOf('SECRET') === -1;
 })());
 
+T.section('as VB Studio addresses them (…/s2/<org>_<project>/…)');
+T.check('a project\'s workspaces (…/s2/…/vbdt/design/workspaces): inside that project, with their environment and when last opened; its repositories (…/scm/api/repository)', (() => {
+  const l5 = L.learner();
+  const s2 = base + '/s2/' + ORG + '_rebuild-app_100010';
+  l5.see({ url: s2 + '/vbdt/design/workspaces', json: { items: [{ id: 'w1', name: 'Dev_One', repository: 'app.git', branch: 'dev-one', environment: { name: 'OICDEMO' }, lastOpened: 1763084220000, owner: 'demo.user' }] } });
+  l5.see({ url: s2 + '/scm/api/repository', json: [{ name: 'app', httpUrl: base + '/s/' + ORG + '_rebuild-app_100010/scm/app.git' }] });
+  const f = l5.found();
+  const w = f.workspaces[0] || {};
+  const c = l5.calls();
+  return w.project === 'rebuild-app_100010' && w.environment === 'OICDEMO' && w.lastOpened === '1763084220000' && w.repo === 'app' && f.projects.length === 1 && f.projects[0].repos.length === 1
+    && c.map((x) => x.path + '=' + x.role).join() === '/<org>/s2/<org>_<project>/vbdt/design/workspaces=workspaces,/<org>/s2/<org>_<project>/scm/api/repository=repos';
+})());
+T.check('…a call about one project (…/projects/<name>/get, …/projects/stat) is not a list of projects; VB Studio\'s services (cloudgate…) are not organizations', (() => {
+  const l6 = L.learner();
+  l6.see({ url: base + '/api2/projects/rebuild-app/get', json: { members: [{ id: 'm1', name: 'Someone' }], links: ['https://' + HOST + '/cloudgate/v1/x', 'https://' + HOST + '/' + ORG + '/s2/' + ORG + '_x/scm/a.git'] } });
+  l6.see({ url: base + '/api2/projects/stat', json: { items: [{ id: 'p', name: 'n' }] } });
+  return l6.found().projects.length === 0 && l6.found().orgs.map((o) => o.org).join() === ORG;
+})());
+T.check('…a workspace read before outside its project: replaced when read inside it (not doubled)', (() => {
+  const a = { orgs: [], projects: [{ host: HOST, org: ORG, project: 'rebuild-app_100010', repos: [] }], workspaces: [{ host: HOST, org: ORG, project: '', id: 'w1', name: 'Dev_One' }], calls: [] };
+  const m2 = L.merge(a, { workspaces: [{ host: HOST, org: ORG, project: 'rebuild-app_100010', id: 'w1', name: 'Dev_One', branch: 'dev-one' }] });
+  return m2.workspaces.length === 1 && m2.workspaces[0].project === 'rebuild-app_100010';
+})());
+
 T.section('merged across visits');
 const l2 = L.learner();
 l2.see({ url: base + '/rest/' + ORG + '_billing/scm/v2/repositories', json: [{ httpUrl: base + '/s/' + ORG + '_billing/scm/billing-ui.git' }] });

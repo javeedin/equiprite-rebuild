@@ -1562,3 +1562,9 @@ html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, htm
 /* the filter wraps inside the title's column; the page's actions stay on the right */
 .nx-vbs .nx-pagehead > div:first-child { flex: 1 1 480px; min-width: 0; }
 .nx-vbs .nx-pagehead > .nx-actions { flex: none; }
+/* the workspaces: every one (its project), or a project's own — as VB Studio lists them (repository, environment, last opened) */
+.nx-vbs-wtr--all { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, 1fr); }
+.nx-vbs-wtr--p { grid-template-columns: minmax(0, 1.3fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, 1fr); }
+.nx-vbs-wtr > span { overflow-wrap: anywhere; }
+.nx-vbs-wowner { display: block; font-size: 12px; }
+@media (max-width: 760px) { .nx-vbs-wtr--all, .nx-vbs-wtr--p { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .nx-vbs-wth { display: none; } }

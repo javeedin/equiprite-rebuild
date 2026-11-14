@@ -24,27 +24,29 @@ const SIGNIN = /oauth|token|\/sso\b|sso\/|login|logout|identity|saml|openid|auth
 const isVbsHost = (h) => /\.oraclecloud\.com$/i.test(h) && /developer/i.test(h);
 const ORG_RE = /^[a-z0-9][a-z0-9-]{2,}$/;
 // the first part of a VB Studio address that is not an organization (its services, its files)
-const NOT_ORG = /^(s|rest|static|vbstudio|api\d*|v\d+|ui|public|assets|resources|js|css|img|images|fonts|cdn|dist|libs?|favicon|help|docs|status|health|metrics|socket|ws|graphql|oauth2?|sso|idcs|signin|login|logout|auth|scm|git|maven|npm|registry|webhooks?|hooks)$/i;
+const NOT_ORG = /^(s\d*|rest|static|vbstudio|api\d*|v\d+|ui|public|assets|resources|js|css|img|images|fonts|cdn|dist|libs?|favicon|help|docs|status|health|metrics|socket|ws|graphql|oauth2?|sso|idcs|signin|login|logout|auth|scm|git|maven|npm|registry|webhooks?|hooks|cloudgate|site|profiles?|users?|groups?|activity|feedback|ping|appconfig|orgconfig|docker|ocicompute|dockerexecutor|vbdt|design|environment|projects?|workspaces?|organization)$/i;
 /** An organization's id: its shape, and not one of VB Studio's own services (api2, static, rest…). */
 const isOrgId = (id) => ORG_RE.test(str(id)) && !NOT_ORG.test(str(id));
 const GIT_RE = /https:\/\/([a-z0-9.-]+)\/([a-z0-9][a-z0-9-]*)\/s\/([a-z0-9][a-z0-9-]*)_([A-Za-z0-9._-]+)\/scm\/([A-Za-z0-9._-]+?)(?:\.git)?(?=["'\s,)\]}]|$)/g;
-const VBS_URL_RE = /https:\/\/([a-z0-9.-]*developer[a-z0-9.-]*\.oraclecloud\.com)\/([a-z0-9][a-z0-9-]{2,})(?=[/"'\s?#]|$)/gi;
+const VBS_URL_RE = /https:\/\/([a-z0-9.-]*developer[a-z0-9.-]*\.oraclecloud\.com)\/([a-z0-9][a-z0-9-]{2,})(?=\/?(?:["'\s?#]|$)|\/#|\/(?:s\d*|rest|api2)\/)/gi;
 const AUTH_KINDS = /^(basic|bearer|cookie|session|page)$/;
 const pick = (o, re) => { const k = Object.keys(o || {}).filter((x) => re.test(x))[0]; return k ? o[k] : undefined; };
 const scalar = (v) => (v === null || v === undefined ? '' : typeof v === 'object' ? str(v.name || v.displayName || v.username || v.id || '') : str(v));
 
 /**
- * What a call is for, from its address's parts (the real ones, or a recorded path with its ids hidden): 'projects' (a list
- * of the organization's projects: a "projects" part, not inside one project), 'workspaces', 'repos' (one project's
- * repositories), 'orgs', or ''. pid: the project the address is inside ('<project>' in a recorded path).
+ * What a call is for, from its address's parts (the real ones, or a recorded path with its ids hidden), by its last part:
+ * 'projects' (the organization's projects: …/projects, not inside one project), 'workspaces' (…/workspaces), 'repos'
+ * (one project's …/repositories or …/repository), 'orgs', or ''. pid: the project the address is inside ('<project>' in a
+ * recorded path).
  */
 function roleOf(parts, pid) {
   const sg = (parts || []).map((x) => str(x).toLowerCase());
   if (pid === undefined) pid = sg.some((x) => x === '<org>_<project>') ? '<project>' : '';
-  if (sg.some((x) => /^(projects?|projectlist|myprojects)$/.test(x)) && !pid && !sg.some((x) => /workspace|repositor|scm|cibuild|issues/.test(x))) return 'projects';
-  if (sg.some((x) => /^workspaces?$|workspacelist/.test(x))) return 'workspaces';
-  if (pid && sg.some((x) => /^(repositories|repos|repository)$/.test(x))) return 'repos';
-  if (sg.some((x) => /^(organizations|orgs|organization)$/.test(x))) return 'orgs';
+  const last = sg[sg.length - 1] || '';
+  if (/^(projects?|projectlist|myprojects)$/.test(last) && !pid && !sg.some((x) => /workspace|repositor|scm|cibuild|issues/.test(x))) return 'projects';
+  if (/^(workspaces|workspacelist)$/.test(last)) return 'workspaces';
+  if (pid && /^(repositories|repos|repository)$/.test(last)) return 'repos';
+  if (/^(organizations|orgs)$/.test(last)) return 'orgs';
   return '';
 }
 /** A recorded path's role (calls recorded before roles were kept have none: read again from the path). */
@@ -84,13 +86,12 @@ function learner() {
     const parts = u.pathname.split('/').filter(Boolean);
     const o = parts[0] && isOrgId(parts[0]) ? parts[0] : '';
     if (o) org(host, o);
-    // …/rest/<org>_<project>/… : a project of that organization
+    // …/<org>_<project>/… (after /rest/, /s/, /s2/, /docker/, …): a project of that organization
     let pid = '';
-    const ri = parts.indexOf('rest');
-    if (o && ri !== -1 && parts[ri + 1] && parts[ri + 1].indexOf(o + '_') === 0) pid = parts[ri + 1].slice(o.length + 1);
-    const si = parts.indexOf('s');
-    if (o && !pid && si !== -1 && parts[si + 1] && parts[si + 1].indexOf(o + '_') === 0) pid = parts[si + 1].slice(o.length + 1);
-    if (pid && !/^(pubapi|v\d+)$/i.test(pid)) project(host, o, pid);
+    const pi = o ? parts.findIndex((x, i) => i > 0 && x.toLowerCase().indexOf(o.toLowerCase() + '_') === 0 && x.length > o.length + 1) : -1;
+    if (pi !== -1) pid = parts[pi].slice(o.length + 1);
+    if (/^(pubapi|v\d+)$/i.test(pid)) pid = '';
+    if (pid) project(host, o, pid);
     const j = r.json;
     if (j === undefined || j === null) return true;
     // the call, for "Copy what Build.Rite saw": its path (ids hidden) and the shape of its answer
@@ -138,7 +139,12 @@ function learner() {
         const branch = scalar(pick(it, /branch/i));
         const repoV = scalar(pick(it, /^(repository|repositoryName|repo|repoName|gitRepository|repositoryUrl|gitUrl)$/i));
         const owner = scalar(pick(it, /^(owner|ownerName|createdBy|creator|user|userName|author)$/i));
+        const env = pick(it, /^(environment|environmentName|env|targetEnvironment)$/i);
+        const opened = scalar(pick(it, /^(lastOpened|lastOpenedDate|lastOpenedTime|lastAccessed|lastAccessTime|lastUsed|lastModified|modifiedDate|modifiedTime|updatedAt|updated|updateTime)$/i));
+        const link = scalar(pick(it, /^(url|href|link|designerUrl|webUrl|workspaceUrl)$/i));
         const ws = { host: host, org: o, project: pid || scalar(pick(it, /^(project|projectId|projectName|projectIdentifier)$/i)), name: name, branch: branch, repo: repoV.replace(/^.*\/scm\//, '').replace(/\.git$/, ''), owner: owner,
+          environment: env && typeof env === 'object' ? str(env.name || env.displayName || env.id || '') : str(env || ''), lastOpened: opened,
+          url: /^https:\/\//.test(link) && isVbsHost((() => { try { return new URL(link).hostname; } catch (e) { return ''; } })()) ? link : '',
           id: scalar(pick(it, /^(id|workspaceId|identifier)$/i)) };
         const k = host + '/' + o + '/' + (ws.project || '') + '/' + (ws.id || ws.name);
         workspaces[k] = Object.assign(workspaces[k] || {}, ws);
@@ -164,7 +170,12 @@ function merge(a, b) {
     if (!x.description && p.description) x.description = p.description;
     (p.repos || []).forEach((r) => { if (!x.repos.some((y) => y.url === r.url)) x.repos.push(r); });
   });
+  const known = {};
+  out.projects.forEach((p) => { known[p.host + '/' + p.org + '/' + p.project] = true; });
   ((b && b.workspaces) || []).forEach((w) => {
+    if (w.project) {
+      out.workspaces = out.workspaces.filter((y) => !(y.host === w.host && y.org === w.org && (y.id && w.id ? y.id === w.id : y.name === w.name) && !known[y.host + '/' + y.org + '/' + y.project]));
+    }
     const k = (y) => y.host + '/' + y.org + '/' + (y.project || '') + '/' + (y.id || y.name);
     const i = out.workspaces.findIndex((y) => k(y) === k(w));
     if (i === -1) out.workspaces.push(w); else out.workspaces[i] = Object.assign({}, out.workspaces[i], w);
