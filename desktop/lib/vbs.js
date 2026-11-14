@@ -23,8 +23,9 @@
  *                                              made directly (Basic; else the window's session) — projects (every page),
  *                                              their repositories and workspaces
  *     workspaceGit({ orgKey, project, repo, branch })  a workspace's Git: its branch, head and last commit (git)
- *     work()  workUse(ws)  workStatus(id, { fetch })  workPull(id)  workCommit(id, message, by)  workPush(id)  workForget(id, rm)
- *                                              the working copy: a workspace cloned on this PC; pulled, committed, pushed back
+ *     work()  workPlan(ws)  workUse(ws)  workStatus(id, { fetch })  workCommit(id, message, by)  workApply(id)  workPush(id)
+ *     workPull(id, by)  workForget(id, rm)    your workspace on this PC: main (VB Studio's branch) and working (the changes);
+ *                                              saved in working, applied to main, main pushed to VB Studio
  *     windowSignIn(host, header)               the window's own sign-in, for Sync this run only (memory)
  *     learn(found)  discovered()  clearDiscovered()  diagnostic()  setFinder(open, url)
  *                                              Find in VB Studio: organizations, projects (their Git addresses) and
@@ -530,51 +531,33 @@ function open(opts) {
     return out;
   }
 
-  // ── The working copy: a VB Studio workspace's repository cloned on this PC at the workspace's branch. Build.Rite's
-  //    changes are made there, committed, and pushed back to that branch in VB Studio (never forced); the workspace in
-  //    VB Studio then pulls them (Git → Pull). git with the saved sign-in in its environment for each call — never in the
-  //    clone's address or its config. Kept in this app's data folder (vbs-work/<project>/<workspace>). ──
-  const workRoot = o.workDir || path.join(file ? path.dirname(file) : require('os').tmpdir(), 'vbs-work');
+  // ── Your workspace on this PC: a VB Studio workspace set up in a folder you choose, as two folders —
+  //      main      VB Studio's branch for the workspace, exactly (what is pushed back to VB Studio)
+  //      working   where Build.Rite and you change things (a git worktree of main, on a local branch: buildrite-working)
+  //    Changes are saved in working, applied to main once ready (fast-forward only), and main is pushed to the workspace's
+  //    branch in VB Studio (never forced); the workspace in VB Studio takes them with Git → Pull. Get latest brings VB
+  //    Studio's newer commits into main, then into working. git with the saved sign-in in its environment for each call —
+  //    never in an address or a config. ──
+  const WORK_BRANCH = 'buildrite-working';
+  const defaultFolder = () => o.defaultWorkFolder || path.join(require('os').homedir(), 'BuildRite');
   const works = () => { if (!data.work || !Array.isArray(data.work.copies)) data.work = { current: '', copies: [] }; return data.work; };
   const workOf = (id) => works().copies.filter((c) => c.id === str(id || works().current))[0] || null;
   const orgFor = (key) => { const m = /^([^/]+)\/([^/]+)$/.exec(str(key).toLowerCase()); if (!m) return null; return data.orgs.filter((x) => x.host === m[1] && x.org === m[2])[0] || data.orgs.filter((x) => x.host === m[1])[0] || null; };
   const slug = (v) => str(v).toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'x';
-  const isGitDir = (d) => { try { return fs.existsSync(path.join(d, '.git')); } catch (e) { return false; } };
-  const workView = (c) => (c ? Object.assign({}, c, { current: works().current === c.id, exists: isGitDir(c.path) }) : null);
-  /** The working copies on this PC, and the one Build.Rite works in (current). */
-  function work() { return { ok: true, current: workView(workOf()), copies: works().copies.map(workView), root: workRoot }; }
+  const isGitDir = (d) => { try { return !!d && fs.existsSync(path.join(d, '.git')); } catch (e) { return false; } };
+  const workView = (c) => (c ? Object.assign({}, c, { current: works().current === c.id, exists: isGitDir(c.main) && isGitDir(c.working) }) : null);
+  /** Your workspaces on this PC, and the one Build.Rite works in (current). */
+  function work() { return { ok: true, current: workView(workOf()), copies: works().copies.map(workView), defaultFolder: defaultFolder() }; }
   const LABEL = { M: 'changed', A: 'added', D: 'deleted', R: 'renamed', C: 'copied', U: 'in conflict', '?': 'new' };
-  /** Its state: its branch against VB Studio's (ahead: commits to push; behind: commits to pull), its changed files, its last commit. */
-  async function workStatus(id, opts) {
-    const c = workOf(id);
-    if (!c) return { ok: false, error: 'No working copy yet: choose a workspace (a project\'s tab) and make it your working copy.', work: work() };
-    if (!isGitDir(c.path)) return { ok: false, error: 'Its folder is not there any more (' + c.path + '): make the workspace your working copy again.', work: work() };
-    let fetchError = '';
-    if (opts && opts.fetch) {
-      const f = await git(['-C', c.path, 'fetch', '--no-tags', '-q', 'origin', '+refs/heads/' + c.branch + ':refs/remotes/origin/' + c.branch], orgFor(c.orgKey), 180000);
-      if (f.code !== 0) fetchError = why(f.stderr);
-    }
-    const st = await git(['-C', c.path, 'status', '--porcelain=v1', '-b'], null, 60000);
-    if (st.code !== 0) return { ok: false, error: why(st.stderr), work: work() };
-    const lines = str(st.stdout).split('\n').filter((l) => l.length);
-    const head = lines[0] && lines[0].indexOf('## ') === 0 ? lines.shift().slice(3) : '';
-    const ahead = Number((/ahead (\d+)/.exec(head) || [])[1] || 0);
-    const behind = Number((/behind (\d+)/.exec(head) || [])[1] || 0);
-    const branch = head.split('...')[0].replace(/^No commits yet on /, '').trim();
-    const changed = lines.map((l) => { const xy = l.slice(0, 2); const code = xy === '??' ? '?' : (xy.replace(/\s/g, '').charAt(0) || 'M'); return { status: code, label: LABEL[code] || code, path: l.slice(3).replace(/^.* -> /, '') }; });
-    const lg = await git(['-C', c.path, 'log', '-1', '--format=%H%x1f%an%x1f%ae%x1f%cI%x1f%s'], null, 30000);
-    const x = str(lg.stdout).trim().split('\x1f');
-    c.checkedAt = now().toISOString();
-    c.summary = { changed: changed.length, ahead: ahead, behind: behind }; // shown in the top bar
-    save();
-    return { ok: true, work: work(), copy: workView(c), branch: branch || c.branch, ahead: ahead, behind: behind, changed: changed.slice(0, 200), changedCount: changed.length,
-      last: x.length >= 5 ? { sha: x[0], author: x[1], email: x[2], date: x[3], subject: x.slice(4).join(' ') } : null, fetchError: fetchError, checkedAt: c.checkedAt };
-  }
-  /**
-   * Make a workspace the working copy: { orgKey, project, projectName, workspace, repo, branch } — its repository cloned
-   * at its branch (or the copy already on this PC, made current and checked against VB Studio).
-   */
-  async function workUse(b) {
+  const filesOf = (out) => str(out).split('\n').filter((l) => l.length && l.indexOf('## ') !== 0).map((l) => { const xy = l.slice(0, 2); const code = xy === '??' ? '?' : (xy.replace(/\s/g, '').charAt(0) || 'M'); return { status: code, label: LABEL[code] || code, path: l.slice(3).replace(/^.* -> /, '') }; });
+  const identity = async (dir, by) => {
+    const who = await git(['-C', dir, 'config', 'user.email'], null, 15000);
+    const name = str(by).trim() || 'Build.Rite';
+    return who.code === 0 && str(who.stdout).trim() ? [] : ['-c', 'user.name=' + name, '-c', 'user.email=' + (/@/.test(name) ? name : slug(name) + '@buildrite.local')];
+  };
+  const count = async (dir, range) => { const r = await git(['-C', dir, 'rev-list', '--count', range], null, 30000); return r.code === 0 ? Number(str(r.stdout).trim()) || 0 : 0; };
+  /** Where a workspace would go: { orgKey, project, workspace, repo, branch, folder } → its folders, its address, and what is in the way. */
+  function workPlan(b) {
     b = b || {};
     const key = str(b.orgKey).toLowerCase();
     const pid = str(b.project);
@@ -582,83 +565,150 @@ function open(opts) {
     const branch = str(b.branch).trim();
     const ws = str(b.workspace).trim();
     const m = /^([^/]+)\/([^/]+)$/.exec(key);
-    if (!m || !pid || !ws || !/^[A-Za-z0-9._-]+$/.test(repo)) return { ok: false, error: 'Which workspace (its project, repository)?' };
-    if (!/^[A-Za-z0-9._/-]+$/.test(branch)) return { ok: false, error: 'The workspace has no branch Build.Rite can use (VB Studio did not say which).' };
-    const org = orgFor(key);
-    if (!org || !header(org)) return { ok: false, error: 'Set up the organization first (its sign-in): Build.Rite clones with it.' };
-    let c = works().copies.filter((x) => x.orgKey === key && x.project === pid && x.workspace === ws)[0];
-    if (c && isGitDir(c.path)) {
-      works().current = c.id; save();
-      return Object.assign(await workStatus(c.id, { fetch: true }), { reused: true });
-    }
+    if (!m || !pid || !ws || !/^[A-Za-z0-9._-]+$/.test(repo)) return { ok: false, error: 'Choose a workspace first (its project and repository).' };
+    if (!/^[A-Za-z0-9._/-]+$/.test(branch)) return { ok: false, error: 'VB Studio did not say which branch this workspace uses.' };
+    const folder = str(b.folder).trim() || defaultFolder();
+    if (!path.isAbsolute(folder)) return { ok: false, error: 'Choose a folder on this PC (a full path, like ' + defaultFolder() + ').' };
+    const base = path.join(folder, slug(pid.replace(/_\d+$/, '')) + '-' + slug(ws));
+    const main = path.join(base, 'main');
+    const working = path.join(base, 'working');
     const url = 'https://' + m[1] + '/' + m[2] + '/s/' + m[2] + '_' + pid + '/scm/' + repo + '.git';
-    const dir = path.join(workRoot, slug(pid.replace(/_\d+$/, '')), slug(ws));
-    if (fs.existsSync(dir) && fs.readdirSync(dir).length && !isGitDir(dir)) return { ok: false, error: 'Its folder is there already and is not a Git clone: ' + dir };
-    if (fs.existsSync(dir) && fs.readdirSync(dir).length === 0) fs.rmdirSync(dir);
-    fs.mkdirSync(path.dirname(dir), { recursive: true });
-    if (!isGitDir(dir)) {
-      const cl = await git(['clone', '--no-tags', '--branch', branch, url, dir], org, 900000);
-      if (cl.code !== 0) {
-        try { if (fs.existsSync(dir) && !isGitDir(dir)) fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* left */ }
-        return { ok: false, error: /Remote branch .* not found/i.test(cl.stderr) ? 'The branch ' + branch + ' is not in ' + repo + '.git yet (the workspace has not pushed it).' : why(cl.stderr) };
-      }
+    const org = orgFor(key);
+    const existing = works().copies.filter((x) => x.base === base)[0] || null;
+    const inWay = !existing && fs.existsSync(base) && fs.readdirSync(base).length > 0;
+    return { ok: !inWay && !!(org && header(org)), orgKey: key, project: pid, workspace: ws, repo: repo, branch: branch, folder: folder, base: base, main: main, working: working, url: url, workBranch: WORK_BRANCH,
+      reuse: !!(existing && isGitDir(existing.main) && isGitDir(existing.working)),
+      error: !(org && header(org)) ? 'Set up the organization first (its sign-in): Build.Rite copies the workspace with it.' : inWay ? 'There is a folder there already, not made by Build.Rite: ' + base + ' — choose another folder.' : '' };
+  }
+  /** Its state: working's changes and saved changes not yet applied; main's commits to push, VB Studio's to get. */
+  async function workStatus(id, opts) {
+    const c = workOf(id);
+    if (!c) return { ok: false, error: 'No workspace set up on this PC yet: Set up your workspace (the top bar).', work: work() };
+    if (!isGitDir(c.main) || !isGitDir(c.working)) return { ok: false, error: 'Its folders are not there any more (' + c.base + '): set the workspace up again.', work: work() };
+    let fetchError = '';
+    if (opts && opts.fetch) {
+      const f = await git(['-C', c.main, 'fetch', '--no-tags', '-q', 'origin', '+refs/heads/' + c.branch + ':refs/remotes/origin/' + c.branch], orgFor(c.orgKey), 180000);
+      if (f.code !== 0) fetchError = why(f.stderr);
     }
-    const id = c ? c.id : idOf(pid.replace(/_\d+$/, '') + '-' + ws);
-    c = { id: id, orgKey: key, project: pid, projectName: str(b.projectName) || pid, workspace: ws, repo: repo, branch: branch, url: url, path: dir, clonedAt: now().toISOString() };
-    works().copies = works().copies.filter((x) => x.id !== id).concat([c]);
+    const ws = await git(['-C', c.working, 'status', '--porcelain=v1'], null, 60000);
+    const ms = await git(['-C', c.main, 'status', '--porcelain=v1', '-b'], null, 60000);
+    if (ws.code !== 0 || ms.code !== 0) return { ok: false, error: why(ws.stderr || ms.stderr), work: work() };
+    const head = (str(ms.stdout).split('\n')[0] || '').replace(/^## /, '');
+    const changed = filesOf(ws.stdout);
+    const toApply = await count(c.main, c.branch + '..' + WORK_BRANCH);
+    const mainAhead = await count(c.main, WORK_BRANCH + '..' + c.branch); // main has what working does not (got from VB Studio): get it into working
+    const lg = await git(['-C', c.working, 'log', '-1', '--format=%H%x1f%an%x1f%ae%x1f%cI%x1f%s'], null, 30000);
+    const x = str(lg.stdout).trim().split('\x1f');
+    const st = { changed: changed.length, toApply: toApply, toPush: Number((/ahead (\d+)/.exec(head) || [])[1] || 0), toGet: Number((/behind (\d+)/.exec(head) || [])[1] || 0), workingBehind: mainAhead, mainDirty: filesOf(ms.stdout).length };
+    c.checkedAt = now().toISOString();
+    c.summary = st; // shown in the top bar
+    save();
+    return Object.assign({ ok: true, work: work(), copy: workView(c), files: changed.slice(0, 200), changedCount: changed.length, last: x.length >= 5 ? { sha: x[0], author: x[1], email: x[2], date: x[3], subject: x.slice(4).join(' ') } : null,
+      fetchError: fetchError, checkedAt: c.checkedAt }, st);
+  }
+  /**
+   * Set a workspace up on this PC (Set workspace & working folder): its folder (<folder>/<project>-<workspace>) with main —
+   * VB Studio's branch, cloned — and working, a worktree of it on buildrite-working; made current. Already there: reused.
+   */
+  async function workUse(b) {
+    const plan = workPlan(b);
+    if (plan.reuse) {
+      const c0 = works().copies.filter((x) => x.base === plan.base)[0];
+      works().current = c0.id; save();
+      return Object.assign(await workStatus(c0.id, { fetch: true }), { reused: true, plan: plan });
+    }
+    if (!plan.ok) return { ok: false, error: plan.error, plan: plan };
+    const org = orgFor(plan.orgKey);
+    const steps = [];
+    fs.mkdirSync(plan.base, { recursive: true });
+    const cl = await git(['clone', '--no-tags', '--branch', plan.branch, plan.url, plan.main], org, 900000);
+    if (cl.code !== 0) {
+      try { fs.rmSync(plan.base, { recursive: true, force: true }); } catch (e) { /* left */ }
+      return { ok: false, plan: plan, error: /Remote branch .* not found/i.test(cl.stderr) ? 'The branch ' + plan.branch + ' is not in ' + plan.repo + '.git yet (the workspace has not pushed it).' : why(cl.stderr) };
+    }
+    steps.push('main: ' + plan.repo + '.git at ' + plan.branch + ', copied from VB Studio');
+    const wt = await git(['-C', plan.main, 'worktree', 'add', '-q', '-B', WORK_BRANCH, plan.working, plan.branch], null, 120000);
+    if (wt.code !== 0) {
+      try { fs.rmSync(plan.base, { recursive: true, force: true }); } catch (e) { /* left */ }
+      return { ok: false, plan: plan, error: 'The working folder could not be made: ' + why(wt.stderr) };
+    }
+    steps.push('working: made from main (where the changes go)');
+    const id = idOf(plan.project.replace(/_\d+$/, '') + '-' + plan.workspace);
+    const c = { id: id, orgKey: plan.orgKey, project: plan.project, projectName: str(b.projectName) || plan.project, workspace: plan.workspace, repo: plan.repo, branch: plan.branch, url: plan.url,
+      folder: plan.folder, base: plan.base, main: plan.main, working: plan.working, path: plan.working, made: true, setUpAt: now().toISOString() };
+    works().copies = works().copies.filter((x) => x.id !== id && x.base !== plan.base).concat([c]);
     works().current = id;
     save();
-    return Object.assign(await workStatus(id), { cloned: true });
+    return Object.assign(await workStatus(id), { set: true, steps: steps, plan: plan });
   }
-  /** VB Studio's newer commits on the workspace's branch brought in (fast-forward only: nothing of yours rewritten). */
-  async function workPull(id) {
-    const c = workOf(id);
-    if (!c || !isGitDir(c.path)) return workStatus(id);
-    const r = await git(['-C', c.path, 'pull', '--ff-only', '--no-tags', '-q', 'origin', c.branch], orgFor(c.orgKey), 300000);
-    if (r.code !== 0) {
-      const t = str(r.stderr);
-      const error = /not possible to fast-forward|diverg|non-fast-forward|fatal: Not possible/i.test(t) ? 'Your working copy and VB Studio both have new commits on ' + c.branch + ': they need merging (pull with a merge, in a Git tool, then push).'
-        : /local changes|would be overwritten|commit your changes|stash/i.test(t) ? 'Commit your changes first: VB Studio\'s would overwrite them.' : why(t);
-      return Object.assign(await workStatus(id), { ok: false, error: error });
-    }
-    return Object.assign(await workStatus(id), { pulled: true });
-  }
-  /** Every change in the working copy committed with a message, by who made it (their own Git name when this PC has one). */
+  /** Save working's changes (a commit there, with a message: a story, an issue — by who made it). */
   async function workCommit(id, message, by) {
     const c = workOf(id);
     const msg = str(message).trim();
-    if (!c || !isGitDir(c.path)) return workStatus(id);
-    if (!msg) return { ok: false, error: 'Write what the change is (the commit\'s message): a Jira story, an issue, what it fixes.' };
-    const add = await git(['-C', c.path, 'add', '-A'], null, 120000);
+    if (!c || !isGitDir(c.working)) return workStatus(id);
+    if (!msg) return { ok: false, error: 'Write what the change is (a Jira story, an issue, what it fixes).' };
+    const add = await git(['-C', c.working, 'add', '-A'], null, 120000);
     if (add.code !== 0) return { ok: false, error: why(add.stderr) };
-    const st = await git(['-C', c.path, 'status', '--porcelain=v1'], null, 60000);
-    if (!str(st.stdout).trim()) return Object.assign(await workStatus(id), { ok: false, error: 'Nothing to commit: the working copy has no change.' });
-    const who = await git(['-C', c.path, 'config', 'user.email'], null, 15000);
-    const name = str(by).trim() || 'Build.Rite';
-    const ident = who.code === 0 && str(who.stdout).trim() ? [] : ['-c', 'user.name=' + name, '-c', 'user.email=' + (/@/.test(name) ? name : slug(name) + '@buildrite.local')];
-    const cm = await git(['-C', c.path].concat(ident, ['commit', '-q', '-m', msg.slice(0, 2000)]), null, 120000);
+    const st = await git(['-C', c.working, 'status', '--porcelain=v1'], null, 60000);
+    if (!str(st.stdout).trim()) return Object.assign(await workStatus(id), { ok: false, error: 'Nothing to save: the working folder has no change.' });
+    const cm = await git(['-C', c.working].concat(await identity(c.working, by), ['commit', '-q', '-m', msg.slice(0, 2000)]), null, 120000);
     if (cm.code !== 0) return Object.assign(await workStatus(id), { ok: false, error: why(cm.stderr || cm.stdout) });
     return Object.assign(await workStatus(id), { committed: true });
   }
-  /** The working copy's commits pushed to the workspace's branch in VB Studio — never forced: VB Studio's newer commits are pulled first. */
+  /** Apply working's saved changes to main (fast-forward only: main gets exactly what was tested in working). */
+  async function workApply(id) {
+    const c = workOf(id);
+    if (!c || !isGitDir(c.main)) return workStatus(id);
+    const st = await workStatus(id);
+    if (!st.ok) return st;
+    if (st.changed) return Object.assign(st, { ok: false, error: 'Save working\'s changes first (they are not in a commit yet).' });
+    if (!st.toApply) return Object.assign(st, { ok: false, error: 'Nothing to apply: working has no saved change that main does not have.' });
+    if (st.mainDirty) return Object.assign(st, { ok: false, error: 'The main folder has changes made in it directly: main only takes what working applies. Undo them there first.' });
+    const r = await git(['-C', c.main, 'merge', '--ff-only', '-q', WORK_BRANCH], null, 120000);
+    if (r.code !== 0) return Object.assign(await workStatus(id), { ok: false, error: 'Main has commits working does not (from VB Studio): Get latest first — it brings them into working — then apply.' });
+    return Object.assign(await workStatus(id), { applied: true });
+  }
+  /** Push main to the workspace's branch in VB Studio — never forced: VB Studio's newer commits are got first. */
   async function workPush(id) {
     const c = workOf(id);
-    if (!c || !isGitDir(c.path)) return workStatus(id);
-    const r = await git(['-C', c.path, 'push', '-q', 'origin', 'HEAD:refs/heads/' + c.branch], orgFor(c.orgKey), 300000);
+    if (!c || !isGitDir(c.main)) return workStatus(id);
+    const r = await git(['-C', c.main, 'push', '-q', 'origin', 'HEAD:refs/heads/' + c.branch], orgFor(c.orgKey), 300000);
     if (r.code !== 0) {
       const t = str(r.stderr);
-      const error = /rejected|non-fast-forward|fetch first|failed to push/i.test(t) ? 'VB Studio has newer commits on ' + c.branch + ': Pull from VB Studio first, then push.' : why(t);
+      const error = /rejected|non-fast-forward|fetch first|failed to push/i.test(t) ? 'VB Studio has newer commits on ' + c.branch + ': Get latest first, then push.' : why(t);
       return Object.assign(await workStatus(id, { fetch: true }), { ok: false, error: error });
     }
     return Object.assign(await workStatus(id, { fetch: true }), { pushed: true });
   }
-  /** A working copy forgotten (and its folder deleted, when asked: only inside Build.Rite's own working-copies folder). */
+  /** Get latest: VB Studio's newer commits into main (a merge when main has commits not pushed yet), then main into working. */
+  async function workPull(id, by) {
+    const c = workOf(id);
+    if (!c || !isGitDir(c.main)) return workStatus(id);
+    const org = orgFor(c.orgKey);
+    const ident = await identity(c.main, by);
+    let r = await git(['-C', c.main, 'pull', '--ff-only', '--no-tags', '-q', 'origin', c.branch], org, 300000);
+    if (r.code !== 0 && /not possible to fast-forward|diverg|Not possible/i.test(str(r.stderr))) {
+      r = await git(['-C', c.main].concat(ident, ['pull', '--no-rebase', '--no-edit', '--no-tags', '-q', 'origin', c.branch]), org, 300000);
+      if (r.code !== 0) {
+        await git(['-C', c.main, 'merge', '--abort'], null, 30000);
+        return Object.assign(await workStatus(id), { ok: false, error: 'VB Studio\'s commits and main\'s conflict (the same lines changed): nothing was changed. Resolve it in VB Studio or a Git tool, then get latest again.' });
+      }
+    } else if (r.code !== 0) return Object.assign(await workStatus(id), { ok: false, error: why(r.stderr) });
+    const ws = await git(['-C', c.working, 'status', '--porcelain=v1'], null, 60000);
+    if (str(ws.stdout).trim()) return Object.assign(await workStatus(id), { ok: false, error: 'Main has VB Studio\'s latest. Working has unsaved changes: save them, then get latest again to bring it into working.' });
+    const mg = await git(['-C', c.working].concat(await identity(c.working, by), ['merge', '--no-edit', '-q', c.branch]), null, 120000);
+    if (mg.code !== 0) {
+      await git(['-C', c.working, 'merge', '--abort'], null, 30000);
+      return Object.assign(await workStatus(id), { ok: false, error: 'Main has VB Studio\'s latest, but it conflicts with working\'s saved changes (the same lines changed): working was left as it was.' });
+    }
+    return Object.assign(await workStatus(id), { pulled: true });
+  }
+  /** A workspace removed from this PC: forgotten, and its folders deleted when asked (only the folder Build.Rite made). */
   function workForget(id, removeFolder) {
     const c = workOf(id);
-    if (!c) return Object.assign(work(), { ok: false, error: 'No such working copy.' });
-    if (removeFolder) {
-      const rel = path.relative(workRoot, c.path);
-      if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) { try { fs.rmSync(c.path, { recursive: true, force: true }); } catch (e) { return Object.assign(work(), { ok: false, error: 'Its folder could not be deleted: ' + e.message }); } }
+    if (!c) return Object.assign(work(), { ok: false, error: 'No such workspace on this PC.' });
+    if (removeFolder && c.made && c.base && path.basename(c.base) && fs.existsSync(path.join(c.base, 'main'))) {
+      try { fs.rmSync(c.base, { recursive: true, force: true }); } catch (e) { return Object.assign(work(), { ok: false, error: 'Its folder could not be deleted: ' + e.message }); }
     }
     works().copies = works().copies.filter((x) => x !== c);
     if (works().current === c.id) works().current = '';
@@ -669,7 +719,7 @@ function open(opts) {
   return { state: state, saveOrg: saveOrg, removeOrg: removeOrg, addProject: addProject, checkProject: checkProject, removeProject: removeProject, auth: auth, git: git,
     learn: learn, discovered: discovered, clearDiscovered: clearDiscovered, diagnostic: diagnostic, setFinder: setFinder, finderLog: finderLog,
     sync: sync, findRepos: findRepos, workspaceGit: workspaceGit, windowSignIn: windowSignIn,
-    work: work, workUse: workUse, workStatus: workStatus, workPull: workPull, workCommit: workCommit, workPush: workPush, workForget: workForget };
+    work: work, workPlan: workPlan, workUse: workUse, workStatus: workStatus, workPull: workPull, workCommit: workCommit, workApply: workApply, workPush: workPush, workForget: workForget };
 }
 
 module.exports = { open, parseOrgUrl, parseRepoUrl, branchesOf, jobsOf, why, BUILT_IN };

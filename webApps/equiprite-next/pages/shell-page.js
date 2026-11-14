@@ -24,18 +24,19 @@ define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/reques
     jiraIcon(kind) { return JICON[kind] || 'oj-ux-ico-notification'; }
     jiraItemClass(e, seen) { return 'nx-jfeed-item nx-jfeed-item--' + e.kind + (Date.parse(e.at) > (Date.parse(seen) || 0) ? ' nx-jfeed-item--unseen' : ''); }
     // ── Build.Rite's working copy (top bar) ──
-    workText(work) { const c = work && work.current; return c ? c.projectName + ' ▸ ' + c.workspace : 'Choose a workspace'; }
-    workTitle(work) { const c = work && work.current; return c ? c.repo + '.git at ' + c.branch + ', cloned on this PC (' + c.path + '): open its project' : 'No working copy yet: open Organizations & projects, a project, a workspace — Make it my working copy'; }
+    workText(work) { const c = work && work.current; return c ? c.projectName + ' ▸ ' + c.workspace : 'Set up your workspace'; }
+    workTitle(work) { const c = work && work.current; return c ? c.repo + '.git at ' + c.branch + ' — working: ' + c.working + ' · main: ' + c.main + ' (open its project)' : 'Set up your workspace: choose a VB Studio workspace and a folder on this PC'; }
     workBadge(work) {
       const s = work && work.current && work.current.summary;
       if (!s) return work && work.current ? work.current.branch : '';
       const parts = [work.current.branch];
       if (s.changed) parts.push(s.changed + ' changed');
-      if (s.ahead) parts.push(s.ahead + ' to push');
-      if (s.behind) parts.push(s.behind + ' to pull');
+      if (s.toApply) parts.push(s.toApply + ' to apply');
+      if (s.toPush) parts.push(s.toPush + ' to push');
+      if (s.toGet) parts.push(s.toGet + ' to get');
       return parts.join(' · ');
     }
-    workClass(work) { const c = work && work.current; const s = c && c.summary; return 'nx-work' + (!c ? ' nx-work--none' : s && (s.changed || s.ahead || s.behind) ? ' nx-work--todo' : ''); }
+    workClass(work) { const c = work && work.current; const s = c && c.summary; return 'nx-work' + (!c ? ' nx-work--none' : s && (s.changed || s.toApply || s.toPush || s.toGet) ? ' nx-work--todo' : ''); }
     scopes() { return SCOPES.map((s) => ({ id: s[0], label: s[1], short: s[2], title: s[3] === 'Every build' ? 'Every build: issues and pages of all the apps' : 'Only ' + s[3] + ': its issues and pages' })); }
     constructor(context) {
       // The colours chosen on this computer, before anything is drawn (theme.js; your menu, Colours).

@@ -1,4 +1,4 @@
-define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/vbsClient', 'resources/js/vbsView'], (ActionChain, Actions, VC, V) => {
+define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/vbsClient', 'resources/js/vbsView', 'resources/js/shellBus'], (ActionChain, Actions, VC, V, bus) => {
   'use strict';
 
   // A project's tab opened: what Build.Rite has read from VB Studio, shown at once; a project with no workspace read yet
@@ -12,6 +12,15 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/vbsClient', 
         if (f.ok) v.found = f.body;
         else v.result = { ok: false, text: (f.body && f.body.error) || 'Could not read what Build.Rite knows from VB Studio.' };
       } finally { v.loading = false; }
+      // your workspace on this PC set up (the wizard) or changed elsewhere: read again (one listener per project's tab)
+      bus.on('vbs-changed', 'vbs-project:' + v.key, async (d) => {
+        if (!d || !d.work) return;
+        const w = await VC.work();
+        if (!w.ok) return;
+        v.work = w.body;
+        const c = w.body.current;
+        if (c && c.orgKey + '/' + c.project === v.key) { const st = await VC.workStatus(c.id, false); v.workSt = st.body; }
+      });
       // the working copy: the current one; checked (on this PC) when it is in this project
       try {
         const w = await VC.work();

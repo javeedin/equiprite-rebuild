@@ -349,8 +349,8 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     await page.waitForSelector('#isIssue', { timeout: 5000 });
     T.check('a row opens its issue (back beside the list)', /EQP-901/.test(await text(page, '#isKey')) && !(await page.$('#isTable')));
 
-    T.section('the top bar: the working copy (no build selector); every build\'s issues');
-    T.check('the top bar: the working copy (none chosen yet), no build selector; the issues of every build', !(await page.$('#nxScope')) && /Choose a workspace/.test(await text(page, '#nxWork')) && /EQP-901/.test(await text(page, '#isRows')), await text(page, '#nxWork'));
+    T.section('the top bar: your workspace (no build selector); every build\'s issues');
+    T.check('the top bar: your workspace (none set up yet), no build selector; the issues of every build', !(await page.$('#nxScope')) && /Set up your workspace/.test(await text(page, '#nxWork')) && /EQP-901/.test(await text(page, '#isRows')), await text(page, '#nxWork'));
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {
     T.check('no exception: ' + (e && e.message), false);

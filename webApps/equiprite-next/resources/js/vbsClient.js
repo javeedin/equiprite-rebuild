@@ -36,13 +36,17 @@ define([], function () {
     workspaceGit: function (orgKey, project, repo, branch) { return post('workspace-git', { orgKey: orgKey, project: project, repo: repo, branch: branch }); },
     /** The working copy: a workspace cloned on this PC; checked, pulled, committed, pushed back to VB Studio. */
     work: function () { return call('work'); },
+    workPlan: function (b) { return post('work/plan', b); },
     workUse: function (b) { return post('work/use', b); },
+    workApply: function (id) { return post('work/apply', { id: id || '' }); },
+    /** The desktop app's folder dialog: the folder chosen, or '' (cancelled). */
+    pickFolder: function (folder) { return post('pick-folder', { folder: folder || '' }); },
     workStatus: function (id, fetch) { return post('work/status', { id: id || '', fetch: !!fetch }); },
     workPull: function (id) { return post('work/pull', { id: id || '' }); },
     workCommit: function (id, message) { return post('work/commit', { id: id || '', message: message }); },
     workPush: function (id) { return post('work/push', { id: id || '' }); },
     workForget: function (id, removeFolder) { return post('work/forget', { id: id || '', removeFolder: !!removeFolder }); },
-    workOpen: function (id) { return post('work/open', { id: id || '' }); },
+    workOpen: function (id, which) { return post('work/open', { id: id || '', which: which || 'working' }); },
     findRepos: function (orgKey, project, name) { return post('repos', { orgKey: orgKey, project: project, name: name || '' }); },
   };
 });

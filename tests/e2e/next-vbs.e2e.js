@@ -29,9 +29,9 @@ const SECRET = 'Pa55-w0rd#e2e';
   const dec = (b) => Buffer.from(b.toString().slice(4), 'base64').toString('utf8');
   const gitSeen = [];
   let wsBranchPushed = false; // the workspace's branch, pushed to its repository
-  const work = { changed: false, ahead: 0 }; // the working copy, as the git stand-in sees it
+  const work = { changed: false, saved: 0, applied: 0 }; // your workspace on this PC, as the git stand-in sees it
   let branches = 'ref: refs/heads/main\tHEAD\n1111111\tHEAD\n1111111\trefs/heads/main\n2222222\trefs/heads/release-26c\n3333333\trefs/heads/ws-javeed\n';
-  const vbs = V.open({ file: path.join(dir, 'vbs.json'), encrypt: enc, decrypt: dec,
+  const vbs = V.open({ file: path.join(dir, 'vbs.json'), encrypt: enc, decrypt: dec, defaultWorkFolder: path.join(dir, 'BuildRite'),
     git: (args, auth) => {
       gitSeen.push({ args: args, auth: auth });
       const a = args.join(' ');
@@ -40,15 +40,20 @@ const SECRET = 'Pa55-w0rd#e2e';
       if (args.indexOf('log') !== -1) return { code: 0, stdout: 'abcdef1234567890abcdef\x1fDemo User\x1fdemo@example.com\x1f2026-11-14T01:37:00Z\x1fTitles on the customer dashboard\n', stderr: '' };
       if (args.indexOf('show') !== -1) return { code: 0, stdout: 'M\twebApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html\nA\tdocs/titles.md\n', stderr: '' };
       if (args[0] === 'init' || args.indexOf('fetch') !== -1) return { code: 0, stdout: '', stderr: '' };
+      const inDir = args[0] === '-C' ? args[1] : '';
       if (args[0] === 'clone') { fs.mkdirSync(path.join(args[args.length - 1], '.git'), { recursive: true }); work.cloned = args.slice(); return { code: 0, stdout: '', stderr: '' }; }
+      if (args.indexOf('worktree') !== -1) { const wd = args[args.indexOf('-B') + 2]; fs.mkdirSync(path.join(wd, '.git'), { recursive: true }); work.worktree = args.slice(); return { code: 0, stdout: '', stderr: '' }; }
       if (args.indexOf('status') !== -1) {
-        const files = work.changed ? ' M webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html\n?? docs/titles.md\n' : '';
-        return { code: 0, stdout: (args.indexOf('-b') !== -1 ? '## ws-javeed...origin/ws-javeed' + (work.ahead ? ' [ahead ' + work.ahead + ']' : '') + '\n' : '') + files, stderr: '' };
+        const isMain = /[\\/]main$/.test(inDir);
+        const files = !isMain && work.changed ? ' M webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html\n?? docs/titles.md\n' : '';
+        return { code: 0, stdout: (args.indexOf('-b') !== -1 ? '## ws-javeed...origin/ws-javeed' + (work.applied ? ' [ahead ' + work.applied + ']' : '') + '\n' : '') + files, stderr: '' };
       }
+      if (args.indexOf('rev-list') !== -1) return { code: 0, stdout: (args[args.length - 1] === 'ws-javeed..buildrite-working' ? work.saved : 0) + '\n', stderr: '' };
       if (args.indexOf('config') !== -1) return { code: 0, stdout: 'javeed@example.com\n', stderr: '' };
       if (args.indexOf('add') !== -1) return { code: 0, stdout: '', stderr: '' };
-      if (args.indexOf('commit') !== -1) { work.changed = false; work.ahead = 1; work.message = args[args.length - 1]; return { code: 0, stdout: '', stderr: '' }; }
-      if (args.indexOf('push') !== -1) { work.pushed = args.slice(); work.ahead = 0; return { code: 0, stdout: '', stderr: '' }; }
+      if (args.indexOf('commit') !== -1) { work.changed = false; work.saved++; work.message = args[args.length - 1]; return { code: 0, stdout: '', stderr: '' }; }
+      if (args.indexOf('merge') !== -1) { work.merged = args.slice(); work.applied += work.saved; work.saved = 0; return { code: 0, stdout: '', stderr: '' }; }
+      if (args.indexOf('push') !== -1) { work.pushed = args.slice(); work.applied = 0; return { code: 0, stdout: '', stderr: '' }; }
       if (args.indexOf('pull') !== -1) return { code: 0, stdout: '', stderr: '' };
       return { code: 0, stdout: branches + (wsBranchPushed && /ls-remote/.test(a) ? '5555555aaaa\trefs/heads/ws-javeed\n' : ''), stderr: '' };
     },
@@ -284,43 +289,79 @@ const SECRET = 'Pa55-w0rd#e2e';
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspResult')).some((e) => e.offsetParent && /Opening the workspace/.test(e.textContent)), null, { timeout: 5000 }).catch(() => {});
     T.check('Open in VB Studio: the designer opened at the workspace, in Build.Rite\'s VB Studio window', opened.length === nOpened + 1 && opened[opened.length - 1] === designer && /^Opening the workspace in Build\.Rite's VB Studio window/.test(await text(page, '#vbspResult:visible')), opened.slice(-1)[0]);
 
-    T.section('the working copy: the workspace cloned on this PC; a change committed and pushed back to its branch');
-    T.check('the top bar: no build selector — the working copy, none chosen yet', !(await page.$('#nxScope')) && /^Working copy\s*Choose a workspace$/.test(await text(page, '#nxWork')), await text(page, '#nxWork'));
-    T.check('…the workspace\'s panel: what making it the working copy does', /Build\.Rite clones equiprite at ws-javeed to this PC\. Your changes are made there, committed, then pushed back/.test(await text(page, '#vbspWorkNone')), await text(page, '#vbspWorkNone'));
-    await page.click('#vbspWorkUse');
-    await page.waitForSelector('#vbspWork', { state: 'visible', timeout: 8000 }).catch(() => {});
-    const wdir = path.join(dir, 'vbs-work', 'equiprite', 'javeed-26c-titles');
-    T.check('Make it my working copy: cloned at its branch into this app\'s data folder; up to date; its folder and branch shown', !!work.cloned && work.cloned.join(' ') === 'clone --no-tags --branch ws-javeed ' + REPO + ' ' + wdir
-      && /^Cloned: your working copy is javeed-26c-titles \(ws-javeed\), in /.test(await text(page, '#vbspResult:visible')) && (await text(page, '#vbspWorkState')) === '✓ Up to date with VB Studio' && (await text(page, '#vbspWorkPath')) === wdir, await text(page, '#vbspResult:visible') + ' / ' + (work.cloned || []).join(' '));
+    T.section('Set up your workspace (the wizard): the workspace, the folder, a preview — then main and working made');
+    T.check('the top bar: no build selector — your workspace, none set up yet', !(await page.$('#nxScope')) && /^Workspace\s*Set up your workspace$/.test(await text(page, '#nxWork')), await text(page, '#nxWork'));
+    await page.click('#nxWork');
+    await page.waitForSelector('#vbsuStep1', { state: 'visible', timeout: 8000 }).catch(() => {});
+    T.check('the top bar opens the wizard: 4 steps, on the first (which workspace?)', /1\s*Workspace\s*2\s*Folder\s*3\s*Preview\s*4\s*Set/.test(await text(page, '#vbsuSteps')) && !!(await page.$('#vbsuStep1')) && (await page.$eval('#vbsuNext1', (e) => e.disabled)), await text(page, '#vbsuSteps'));
+    await page.fill('#vbsuPQ', 'equip');
+    await page.click('#vbsuProjects [data-key="' + HOST + '/' + ORG + '/equiprite_1234"]');
+    await page.waitForSelector('#vbsuWorkspaces .nx-vbsu-ws', { state: 'visible', timeout: 5000 }).catch(() => {});
+    const wsList = await page.$$eval('#vbsuWorkspaces .nx-vbsu-ws b', (l) => l.map((x) => x.textContent.trim()));
+    T.check('a project chosen (found by name): its workspaces, with their branch and repository', wsList.join() === 'javeed-26c-titles,Release 26D' && /branch ws-javeed · equiprite\.git/.test(await text(page, '#vbsuWorkspaces')), wsList.join());
+    await page.click('#vbsuWorkspaces [data-key="w1"]');
+    await page.click('#vbsuNext1');
+    await page.waitForSelector('#vbsuStep2', { state: 'visible', timeout: 5000 }).catch(() => {});
+    const defFolder = path.join(dir, 'BuildRite');
+    T.check('2 · the folder: Build.Rite\'s own by default; what is made in it said', (await page.inputValue('#vbsuFolder')) === defFolder && /EquipRite ▸ javeed-26c-titles/.test(await text(page, '#vbsuStep2'))
+      && (await text(page, '#vbsuWhere')) === 'Build.Rite makes ' + path.join(defFolder, 'equiprite-javeed-26c-titles') + path.sep + ' with two folders in it: main and working.', await text(page, '#vbsuWhere'));
+    await page.click('#vbsuBrowse');
+    await page.waitForFunction(() => /needs the desktop app/.test((document.getElementById('vbsuResult') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    T.check('…Browse (the desktop app\'s folder dialog): here, said — type it', /Choosing a folder needs the desktop app: type its path\./.test(await text(page, '#vbsuResult')));
+    const chosen = path.join(dir, 'My Projects');
+    await page.fill('#vbsuFolder', chosen);
+    await page.click('#vbsuNext2');
+    await page.waitForSelector('#vbsuStep3', { state: 'visible', timeout: 5000 }).catch(() => {});
+    const wbase = path.join(chosen, 'equiprite-javeed-26c-titles');
+    T.check('3 · the preview: the workspace, its repository and branch; working and main, in the folder chosen; how a change goes to VB Studio', /javeed-26c-titles\s*in EquipRite · acme-dev1-demo-phx/.test(await text(page, '#vbsuPlan')) && /equiprite\.git/.test(await text(page, '#vbsuPlan'))
+      && (await text(page, '#vbsuPlanBranch')) === 'ws-javeed' && (await text(page, '#vbsuPlanWorking')) === path.join(wbase, 'working') && (await text(page, '#vbsuPlanMain')) === path.join(wbase, 'main')
+      && /Change in working\s*Save\s*Apply to main\s*Push to VB Studio ws-javeed\s*The workspace: Git → Pull/.test(await text(page, '#vbsuStep3')), await text(page, '#vbsuStep3'));
+    await env.shot('buildrite-vbs-setup-preview.png');
+    await page.click('#vbsuSet');
+    await page.waitForSelector('#vbsuDone', { state: 'visible', timeout: 8000 }).catch(() => {});
+    T.check('Set workspace & working folder: main cloned (VB Studio\'s branch), working made from it; said', !!work.cloned && work.cloned.join(' ') === 'clone --no-tags --branch ws-javeed ' + REPO + ' ' + path.join(wbase, 'main')
+      && !!work.worktree && work.worktree.join(' ') === '-C ' + path.join(wbase, 'main') + ' worktree add -q -B buildrite-working ' + path.join(wbase, 'working') + ' ws-javeed'
+      && /^✓ Your workspace is set: javeed-26c-titles \(ws-javeed\)$/.test(await text(page, '#vbsuDone .nx-vbsu-doneh')) && (await text(page, '#vbsuDoneWorking')) === path.join(wbase, 'working') && (await text(page, '#vbsuDoneMain')) === path.join(wbase, 'main'), (work.worktree || []).join(' '));
     await page.waitForFunction(() => /EquipRite ▸ javeed-26c-titles/.test((document.getElementById('nxWork') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
-    T.check('…the top bar: EquipRite ▸ javeed-26c-titles, its branch', /^Working copy\s*EquipRite ▸ javeed-26c-titles\s*ws-javeed$/.test(await text(page, '#nxWork')), await text(page, '#nxWork'));
-    work.changed = true; // a change made in the working copy (by Build.Rite, or by hand)
+    T.check('…the top bar: your workspace — EquipRite ▸ javeed-26c-titles, its branch', /^Workspace\s*EquipRite ▸ javeed-26c-titles\s*ws-javeed$/.test(await text(page, '#nxWork')), await text(page, '#nxWork'));
+    await env.shot('buildrite-vbs-setup.png');
+    await page.click('#vbsuStart');
+    await page.waitForSelector('#vbspWork', { state: 'visible', timeout: 8000 }).catch(() => {});
+
+    T.section('working → save → apply to main → push to VB Studio');
+    T.check('Start working: the project, on the workspace; working and main, everything in VB Studio', /EquipRite/.test(await text(page, '.nx-tab--on')) && (await text(page, '#vbspWorkState')) === '✓ Everything is in VB Studio'
+      && (await text(page, '#vbspWorkPath')) === path.join(wbase, 'working') && (await text(page, '#vbspMainPath')) === path.join(wbase, 'main'), await text(page, '#vbspWorkState'));
+    work.changed = true; // a change made in working (by Build.Rite, or by hand)
     await page.click('#vbspWorkCheck');
     await page.waitForSelector('#vbspWorkFiles', { state: 'visible', timeout: 5000 }).catch(() => {});
-    T.check('Check VB Studio: its changes (a page changed, a new file), Commit offered; nothing to push yet', (await text(page, '#vbspWorkState')) === '2 changed files' && /M\s*webApps\/vbredwoodapp\/flows\/customer-portal\/pages\/customer-dashboard-page\.html\s*\?\s*docs\/titles\.md/.test(await text(page, '#vbspWorkFiles'))
-      && (await page.$eval('#vbspWorkPush', (e) => e.disabled)), await text(page, '#vbspWorkState'));
+    T.check('Check VB Studio: working\'s changes (a page changed, a new file); Save offered; Apply and Push not yet', (await text(page, '#vbspWorkState')) === '2 changes in working, not saved' && /customer-dashboard-page\.html\s*\?\s*docs\/titles\.md/.test(await text(page, '#vbspWorkFiles'))
+      && (await page.$eval('#vbspWorkApply', (e) => e.disabled)) && (await page.$eval('#vbspWorkPush', (e) => e.disabled)) && (await text(page, '#vbspApplyText')) === 'Save the changes first, then apply them.', await text(page, '#vbspWorkState'));
     await page.fill('#vbspWorkMsg', 'EQP-901: titles on the customer dashboard');
     await page.click('#vbspWorkCommit');
-    await page.waitForFunction(() => /1 commit to push/.test((document.getElementById('vbspWorkState') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
-    T.check('Commit: with its message; 1 commit to push; the top bar says so', work.message === 'EQP-901: titles on the customer dashboard' && (await text(page, '#vbspWorkState')) === '1 commit to push' && !(await page.$('#vbspWorkFiles')), await text(page, '#vbspWorkState'));
+    await page.waitForFunction(() => /to apply to main/.test((document.getElementById('vbspWorkState') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    T.check('Save in working: with its message; 1 saved change ready for main', work.message === 'EQP-901: titles on the customer dashboard' && (await text(page, '#vbspWorkState')) === '1 saved change to apply to main' && (await text(page, '#vbspApplyText')) === '1 saved change ready for main.', await text(page, '#vbspWorkState'));
+    await page.click('#vbspWorkApply');
+    await page.waitForFunction(() => /to push to VB Studio/.test((document.getElementById('vbspWorkState') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    T.check('Apply to main: fast-forward only (main gets exactly what working has); 1 commit to push', !!work.merged && work.merged.join(' ') === '-C ' + path.join(wbase, 'main') + ' merge --ff-only -q buildrite-working' && (await text(page, '#vbspWorkState')) === '1 commit to push to VB Studio'
+      && (await text(page, '#vbspPushText')) === '1 commit to push to ws-javeed.', await text(page, '#vbspWorkState'));
     await page.waitForFunction(() => /1 to push/.test((document.getElementById('nxWork') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
     T.check('…the top bar: ws-javeed · 1 to push', /ws-javeed · 1 to push$/.test(await text(page, '#nxWork')), await text(page, '#nxWork'));
     let asked = '';
     page.once('dialog', (d) => { asked = d.message(); d.accept(); });
     await page.click('#vbspWorkPush');
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspResult')).some((e) => e.offsetParent && /^Pushed to ws-javeed/.test(e.textContent.trim())), null, { timeout: 8000 }).catch(() => {});
-    T.check('Push to VB Studio: asked first (what, where; nothing forced); pushed to the workspace\'s branch (with the sign-in); up to date', /^Push 1 commit to ws-javeed in equiprite\.git \(VB Studio\)\?/.test(asked) && /Nothing is forced/.test(asked)
-      && !!work.pushed && work.pushed.join(' ') === '-C ' + wdir + ' push -q origin HEAD:refs/heads/ws-javeed' && gitSeen.some((x) => x.args.indexOf('push') !== -1 && x.auth && /^Basic /.test(x.auth.header))
-      && /^Pushed to ws-javeed in VB Studio: the workspace javeed-26c-titles takes it with Git → Pull\.$/.test(await text(page, '#vbspResult:visible')) && (await text(page, '#vbspWorkState')) === '✓ Up to date with VB Studio', asked + ' / ' + (work.pushed || []).join(' '));
+    T.check('Push to VB Studio: asked first (from main, where; nothing forced); main pushed to the workspace\'s branch (with the sign-in); everything in VB Studio', /^Push 1 commit from main to ws-javeed in equiprite\.git \(VB Studio\)\?/.test(asked) && /Nothing is forced/.test(asked)
+      && !!work.pushed && work.pushed.join(' ') === '-C ' + path.join(wbase, 'main') + ' push -q origin HEAD:refs/heads/ws-javeed' && gitSeen.some((x) => x.args.indexOf('push') !== -1 && x.auth && /^Basic /.test(x.auth.header))
+      && /^Pushed to ws-javeed in VB Studio: the workspace javeed-26c-titles takes it with Git → Pull\.$/.test(await text(page, '#vbspResult:visible')) && (await text(page, '#vbspWorkState')) === '✓ Everything is in VB Studio', asked + ' / ' + (work.pushed || []).join(' '));
     await page.click('#vbspWsTable [data-ws="w2"] [data-act="selectWs"]');
     await page.waitForFunction(() => /Release 26D/.test((document.getElementById('vbspWsName') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
     await page.waitForFunction(() => /release-26d/.test((document.getElementById('vbspGitBranch') || {}).textContent || '') && !/Reading/.test((document.getElementById('vbspGitHead') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
-    T.check('another workspace chosen: its own Git (release-26d: its head); not the working copy (which one is, said)', (await text(page, '#vbspGitBranch')) === 'release-26d' && (await text(page, '#vbspGitHead')) === '4444444'
-      && /^Your working copy now: EquipRite ▸ javeed-26c-titles \(ws-javeed\)\.$/.test(await text(page, '#vbspWorkNow')), await text(page, '#vbspGitHead'));
+    T.check('another workspace chosen: its own Git (release-26d: its head); not your workspace (which one is, said; Set it up offered)', (await text(page, '#vbspGitBranch')) === 'release-26d' && (await text(page, '#vbspGitHead')) === '4444444'
+      && /^Your workspace now: EquipRite ▸ javeed-26c-titles \(ws-javeed\)\.$/.test(await text(page, '#vbspWorkNow')) && !!(await page.$('#vbspWorkSetup')), await text(page, '#vbspGitHead'));
     await page.click('#nxNav [data-nav-id="projects"]');
     await page.click('#nxWork');
     await page.waitForFunction(() => { const t = document.querySelector('.nx-tab--on'); return t && /EquipRite/.test(t.textContent); }, null, { timeout: 5000 }).catch(() => {});
-    T.check('the top bar\'s working copy opens its project', /EquipRite/.test(await text(page, '.nx-tab--on')), await text(page, '.nx-tab--on'));
+    T.check('the top bar\'s workspace opens its project', /EquipRite/.test(await text(page, '.nx-tab--on')), await text(page, '.nx-tab--on'));
     await page.click('#vbspWsTable [data-ws="w1"] [data-act="selectWs"]');
     await page.waitForSelector('#vbspWork', { state: 'visible', timeout: 8000 }).catch(() => {});
     await env.shot('buildrite-vbs-project.png');

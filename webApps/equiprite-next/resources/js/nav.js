@@ -225,6 +225,11 @@ define(['resources/js/rules'], function (rules) {
     'vbs-project': { flow: 'insights', page: 'vbs-project', icon: 'oj-ux-ico-folder', navId: 'projects',
       key: function (p) { return p ? String(p.key || '') : ''; },
       title: function (p) { return (p && (p.name || String(p.key || '').split('/').pop())) || 'Project'; } },
+    // Set up your workspace (Build.Rite's top bar): a wizard — the VB Studio workspace, the folder on this PC, a preview,
+    // then main and working made (flows/insights vbs-setup). One tab.
+    'vbs-setup': { flow: 'insights', page: 'vbs-setup', icon: 'oj-ux-ico-settings', navId: 'projects',
+      key: function () { return 'setup'; },
+      title: function () { return 'Set up your workspace'; } },
     // Jira · Daily progress (Jira stories → Daily progress, the Jira updates bell): what moved in Jira day by day — closed,
     // new, reopened, moved, touched, by whom — in a tab of its own (flows/insights jira-progress). One tab.
     'jira-progress': { flow: 'insights', page: 'jira-progress', icon: 'oj-ux-ico-chart-bar', navId: 'jira',

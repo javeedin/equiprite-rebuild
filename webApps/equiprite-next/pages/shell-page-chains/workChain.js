@@ -3,7 +3,7 @@ define(['vb/action/actionChain', 'resources/js/shellBus', 'resources/js/vbsClien
 
   // Build.Rite's top bar: the working copy — the VB Studio project ▸ workspace whose repository is cloned on this PC and
   // where changes are made (desktop/lib/vbs.js work). 'load': read it (again when a project's tab changes it); 'open':
-  // its project's tab, on that workspace — or Organizations & projects, to choose one.
+  // its project's tab, on that workspace — or, none yet, Set up your workspace (the wizard).
   class workChain extends ActionChain {
     async run(context, { act }) {
       const v = context.$page.variables;
@@ -15,7 +15,7 @@ define(['vb/action/actionChain', 'resources/js/shellBus', 'resources/js/vbsClien
       }
       const c = v.work && v.work.current;
       if (c) bus.open({ record: 'vbs-project', params: { key: c.orgKey + '/' + c.project, name: c.projectName, ws: c.workspace } });
-      else bus.open({ navId: 'projects' });
+      else bus.open({ record: 'vbs-setup', params: {} });
     }
   }
   return workChain;

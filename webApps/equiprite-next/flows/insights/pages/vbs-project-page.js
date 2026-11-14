@@ -57,25 +57,29 @@ define(['resources/js/vbsView'], (V) => {
       const ws = p && sel ? p.workspaces.filter((x) => x.key === sel)[0] : null;
       return !!ws && ws.name === c.workspace;
     }
-    workPitch(w) {
-      return !w ? '' : 'Build.Rite clones ' + (w.repo !== '—' ? w.repo : 'its repository') + ' at ' + (w.branchName || 'its branch') + ' to this PC. Your changes are made there, committed, then pushed back to this workspace\'s branch in VB Studio — and the workspace pulls them (Git → Pull).';
-    }
+    workNow(work) { const c = work && work.current; return c ? 'Your workspace now: ' + c.projectName + ' ▸ ' + c.workspace + ' (' + c.branch + ').' : ''; }
     workLine(st, busy) {
       if (busy) return 'Working…';
       if (!st) return 'Not checked yet.';
       if (!st.ok) return '✗ ' + (st.error || 'It did not work.');
       const parts = [];
-      if (st.changedCount) parts.push(V.plural(st.changedCount, 'changed file'));
-      if (st.ahead) parts.push(V.plural(st.ahead, 'commit') + ' to push');
-      if (st.behind) parts.push('VB Studio has ' + V.plural(st.behind, 'newer commit') + ': pull them');
-      return (parts.length ? parts.join(' · ') : '✓ Up to date with VB Studio') + (st.fetchError ? ' (VB Studio not checked: ' + st.fetchError + ')' : '');
+      if (st.changed) parts.push(V.plural(st.changed, 'change') + ' in working, not saved');
+      if (st.toApply) parts.push(V.plural(st.toApply, 'saved change') + ' to apply to main');
+      if (st.toPush) parts.push(V.plural(st.toPush, 'commit') + ' to push to VB Studio');
+      if (st.toGet) parts.push('VB Studio has ' + V.plural(st.toGet, 'newer commit') + ': get latest');
+      return (parts.length ? parts.join(' · ') : '✓ Everything is in VB Studio') + (st.fetchError ? ' (VB Studio not checked: ' + st.fetchError + ')' : '');
     }
-    workClass(st) { return 'nx-vbsp-wstate' + (!st ? '' : !st.ok ? ' nx-vbsp-wstate--bad' : st.changedCount || st.ahead || st.behind ? ' nx-vbsp-wstate--todo' : ' nx-vbsp-wstate--ok'); }
+    workClass(st) { return 'nx-vbsp-wstate' + (!st ? '' : !st.ok ? ' nx-vbsp-wstate--bad' : st.changed || st.toApply || st.toPush || st.toGet ? ' nx-vbsp-wstate--todo' : ' nx-vbsp-wstate--ok'); }
+    applyText(st) { if (!st || !st.ok) return ''; if (st.changed) return 'Save the changes first, then apply them.'; return st.toApply ? V.plural(st.toApply, 'saved change') + ' ready for main.' : 'Nothing to apply.'; }
+    canApply(st) { return !!st && st.ok && st.toApply > 0 && !st.changed; }
+    pushText(st, c) { if (!st || !st.ok) return ''; return st.toPush ? V.plural(st.toPush, 'commit') + ' to push to ' + (c ? c.branch : 'VB Studio') + '.' : 'Nothing to push.'; }
+    getText(st) { if (!st || !st.ok) return ''; return st.toGet ? 'VB Studio has ' + V.plural(st.toGet, 'newer commit') + '.' : (st.workingBehind ? 'Main has VB Studio\'s latest; working does not yet.' : 'VB Studio\'s latest is in main and working.'); }
+    mainNote(c) { return !c ? '' : 'VB Studio\'s ' + c.branch + ', with what was applied to it.'; }
     workFiles(st) {
-      return ((st && st.ok && st.changed) || []).map((f) => ({ status: f.status, label: f.label, path: f.path, css: f.status === '?' ? 'A' : f.status }));
+      return ((st && st.ok && st.files) || []).map((f) => ({ status: f.status, label: f.label, path: f.path, css: f.status === '?' ? 'A' : f.status }));
     }
     lastBy(st) { const l = st && st.last; return !l ? '' : l.author + ' · ' + V.when(l.date) + ' · ' + String(l.sha || '').slice(0, 10); }
-    canPush(st) { return !!st && st.ok && st.ahead > 0; }
+    canPush(st) { return !!st && st.ok && st.toPush > 0; }
     stepCount(refresh) { return ((refresh && refresh.steps) || []).length; }
     stepsText(refresh) { return ((refresh && refresh.steps) || []).map((s) => clock(s.at) + '  ' + s.text).join('\n'); }
   }

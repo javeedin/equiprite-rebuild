@@ -92,7 +92,7 @@
     <!-- Build.Rite: the working copy — the VB Studio project ▸ workspace cloned on this PC, where changes are made -->
     <oj-bind-if test="[[ $application.functions.isBuild() ]]">
       <button type="button" :class="[[ $functions.workClass($variables.work) ]]" id="nxWork" on-click="[[ $listeners.onWork ]]" :title="[[ $functions.workTitle($variables.work) ]]">
-        <span class="nx-work-lbl">Working copy</span>
+        <span class="nx-work-lbl">Workspace</span>
         <span class="nx-work-val"><oj-bind-text value="[[ $functions.workText($variables.work) ]]"></oj-bind-text></span>
         <oj-bind-if test="[[ !!$functions.workBadge($variables.work) ]]"><span class="nx-work-badge"><oj-bind-text value="[[ $functions.workBadge($variables.work) ]]"></oj-bind-text></span></oj-bind-if>
       </button>

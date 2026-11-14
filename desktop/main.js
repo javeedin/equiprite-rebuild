@@ -250,6 +250,11 @@ async function appServerOptions(v) {
     vbsStore: v === 'build' ? vbsStore() : undefined,
     vbsFind: v === 'build' ? openVbsFinder : undefined,
     vbsOpenPath: v === 'build' ? (p) => shell.openPath(p) : undefined,
+    vbsPickFolder: v === 'build' ? async (start) => {
+      const w = BrowserWindow.getFocusedWindow();
+      const r = await dialog.showOpenDialog(w && !w.isDestroyed() ? w : undefined, { title: 'Where your workspace goes (Build.Rite makes its folder inside)', defaultPath: start || undefined, properties: ['openDirectory', 'createDirectory'] });
+      return r.canceled ? '' : (r.filePaths[0] || '');
+    } : undefined,
     backendOverrides: backendOverridesFromEnv(process.env),
     onLog: pushLog,
     onProblem: backendProblem,

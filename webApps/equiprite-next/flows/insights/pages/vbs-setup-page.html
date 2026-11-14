@@ -1,0 +1,121 @@
+<!-- Set up your workspace (Build.Rite): 1 the VB Studio workspace, 2 the folder on this PC, 3 a preview, 4 Set workspace &
+     working folder — main (VB Studio's branch) and working (where changes go), shown in the top bar. desktop/lib/vbs.js. -->
+<div class="nx-page nx-vbs nx-vbsu">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Build.Rite</div>
+      <h1 id="vbsuTitle">Set up your workspace</h1>
+      <div class="nx-sub">Choose the VB Studio workspace you work in and a folder on this PC: Build.Rite makes your copy of it there.</div>
+    </div>
+  </div>
+
+  <ol class="nx-vbsu-steps" id="vbsuSteps" aria-label="Steps">
+    <oj-bind-for-each data="[[ $functions.steps($variables.step) ]]">
+      <template data-oj-as="s"><li :class="[[ s.data.cls ]]" :aria-current="[[ s.data.n === $variables.step ? 'step' : 'false' ]]"><span class="nx-vbsu-n"><oj-bind-text value="[[ s.data.n ]]"></oj-bind-text></span><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></li></template>
+    </oj-bind-for-each>
+  </ol>
+
+  <oj-bind-if test="[[ !!$variables.result ]]"><div :class="[[ 'nx-flib-result ' + ($variables.result.ok ? 'nx-flib-result--ok' : 'nx-flib-result--err') ]]" id="vbsuResult"><oj-bind-text value="[[ $variables.result.text ]]"></oj-bind-text></div></oj-bind-if>
+  <oj-bind-if test="[[ $variables.loading ]]"><div class="nx-empty"><span class="nx-spin" aria-hidden="true"></span> Reading what Build.Rite knows from VB Studio…</div></oj-bind-if>
+
+  <!-- 1 the workspace -->
+  <oj-bind-if test="[[ !$variables.loading && $variables.step === 1 ]]">
+    <section class="nx-card nx-vbsu-card" id="vbsuStep1" aria-labelledby="vbsuS1">
+      <div class="nx-card-head"><h2 id="vbsuS1">1 · Which workspace?</h2></div>
+      <oj-bind-if test="[[ !($variables.found && $variables.found.projects && $variables.found.projects.length) ]]"><div class="nx-empty" id="vbsuNoProjects">No VB Studio project read yet: open Organizations &amp; projects and Sync from VB Studio first.
+        <button type="button" class="nx-btn nx-btn--sm" data-act="openProjects" on-click="[[ $listeners.onAct ]]">Organizations &amp; projects</button></div></oj-bind-if>
+      <div class="nx-vbsu-two">
+        <div class="nx-vbsu-col">
+          <h3 class="nx-pg-h3">Project</h3>
+          <oj-bind-if test="[[ $functions.orgChips($variables.found, $variables.fOrg).length > 0 ]]">
+            <div class="nx-pg-chips" id="vbsuOrgs"><oj-bind-for-each data="[[ $functions.orgChips($variables.found, $variables.fOrg) ]]"><template data-oj-as="c">
+              <button type="button" :class="[[ c.data.cls ]]" data-act="org" :data-key="[[ c.data.key ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text> <span class="nx-chip-count"><oj-bind-text value="[[ c.data.n ]]"></oj-bind-text></span></button></template></oj-bind-for-each></div>
+          </oj-bind-if>
+          <input type="search" id="vbsuPQ" class="nx-flib-filter" data-field="pQ" on-input="[[ $listeners.onField ]]" placeholder="Find a project…" aria-label="Find a project" autocomplete="off">
+          <div class="nx-vbsu-list" id="vbsuProjects" role="listbox" aria-label="Projects">
+            <oj-bind-for-each data="[[ $functions.projects($variables.found, $variables.fOrg, $variables.pQ, $variables.selProject) ]]">
+              <template data-oj-as="p"><button type="button" :class="[[ p.data.cls ]]" role="option" :aria-selected="[[ p.data.key === $variables.selProject ? 'true' : 'false' ]]" data-act="project" :data-key="[[ p.data.key ]]" on-click="[[ $listeners.onAct ]]">
+                <b><oj-bind-text value="[[ p.data.name ]]"></oj-bind-text></b><span class="nx-note"><oj-bind-text value="[[ p.data.project + ' · ' + p.data.wsText ]]"></oj-bind-text></span></button></template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+        <div class="nx-vbsu-col">
+          <h3 class="nx-pg-h3">Workspace</h3>
+          <oj-bind-if test="[[ !$variables.selProject ]]"><div class="nx-empty">Choose a project: its workspaces show here.</div></oj-bind-if>
+          <oj-bind-if test="[[ !!$functions.noWs($variables.found, $variables.selProject) ]]"><div class="nx-empty" id="vbsuNoWs"><oj-bind-if test="[[ $variables.busy ]]"><span class="nx-spin" aria-hidden="true"></span> </oj-bind-if><oj-bind-text value="[[ $variables.busy ? $functions.noWs($variables.found, $variables.selProject) : 'This project has no workspace in VB Studio.' ]]"></oj-bind-text></div></oj-bind-if>
+          <div class="nx-vbsu-list" id="vbsuWorkspaces" role="listbox" aria-label="Workspaces">
+            <oj-bind-for-each data="[[ $functions.workspaces($variables.found, $variables.selProject, $variables.selWs) ]]">
+              <template data-oj-as="w"><button type="button" :class="[[ w.data.cls ]]" role="option" :aria-selected="[[ w.data.key === $variables.selWs ? 'true' : 'false' ]]" data-act="ws" :data-key="[[ w.data.key ]]" on-click="[[ $listeners.onAct ]]">
+                <span class="nx-vbsu-radio" aria-hidden="true"></span><span class="nx-vbsu-wsbody"><b><oj-bind-text value="[[ w.data.name ]]"></oj-bind-text></b><span class="nx-note"><oj-bind-text value="[[ $functions.wsLine(w.data) ]]"></oj-bind-text></span></span></button></template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+      </div>
+      <div class="nx-fx-row nx-vbsu-nav"><span></span><button type="button" class="nx-btn nx-btn--primary" id="vbsuNext1" data-act="next" on-click="[[ $listeners.onAct ]]" :disabled="[[ !$functions.canNext(1, $variables.found, $variables.selProject, $variables.selWs, $variables.folder) ]]">Next: the folder ›</button></div>
+    </section>
+  </oj-bind-if>
+
+  <!-- 2 the folder -->
+  <oj-bind-if test="[[ !$variables.loading && $variables.step === 2 ]]">
+    <section class="nx-card nx-vbsu-card" id="vbsuStep2" aria-labelledby="vbsuS2">
+      <div class="nx-card-head"><h2 id="vbsuS2">2 · Where on this PC?</h2><span class="nx-note"><oj-bind-text value="[[ $functions.chosenText($variables.found, $variables.selProject, $variables.selWs) ]]"></oj-bind-text></span></div>
+      <div class="nx-vbsu-body">
+        <label class="nx-vbs-field"><span>Folder</span>
+          <span class="nx-vbsu-folder"><input type="text" id="vbsuFolder" class="nx-flib-filter" data-field="folder" :value="[[ $variables.folder ]]" on-input="[[ $listeners.onField ]]" placeholder="A folder on this PC, like C:\BuildRite" autocomplete="off" spellcheck="false">
+            <button type="button" class="nx-btn" id="vbsuBrowse" data-act="browse" on-click="[[ $listeners.onAct ]]">Browse…</button></span></label>
+        <p class="nx-note" id="vbsuWhere"><oj-bind-text value="[[ $functions.whereText($variables.folder, $variables.found, $variables.selProject, $variables.selWs) ]]"></oj-bind-text></p>
+      </div>
+      <div class="nx-fx-row nx-vbsu-nav"><button type="button" class="nx-btn nx-btn--plain" id="vbsuBack2" data-act="back" on-click="[[ $listeners.onAct ]]">‹ Back</button>
+        <button type="button" class="nx-btn nx-btn--primary" id="vbsuNext2" data-act="next" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy || !$functions.canNext(2, $variables.found, $variables.selProject, $variables.selWs, $variables.folder) ]]">Next: preview ›</button></div>
+    </section>
+  </oj-bind-if>
+
+  <!-- 3 the preview -->
+  <oj-bind-if test="[[ !$variables.loading && $variables.step === 3 && !!$variables.plan ]]">
+    <section class="nx-card nx-vbsu-card" id="vbsuStep3" aria-labelledby="vbsuS3">
+      <div class="nx-card-head"><h2 id="vbsuS3">3 · Preview</h2></div>
+      <div class="nx-vbsu-body">
+        <dl class="nx-vbsp-git" id="vbsuPlan">
+          <dt>Workspace</dt><dd><b><oj-bind-text value="[[ $variables.plan.workspace ]]"></oj-bind-text></b> <span class="nx-note"><oj-bind-text value="[[ $functions.planWhere($variables.plan, $variables.found, $variables.selProject) ]]"></oj-bind-text></span></dd>
+          <dt>Repository</dt><dd><oj-bind-text value="[[ $variables.plan.repo + '.git' ]]"></oj-bind-text> <code class="nx-vbsu-url"><oj-bind-text value="[[ $variables.plan.url ]]"></oj-bind-text></code></dd>
+          <dt>Branch</dt><dd><code id="vbsuPlanBranch"><oj-bind-text value="[[ $variables.plan.branch ]]"></oj-bind-text></code></dd>
+        </dl>
+        <div class="nx-vbsu-folders" id="vbsuFolders">
+          <div class="nx-vbsu-fold"><span class="nx-vbsu-ftag nx-vbsu-ftag--work">working</span><code id="vbsuPlanWorking"><oj-bind-text value="[[ $variables.plan.working ]]"></oj-bind-text></code>
+            <span class="nx-note">Where Build.Rite and you change things. Save a change here, test it, then apply it to main.</span></div>
+          <div class="nx-vbsu-fold"><span class="nx-vbsu-ftag">main</span><code id="vbsuPlanMain"><oj-bind-text value="[[ $variables.plan.main ]]"></oj-bind-text></code>
+            <span class="nx-note"><oj-bind-text value="[[ $functions.mainNote($variables.plan) ]]"></oj-bind-text></span></div>
+        </div>
+        <ol class="nx-vbsu-flow" aria-label="How a change goes to VB Studio">
+          <li>Change in <b>working</b></li><li>Save</li><li>Apply to <b>main</b></li><li>Push to VB Studio <code><oj-bind-text value="[[ $variables.plan.branch ]]"></oj-bind-text></code></li><li>The workspace: Git → Pull</li>
+        </ol>
+        <oj-bind-if test="[[ $variables.plan.reuse ]]"><p class="nx-flib-result nx-flib-result--ok" id="vbsuReuse">Already on this PC: Build.Rite uses it again (nothing is copied).</p></oj-bind-if>
+      </div>
+      <div class="nx-fx-row nx-vbsu-nav"><button type="button" class="nx-btn nx-btn--plain" id="vbsuBack3" data-act="back" on-click="[[ $listeners.onAct ]]">‹ Back</button>
+        <button type="button" class="nx-btn nx-btn--primary" id="vbsuSet" data-act="set" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-check" aria-hidden="true"></span>Set workspace &amp; working folder</button></div>
+    </section>
+  </oj-bind-if>
+
+  <!-- 4 set -->
+  <oj-bind-if test="[[ !$variables.loading && $variables.step === 4 ]]">
+    <section class="nx-card nx-vbsu-card" id="vbsuStep4" aria-labelledby="vbsuS4" aria-live="polite">
+      <div class="nx-card-head"><h2 id="vbsuS4">4 · Set</h2></div>
+      <div class="nx-vbsu-body">
+        <oj-bind-if test="[[ $variables.busy ]]"><div class="nx-empty" id="vbsuWorking"><span class="nx-spin" aria-hidden="true"></span> <oj-bind-text value="[[ $variables.busyText ]]"></oj-bind-text></div></oj-bind-if>
+        <oj-bind-if test="[[ !$variables.busy && !!$variables.done && $variables.done.ok ]]">
+          <div class="nx-vbsu-done" id="vbsuDone">
+            <p class="nx-vbsu-doneh">✓ <oj-bind-text value="[[ 'Your workspace is set: ' + $variables.done.copy.workspace + ' (' + $variables.done.copy.branch + ')' ]]"></oj-bind-text></p>
+            <p class="nx-note">It shows in the top bar. Build.Rite works in its working folder from now on.</p>
+            <dl class="nx-vbsp-git">
+              <dt>working</dt><dd><code id="vbsuDoneWorking"><oj-bind-text value="[[ $variables.done.copy.working ]]"></oj-bind-text></code></dd>
+              <dt>main</dt><dd><code id="vbsuDoneMain"><oj-bind-text value="[[ $variables.done.copy.main ]]"></oj-bind-text></code></dd>
+            </dl>
+            <div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--primary" id="vbsuStart" data-act="start" on-click="[[ $listeners.onAct ]]">Start working ›</button>
+              <button type="button" class="nx-btn" id="vbsuOpenFolder" data-act="openFolder" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-folder" aria-hidden="true"></span>Open the folder</button></div>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !$variables.busy && !!$variables.done && !$variables.done.ok ]]"><div class="nx-fx-row"><button type="button" class="nx-btn" id="vbsuBack4" data-act="back" on-click="[[ $listeners.onAct ]]">‹ Back</button></div></oj-bind-if>
+      </div>
+    </section>
+  </oj-bind-if>
+</div>

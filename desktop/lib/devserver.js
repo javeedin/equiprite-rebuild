@@ -1010,13 +1010,16 @@ function createDevServer(o) {
           else if (pathname === '/__vbs/sync') r = vs.sync ? await vs.sync({ orgId: String(b.orgId || ''), orgKey: String(b.orgKey || ''), project: String(b.project || '') }) : { ok: false, error: 'Sync needs the desktop app.' };
           // Find its repositories: VB Studio's API, else the names VB Studio usually gives, each checked with git
           // the working copy: a workspace cloned on this PC — checked, pulled, committed, pushed back to VB Studio (never forced)
+          else if (pathname === '/__vbs/work/plan') r = vs.workPlan(b);
           else if (pathname === '/__vbs/work/use') r = await vs.workUse(b);
+          else if (pathname === '/__vbs/work/apply') r = await vs.workApply(String(b.id || ''));
+          else if (pathname === '/__vbs/pick-folder') r = typeof o.vbsPickFolder === 'function' ? { ok: true, folder: (await o.vbsPickFolder(String(b.folder || ''))) || '' } : { ok: false, error: 'Choosing a folder needs the desktop app: type its path.' };
           else if (pathname === '/__vbs/work/status') r = await vs.workStatus(String(b.id || ''), { fetch: !!b.fetch });
-          else if (pathname === '/__vbs/work/pull') r = await vs.workPull(String(b.id || ''));
+          else if (pathname === '/__vbs/work/pull') r = await vs.workPull(String(b.id || ''), who());
           else if (pathname === '/__vbs/work/commit') r = await vs.workCommit(String(b.id || ''), String(b.message || ''), who());
           else if (pathname === '/__vbs/work/push') r = await vs.workPush(String(b.id || ''));
           else if (pathname === '/__vbs/work/forget') r = vs.workForget(String(b.id || ''), !!b.removeFolder);
-          else if (pathname === '/__vbs/work/open') { const c = (vs.work().copies || []).filter((x) => x.id === String(b.id || ''))[0]; r = c && typeof o.vbsOpenPath === 'function' ? (await o.vbsOpenPath(c.path), { ok: true, path: c.path }) : { ok: false, error: c ? 'Opening a folder needs the desktop app.' : 'No such working copy.' }; }
+          else if (pathname === '/__vbs/work/open') { const c = (vs.work().copies || []).filter((x) => x.id === String(b.id || ''))[0]; const dir = c ? (b.which === 'main' ? c.main : b.which === 'base' ? c.base : c.working) : ''; r = c && typeof o.vbsOpenPath === 'function' ? (await o.vbsOpenPath(dir), { ok: true, path: dir }) : { ok: false, error: c ? 'Opening a folder needs the desktop app.' : 'No such workspace on this PC.' }; }
           // a workspace's Git: its branch, head commit and last commit (git, the saved sign-in)
           else if (pathname === '/__vbs/workspace-git') r = vs.workspaceGit ? await vs.workspaceGit({ orgKey: String(b.orgKey || ''), project: String(b.project || ''), repo: String(b.repo || ''), branch: String(b.branch || '') }) : { ok: false, error: 'Needs the desktop app.' };
           else if (pathname === '/__vbs/repos') r = vs.findRepos ? await vs.findRepos({ orgKey: String(b.orgKey || ''), project: String(b.project || ''), name: String(b.name || '') }) : { ok: false, error: 'Needs the desktop app.' };
