@@ -102,6 +102,7 @@
             <div class="nx-note" id="pgSheetState"><oj-bind-text value="[[ $functions.stateText($variables.sheet, $variables.saved) ]]"></oj-bind-text></div>
             <oj-bind-if test="[[ !!($variables.sheet.facts.route && ($variables.sheet.facts.route.menu || $variables.sheet.facts.route.url)) ]]"><div class="nx-note"><oj-bind-text value="[[ $functions.routeText($variables.sheet.facts.route) ]]"></oj-bind-text></div></oj-bind-if>
           </div>
+          <div class="nx-pg-headside">
           <oj-bind-if test="[[ $variables.info.canWrite ]]">
             <div class="nx-pg-acts">
               <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="pgBuild" data-act="build" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Reads this page's code and saves what it is: its REST calls, action chains, rules, BI reports, actions, integrations and navigation — then commits and pushes it for the team"><oj-bind-if test="[[ $variables.busyAct === 'build' ]]"><span class="nx-spin nx-spin--btn" aria-hidden="true"></span></oj-bind-if><oj-bind-if test="[[ $variables.busyAct !== 'build' ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span></oj-bind-if><oj-bind-text value="[[ $variables.busyAct === 'build' ? 'Building…' : ($variables.saved ? 'Refresh the sheet' : 'Build the sheet') ]]"></oj-bind-text></button>
@@ -112,6 +113,17 @@
               <oj-bind-if test="[[ $variables.deleted ]]"><button type="button" class="nx-btn nx-btn--sm" id="pgRestore" data-act="restore" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-undo" aria-hidden="true"></span>Restore</button></oj-bind-if>
             </div>
           </oj-bind-if>
+          <!-- Screenshots: small thumbnails under the buttons, numbered; one opens the viewer, full size -->
+          <div class="nx-pg-shots" id="pgShots" role="group" aria-label="Screenshots">
+            <span class="nx-pg-maplbl">Screenshots</span>
+            <oj-bind-for-each data="[[ $functions.indexed($variables.sheet.screenshots) ]]">
+              <template data-oj-as="sh">
+                <button type="button" class="nx-pg-shotbtn" data-act="view" :data-key="[[ sh.data.i ]]" on-click="[[ $listeners.onAct ]]" :title="[[ $functions.shotText(sh.data) + ' — click to view' ]]" :aria-label="[[ 'Screenshot ' + sh.data.n + ': ' + $functions.shotText(sh.data) ]]"><img class="nx-pg-shotimg" loading="lazy" alt="" :src="[[ $functions.shot($application.path, sh.data) ]]"><span class="nx-pg-shotn"><oj-bind-text value="[[ sh.data.n ]]"></oj-bind-text></span></button>
+              </template>
+            </oj-bind-for-each>
+            <oj-bind-if test="[[ ($variables.sheet.screenshots || []).length === 0 ]]"><span class="nx-pg-shotnone"><oj-bind-text value="[[ $variables.info.canWrite ? 'None yet: Capture or Upload some (a page keeps several).' : 'None yet.' ]]"></oj-bind-text></span></oj-bind-if>
+          </div>
+          </div>
         </div>
         <oj-bind-if test="[[ $variables.deleted ]]"><div class="nx-an-stale" id="pgDeletedNote">This page was deleted from the catalog (the code still has it). Restore it, or build its sheet again, to bring it back.</div></oj-bind-if>
         <oj-bind-if test="[[ $variables.codeChanged ]]"><div class="nx-an-stale" id="pgChanged">The page's code changed since this sheet was built. <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="build" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy || !$variables.info.canWrite ]]">Refresh the sheet</button></div></oj-bind-if>
@@ -505,17 +517,6 @@
           <oj-bind-if test="[[ $variables.info.canWrite ]]">
             <span class="nx-pg-mapadd"><input type="text" id="pgMapKey" data-field="mapKey" :value="[[ $variables.mapKey ]]" on-input="[[ $listeners.onField ]]" on-keydown="[[ $listeners.onMapKey ]]" placeholder="EQP-123"><button type="button" class="nx-btn nx-btn--sm" id="pgMapBtn" data-act="map" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Map story</button></span>
           </oj-bind-if>
-        </div>
-
-        <!-- Screenshots: small numbered buttons; one opens the viewer, full size -->
-        <div class="nx-pg-shots" id="pgShots">
-          <span class="nx-pg-maplbl">Screenshots</span>
-          <oj-bind-for-each data="[[ $functions.indexed($variables.sheet.screenshots) ]]">
-            <template data-oj-as="sh">
-              <button type="button" class="nx-pg-shotbtn" data-act="view" :data-key="[[ sh.data.i ]]" on-click="[[ $listeners.onAct ]]" :title="[[ $functions.shotText(sh.data) + ' — click to view' ]]"><span class="oj-ux-ico-camera" aria-hidden="true"></span><oj-bind-text value="[[ sh.data.n ]]"></oj-bind-text></button>
-            </template>
-          </oj-bind-for-each>
-          <oj-bind-if test="[[ ($variables.sheet.screenshots || []).length === 0 ]]"><span class="nx-note"><oj-bind-text value="[[ $variables.info.canWrite ? 'None yet: Capture or Upload some (a page keeps several).' : 'None yet.' ]]"></oj-bind-text></span></oj-bind-if>
         </div>
 
         <!-- Overview: the AI explanation and the counts (each a link to its part below) -->

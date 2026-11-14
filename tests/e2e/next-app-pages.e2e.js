@@ -87,8 +87,10 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     T.check('no screenshot yet', /None yet/.test(await text(page, '#pgShots')));
     await page.click('#pgCapture');
     await page.waitForSelector('#pgShots .nx-pg-shotbtn', { timeout: 20000 });
-    T.check('Capture screenshot: the page opened at its address; a numbered button, no thumbnail on the sheet', shots[0] === 'vbredwoodapp /vp/shell/equipment-foundation/equipment-workbench'
-      && (await page.$$('#pgShots .nx-pg-shotbtn')).length === 1 && !(await page.$('#pgSheet img')) && !(await page.$eval('#pgViewer', (d) => d.open)));
+    await page.waitForFunction(() => { const i = document.querySelector('#pgShots .nx-pg-shotimg'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
+    const thumb = await page.$eval('#pgShots .nx-pg-shotbtn', (b) => { const r = b.getBoundingClientRect(), acts = document.querySelector('.nx-pg-acts').getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), below: r.top >= acts.bottom - 1, inHead: !!b.closest('.nx-pg-head'), n: b.textContent.trim(), img: b.querySelector('img').naturalWidth > 0 }; });
+    T.check('Capture screenshot: the page opened at its address; a small thumbnail (numbered) in the header, under the buttons', shots[0] === 'vbredwoodapp /vp/shell/equipment-foundation/equipment-workbench'
+      && (await page.$$('#pgShots .nx-pg-shotbtn')).length === 1 && thumb.inHead && thumb.below && thumb.w <= 120 && thumb.h <= 80 && thumb.n === '1' && thumb.img && !(await page.$eval('#pgViewer', (d) => d.open)), JSON.stringify(thumb));
     await page.setInputFiles('#pgShotFile', [{ name: 'Filters open.png', mimeType: 'image/png', buffer: Buffer.from(PNG, 'base64') }, { name: 'Row picked.png', mimeType: 'image/png', buffer: Buffer.from(PNG, 'base64') }]);
     await page.waitForFunction(() => document.querySelectorAll('#pgShots .nx-pg-shotbtn').length === 3, null, { timeout: 20000 }).catch(() => {});
     T.check('Upload several at once: added to the capture (3 now), one commit', (await page.$$('#pgShots .nx-pg-shotbtn')).length === 3 && /2 screenshots saved/.test(await text(page, '#pgResult'))
