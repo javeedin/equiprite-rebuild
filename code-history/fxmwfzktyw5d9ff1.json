@@ -1,0 +1,285 @@
+{
+ "id": "fxmwfzktyw5d9ff1",
+ "images": [],
+ "page": "vbredwoodapp/customer-portal/customer-billing-detail",
+ "app": "vbredwoodapp",
+ "label": "Customer Billing Detail",
+ "request": "change the page title to 'Eqip.Rite customer dashboard'",
+ "kind": "change",
+ "refine": "",
+ "parent": "",
+ "at": "2026-11-14T05:49:56.024Z",
+ "by": "javeed.shaik",
+ "provider": "Claude (Anthropic)",
+ "model": "claude-fable-5-2",
+ "ms": 18296,
+ "retried": false,
+ "sent": {
+  "files": [
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.json",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/BillingDetailInitChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/customersModuleGuardChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/externalProjectAssignGuardChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/goToParentChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/toggleGroupChain.js"
+  ],
+  "chars": 40962
+ },
+ "markdown": "## Summary\nI will change the page's title from \"Billing Detail\" to \"Eqip.Rite customer dashboard\" in the page's settings file. Nothing else on the page changes.\n\n## How it works today\nThe page has two different \"titles\":\n- **Page title** (browser tab / window): set in `customer-billing-detail-page.json` as `\"title\": \"Billing Detail\"`.\n- **On-screen heading**: the `page-title` of `oj-sp-general-overview-page` in the HTML. It is bound to `$variables.formData.requestNumber`, which `BillingDetailInitChain` fills from `eqp-v1/getEquipriteV1ViewsCustomerRequestDetails`. It shows the request number.\n\n## What changes\nOnly the page title in the page JSON changes, to 'Eqip.Rite customer dashboard'. The on-screen heading keeps showing the request number, because that tells the customer which request the billing belongs to.\n\n## The change\n- `webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.json` — the `\"title\"` value changes from `\"Billing Detail\"` to `\"Eqip.Rite customer dashboard\"`.\n\n## After the change\n1. The person opens a request from My Billing as before.\n2. The page title (browser tab / window) reads \"Eqip.Rite customer dashboard\" instead of \"Billing Detail\".\n3. The heading, banner, summary chips, expandable table and back arrow all behave exactly as before.\n\n## Risks\n- The text is used exactly as written in the request: \"Eqip.Rite\", not \"EquipRite\". If that spelling is a typo, it is a one-word fix in the same line.\n- The on-screen heading is deliberately left alone. If the intent was to replace the request number heading too, that is a separate one-line change in the HTML, and the request number would no longer be shown as the heading.\n- No chains, variables, REST calls or other pages are affected.\n\n## How to test\n1. Open the app and go to My Billing (`customer-portal/customer-my-billing`).\n2. Open any request to reach the billing detail page (`/vp/shell/customer-portal/customer-billing-detail`).\n3. Check the page title (browser tab) reads \"Eqip.Rite customer dashboard\".\n4. Check the on-screen heading still shows the request number and the banner details and chips still load.\n5. Expand and collapse a line in the table, then click the back arrow and confirm it returns to My Billing.\n\n## Questions\nNone",
+ "questions": "",
+ "problems": [],
+ "checks": [
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.json",
+   "name": "valid JSON",
+   "ok": true,
+   "detail": "",
+   "already": false
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+   "already": false,
+   "name": "no oj-bind-for-each inside a table or select",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+   "already": true,
+   "name": "no String()/Number()/Boolean() or inline functions in bindings",
+   "ok": false,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+   "already": false,
+   "name": "no regex literals in bindings",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+   "already": false,
+   "name": "every listener the HTML uses is declared in the page JSON",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+   "already": false,
+   "name": "every oj- component used is imported",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+   "already": false,
+   "name": "every chain the page runs is in its chains folder",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.json",
+   "name": "Old EquipRite is kept unchanged by agreement (tests/old-app-unchanged.test.js)",
+   "ok": false,
+   "warn": true,
+   "detail": "this change will fail that test unless the file is added to its AGREED list with the reason: webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.json"
+  }
+ ],
+ "files": [
+  "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.json"
+ ],
+ "diff": [
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.json",
+   "created": false,
+   "added": 1,
+   "removed": 1,
+   "hunks": [
+    {
+     "rows": [
+      {
+       "t": " ",
+       "s": "{",
+       "o": "1",
+       "n": "1"
+      },
+      {
+       "t": "-",
+       "s": "  \"title\": \"Billing Detail\",",
+       "o": "2",
+       "n": ""
+      },
+      {
+       "t": "+",
+       "s": "  \"title\": \"Eqip.Rite customer dashboard\",",
+       "o": "",
+       "n": "2"
+      },
+      {
+       "t": " ",
+       "s": "  \"variables\": {",
+       "o": "3",
+       "n": "3"
+      },
+      {
+       "t": " ",
+       "s": "    \"requestId\": {",
+       "o": "4",
+       "n": "4"
+      },
+      {
+       "t": " ",
+       "s": "      \"type\": \"string\",",
+       "o": "5",
+       "n": "5"
+      }
+     ],
+     "head": "line 1"
+    }
+   ]
+  }
+ ],
+ "status": "applied",
+ "events": [
+  {
+   "at": "2026-11-14T05:49:56.024Z",
+   "what": "asked",
+   "by": "javeed.shaik",
+   "detail": "change the page title to 'Eqip.Rite customer dashboard'"
+  },
+  {
+   "at": "2026-11-14T05:49:56.027Z",
+   "what": "proposed",
+   "by": "Claude (Anthropic)",
+   "detail": "1 file(s), +1 −1"
+  },
+  {
+   "at": "2026-11-14T05:50:50.911Z",
+   "what": "approved and applied",
+   "by": "javeed.shaik",
+   "detail": "on claude/equiprite-future · Pulled origin/claude/equiprite-future: already up to date."
+  },
+  {
+   "at": "2026-11-14T05:50:57.054Z",
+   "what": "tested",
+   "by": "javeed.shaik",
+   "detail": "something broke: 1 new failure(s)"
+  }
+ ],
+ "updatedAt": "2026-11-14T05:50:57.054Z",
+ "applied": {
+  "at": "2026-11-14T05:50:50.910Z",
+  "by": "javeed.shaik",
+  "branch": "claude/equiprite-future",
+  "upstream": "origin/claude/equiprite-future",
+  "pull": {
+   "done": true,
+   "text": "Pulled origin/claude/equiprite-future: already up to date."
+  },
+  "live": true
+ },
+ "baseline": [
+  {
+   "file": "tests/old-app-unchanged.test.js",
+   "ok": false,
+   "failed": 1,
+   "failures": [
+    "no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html | M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html"
+   ]
+  },
+  {
+   "file": "tests/customer.test.js",
+   "ok": true,
+   "failed": 0,
+   "failures": []
+  }
+ ],
+ "tests": {
+  "at": "2026-11-14T05:50:57.054Z",
+  "ok": false,
+  "checks": [
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.json",
+    "name": "valid JSON",
+    "ok": true,
+    "detail": "",
+    "already": false
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+    "already": false,
+    "name": "no oj-bind-for-each inside a table or select",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+    "already": true,
+    "name": "no String()/Number()/Boolean() or inline functions in bindings",
+    "ok": false,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+    "already": false,
+    "name": "no regex literals in bindings",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+    "already": false,
+    "name": "every listener the HTML uses is declared in the page JSON",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+    "already": false,
+    "name": "every oj- component used is imported",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+    "already": false,
+    "name": "every chain the page runs is in its chains folder",
+    "ok": true,
+    "detail": ""
+   }
+  ],
+  "unit": [
+   {
+    "file": "tests/old-app-unchanged.test.js",
+    "ok": false,
+    "passed": 2,
+    "failed": 1,
+    "failures": [
+     "no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.json | M\twebApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html | M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html"
+    ],
+    "newFailures": [
+     "no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.json | M\twebApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html | M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html"
+    ],
+    "before": "1 failing before the fix",
+    "ms": 650,
+    "out": ""
+   },
+   {
+    "file": "tests/customer.test.js",
+    "ok": true,
+    "passed": 257,
+    "failed": 0,
+    "failures": [],
+    "newFailures": [],
+    "before": "passed",
+    "ms": 5470,
+    "out": ""
+   }
+  ],
+  "e2eFiles": [],
+  "none": false
+ }
+}
