@@ -6,8 +6,14 @@
  * there, and Run in your workspace shows it, so what you see is your working folder's code (your changes), not
  * Build.Rite's own copy of the app.
  *
+ * Built from a copy of the working folder (PREVIEW_DIR/src, without .git), in which each app's
+ * settings/dependencies.json is emptied: a VB Studio app lists the Component Exchange components it uses there (oj-sp…),
+ * and the build tool then insists on the exchange's address (--url:ce) to download them. The app loads them from Oracle's
+ * public CDN instead (the paths pinned in its app-flow.json) — as Build.Rite's own copy of the app is built. The working
+ * folder itself is never changed: VB Studio keeps its list. Built into PREVIEW_DIR/build.
+ *
  * Built again only when the code changed (a fingerprint of the working folder's webApps files and
- * visual-application.json); one build at a time (a second ask waits for the first and uses it). The build folder is
+ * visual-application.json); one build at a time (a second ask waits for the first and uses it). The preview folder is
  * emptied before each build (the build tool will not delete outside its own folder) — only a folder named PREVIEW_DIR.
  * Each build has a version folder of its own, so the server is started again after one.
  *
@@ -22,6 +28,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const PREVIEW_DIR = 'build-rite-preview';
+const SRC = 'src', BUILD = 'build';
 const str = (v) => (v == null ? '' : String(v));
 const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch (e) { return false; } };
 const outOf = (working) => path.join(path.dirname(path.resolve(str(working))), PREVIEW_DIR);
@@ -55,10 +62,36 @@ function open(opts) {
   let chain = Promise.resolve();
   let building = '';
 
-  /** The app's own build tool, from the working folder into the build folder (emptied first: ours, by its name). */
-  function build(src, target) {
-    if (path.basename(target) !== PREVIEW_DIR) return Promise.resolve({ ok: false, error: 'Not a preview folder: ' + target });
-    try { fs.rmSync(target, { recursive: true, force: true }); } catch (e) { return Promise.resolve({ ok: false, error: 'Its last build could not be cleared (' + (e.code || e.message) + '): ' + target }); }
+  /** The copy built from: the working folder without .git (or node_modules), each app's Component Exchange list emptied. */
+  function stage(folder, root) {
+    const src = path.join(root, SRC);
+    fs.cpSync(folder, src, { recursive: true, filter: (p) => { const b = path.basename(p); return b !== '.git' && b !== 'node_modules'; } });
+    const emptied = [];
+    const apps = path.join(src, 'webApps');
+    (fs.existsSync(apps) ? fs.readdirSync(apps) : []).forEach((a) => {
+      const f = path.join(apps, a, 'settings', 'dependencies.json');
+      if (!isFile(f)) return;
+      try {
+        const j = JSON.parse(fs.readFileSync(f, 'utf8'));
+        if (j && j['component-dependencies'] && Object.keys(j['component-dependencies']).length) {
+          fs.writeFileSync(f, JSON.stringify(Object.assign({}, j, { 'component-dependencies': {} }), null, 2) + '\n');
+          emptied.push(a);
+        }
+      } catch (e) { /* not JSON: left for the build tool to say */ }
+    });
+    return { src: src, emptied: emptied };
+  }
+  /** The app's own build tool: the preview folder (ours, by its name) emptied, the working folder copied into it, built. */
+  async function build(folder, root) {
+    if (path.basename(root) !== PREVIEW_DIR) return { ok: false, error: 'Not a preview folder: ' + root };
+    try { fs.rmSync(root, { recursive: true, force: true }); } catch (e) { return { ok: false, error: 'Its last build could not be cleared (' + (e.code || e.message) + '): ' + root }; }
+    let st;
+    try { st = stage(folder, root); } catch (e) { return { ok: false, error: 'Your working folder could not be copied to build it (' + (e.code || e.message) + ').' }; }
+    if (st.emptied.length) log('your workspace: Component Exchange components (' + st.emptied.join(', ') + ') loaded from the CDN, as in Build.Rite');
+    const r = await run(st.src, path.join(root, BUILD));
+    return Object.assign(r || {}, { emptied: st.emptied });
+  }
+  function run(src, target) {
     if (typeof o.build === 'function') return Promise.resolve(o.build(src, target)).catch((e) => ({ ok: false, error: str(e && e.message) }));
     const tool = path.resolve(o.buildTool || path.join(__dirname, '..', '..'));
     const grunt = path.join(tool, 'node_modules', 'grunt', 'bin', 'grunt');
@@ -87,8 +120,8 @@ function open(opts) {
     if (!w.folder || !isFile(path.join(folder, 'visual-application.json'))) return Promise.resolve({ ok: false, error: 'Your working folder has no visual-application.json, so its app cannot be built: ' + folder });
     if (!/^[\w.-]+$/.test(app)) return Promise.resolve({ ok: false, error: 'Which app? (' + app + ')' });
     if (typeof o.serve !== 'function') return Promise.resolve({ ok: false, error: 'Running your workspace needs the desktop app.' });
-    const run = chain.then(async () => {
-      const index = path.join(out, 'processed', 'webApps', app, 'index.html');
+    const job = chain.then(async () => {
+      const index = path.join(out, BUILD, 'processed', 'webApps', app, 'index.html');
       const fp = fingerprint(folder);
       const st = state[folder];
       let built = false, ms = 0;
@@ -104,14 +137,14 @@ function open(opts) {
       }
       if (!isFile(index)) return { ok: false, error: 'The build has no app "' + app + '": is this page\'s app in your workspace?' };
       const k = folder + '|' + app;
-      if (!servers[k]) servers[k] = Promise.resolve(o.serve({ dir: folder, buildDir: out, webApp: app })).catch((e) => { delete servers[k]; throw e; });
+      if (!servers[k]) servers[k] = Promise.resolve(o.serve({ dir: folder, buildDir: path.join(out, BUILD), webApp: app })).catch((e) => { delete servers[k]; throw e; });
       try {
         const s = await servers[k];
         return { ok: true, url: str(s.url).replace(/\/$/, ''), built: built, ms: ms, builtAt: state[folder].builtAt };
       } catch (e) { return { ok: false, error: 'Your workspace\'s app could not be started: ' + str(e && e.message) }; }
     });
-    chain = run.catch(() => {});
-    return run.catch((e) => ({ ok: false, error: str(e && e.message) }));
+    chain = job.catch(() => {});
+    return job.catch((e) => ({ ok: false, error: str(e && e.message) }));
   }
 
   function status(folder) {
@@ -122,4 +155,4 @@ function open(opts) {
   return { ensure: ensure, status: status, stop: closeServers, fingerprint: fingerprint };
 }
 
-module.exports = { open, outOf, fingerprint, PREVIEW_DIR };
+module.exports = { open, outOf, fingerprint, PREVIEW_DIR, SRC, BUILD };

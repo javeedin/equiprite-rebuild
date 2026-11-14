@@ -8,6 +8,8 @@
  *     version folder)
  *   - two asks at once: one build; a failed build said, and tried again next time
  *   - an app not in the build, a folder that is not a VB app: said; only its own build folder is ever emptied
+ *   - built from a copy (build-rite-preview/src): an app listing Component Exchange components (as VB Studio's do) has
+ *     its list emptied in the copy only — else the build tool asks for the exchange's address (--url:ce) and stops
  *   - for real, with the app's build tool (the second build too: the tool will not empty a folder outside its own)
  */
 const fs = require('fs');
@@ -18,6 +20,8 @@ const WP = require('../desktop/lib/workPreview');
 
 const T = H.makeAsserter();
 const ROOT = path.join(__dirname, '..');
+// a VB Studio app's list of Component Exchange components (settings/dependencies.json), as VB Studio keeps it
+const CE_DEPS = JSON.stringify({ 'component-dependencies': { 'oj-sp': { version: '2601.0.3', components: { 'general-overview-page': '2601.0.3', 'card': '2601.0.3' } } } }, null, 2) + '\n';
 const files = (dir) => { const out = []; const walk = (d, rel) => fs.readdirSync(d).forEach((n) => { const p = path.join(d, n); if (fs.statSync(p).isDirectory()) walk(p, rel + n + '/'); else out.push(rel + n + ':' + fs.statSync(p).size); }); walk(dir, ''); return out.sort().join('\n'); };
 
 (async () => {
@@ -29,6 +33,10 @@ const files = (dir) => { const out = []; const walk = (d, rel) => fs.readdirSync
     fs.mkdirSync(path.join(working, 'webApps'), { recursive: true });
     fs.copyFileSync(path.join(ROOT, 'visual-application.json'), path.join(working, 'visual-application.json'));
     fs.cpSync(path.join(ROOT, 'webApps', 'equiprite-mobile'), path.join(working, 'webApps', 'equiprite-mobile'), { recursive: true });
+    const deps = path.join(working, 'webApps', 'equiprite-mobile', 'settings', 'dependencies.json');
+    fs.mkdirSync(path.dirname(deps), { recursive: true });
+    fs.writeFileSync(deps, CE_DEPS); // as VB Studio has it: the build tool would want the Component Exchange
+    fs.writeFileSync(path.join(working, '.git'), 'gitdir: ../main/.git/worktrees/working\n'); // a worktree's .git (a file)
     const before = files(working);
 
     T.section('built beside the working folder, served');
@@ -48,9 +56,12 @@ const files = (dir) => { const out = []; const walk = (d, rel) => fs.readdirSync
     });
     const out = WP.outOf(working);
     const r1 = await store.ensure({ folder: working, out: out, app: 'equiprite-mobile' });
-    T.check('the build folder: build-rite-preview beside working (not inside it); built and served', r1.ok && r1.built && out === path.join(base, 'build-rite-preview') && builds.length === 1 && builds[0][0] === path.resolve(working)
-      && builds[0][1] === out && served.length === 1 && served[0].buildDir === out && served[0].webApp === 'equiprite-mobile' && r1.url === 'http://127.0.0.1:4100' && !!r1.builtAt, JSON.stringify(r1));
-    T.check('…the working folder: nothing new in it (git there sees no change)', files(working) === before);
+    T.check('the preview folder: build-rite-preview beside working (not inside it); built from its copy (src) into build; served', r1.ok && r1.built && out === path.join(base, 'build-rite-preview') && builds.length === 1 && builds[0][0] === path.join(out, 'src')
+      && builds[0][1] === path.join(out, 'build') && served.length === 1 && served[0].buildDir === path.join(out, 'build') && served[0].dir === path.resolve(working) && served[0].webApp === 'equiprite-mobile' && r1.url === 'http://127.0.0.1:4100' && !!r1.builtAt, JSON.stringify(r1));
+    const copied = JSON.parse(fs.readFileSync(path.join(out, 'src', 'webApps', 'equiprite-mobile', 'settings', 'dependencies.json'), 'utf8'));
+    T.check('…the copy: the app\'s Component Exchange list emptied (its components from the CDN), no .git; the app\'s code as it is', JSON.stringify(copied) === '{"component-dependencies":{}}' && !fs.existsSync(path.join(out, 'src', '.git'))
+      && fs.readFileSync(path.join(out, 'src', 'webApps', 'equiprite-mobile', 'index.html'), 'utf8') === fs.readFileSync(path.join(working, 'webApps', 'equiprite-mobile', 'index.html'), 'utf8'), JSON.stringify(copied));
+    T.check('…the working folder: nothing new in it, its list as VB Studio has it (git there sees no change)', files(working) === before && fs.readFileSync(deps, 'utf8') === CE_DEPS);
 
     T.section('built again only when the code changed');
     const r2 = await store.ensure({ folder: working, out: out, app: 'equiprite-mobile' });
@@ -92,14 +103,14 @@ const files = (dir) => { const out = []; const walk = (d, rel) => fs.readdirSync
       const realOut = path.join(base, 'build-rite-preview');
       fs.rmSync(realOut, { recursive: true, force: true });
       const b1 = await real.ensure({ folder: working, out: realOut, app: 'equiprite-mobile' });
-      const v1 = fs.existsSync(path.join(realOut, 'processed', 'webApps', 'equiprite-mobile')) ? fs.readdirSync(path.join(realOut, 'processed', 'webApps', 'equiprite-mobile')).filter((n) => /^version_/.test(n)) : [];
-      T.check('built: the app\'s index and a version folder in build-rite-preview; the working folder unchanged by it', b1.ok && b1.built && v1.length === 1 && fs.existsSync(path.join(realOut, 'processed', 'webApps', 'equiprite-mobile', 'index.html'))
-        && !fs.existsSync(path.join(working, 'build')) && !fs.existsSync(path.join(working, 'processed')), JSON.stringify(b1));
+      const v1 = fs.existsSync(path.join(realOut, 'build', 'processed', 'webApps', 'equiprite-mobile')) ? fs.readdirSync(path.join(realOut, 'build', 'processed', 'webApps', 'equiprite-mobile')).filter((n) => /^version_/.test(n)) : [];
+      T.check('built (the app lists Component Exchange components — no exchange needed): its index and a version folder; the working folder unchanged', b1.ok && b1.built && v1.length === 1 && fs.existsSync(path.join(realOut, 'build', 'processed', 'webApps', 'equiprite-mobile', 'index.html'))
+        && !fs.existsSync(path.join(working, 'build')) && !fs.existsSync(path.join(working, 'processed')) && fs.readFileSync(deps, 'utf8') === CE_DEPS, JSON.stringify(b1));
       fs.writeFileSync(page, fs.readFileSync(page, 'utf8') + '<!-- for real -->\n');
       const b2 = await real.ensure({ folder: working, out: realOut, app: 'equiprite-mobile' });
       // the change, somewhere in the new build (its files read)
       const has = (dir) => fs.readdirSync(dir).some((n) => { const q = path.join(dir, n); return fs.statSync(q).isDirectory() ? has(q) : /for real/.test(fs.readFileSync(q, 'utf8')); });
-      T.check('…built again after a change (its build folder emptied first — the tool would not): the change is in the build', b2.ok && b2.built && has(path.join(realOut, 'processed', 'webApps', 'equiprite-mobile')), JSON.stringify(b2));
+      T.check('…built again after a change (its build folder emptied first — the tool would not): the change is in the build', b2.ok && b2.built && has(path.join(realOut, 'build', 'processed', 'webApps', 'equiprite-mobile')), JSON.stringify(b2));
     }
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);
