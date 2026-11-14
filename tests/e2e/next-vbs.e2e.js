@@ -345,11 +345,18 @@ const SECRET = 'Pa55-w0rd#e2e';
     await page.waitForFunction(() => /EquipRite ▸ javeed-26c-titles/.test((document.getElementById('nxWork') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
     T.check('…the top bar: your workspace — EquipRite ▸ javeed-26c-titles, its branch', /^Workspace\s*EquipRite ▸ javeed-26c-titles\s*ws-javeed$/.test(await text(page, '#nxWork')), await text(page, '#nxWork'));
     await env.shot('buildrite-vbs-setup.png');
+    T.check('…the done step says where Start working goes (Application pages) and where the project is (the top bar\'s menu)', /Start working opens Application pages, with your workspace's pages/.test(await text(page, '#vbsuDone')) && /top bar's workspace menu/.test(await text(page, '#vbsuDone')));
     await page.click('#vbsuStart');
+    await page.waitForFunction(() => /Application pages/.test((document.querySelector('.nx-tab--on') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    T.check('Start working: Application pages opens (your workspace\'s pages)', /Application pages/.test(await text(page, '.nx-tab--on')), await text(page, '.nx-tab--on'));
+    // its project's tab: the top bar's workspace menu → Open its project
+    await page.click('#nxWorkMenuBtn');
+    await page.waitForSelector('#nxWorkOpen', { state: 'visible', timeout: 3000 }).catch(() => {});
+    await page.click('#nxWorkOpen');
     await page.waitForSelector('#vbspWork', { state: 'visible', timeout: 8000 }).catch(() => {});
 
     T.section('working → save → apply to main → push to VB Studio');
-    T.check('Start working: the project, on the workspace; working and main, everything in VB Studio', /EquipRite/.test(await text(page, '.nx-tab--on')) && (await text(page, '#vbspWorkState')) === '✓ Everything is in VB Studio'
+    T.check('its project (from the top bar\'s menu), on the workspace; working and main, everything in VB Studio', /EquipRite/.test(await text(page, '.nx-tab--on')) && (await text(page, '#vbspWorkState')) === '✓ Everything is in VB Studio'
       && (await text(page, '#vbspWorkPath')) === path.join(wbase, 'working') && (await text(page, '#vbspMainPath')) === path.join(wbase, 'main'), await text(page, '#vbspWorkState'));
     work.changed = true; // a change made in working (by Build.Rite, or by hand)
     await page.click('#vbspWorkCheck');
@@ -408,6 +415,11 @@ const SECRET = 'Pa55-w0rd#e2e';
     await page.waitForSelector('#vbsuDone', { state: 'visible', timeout: 8000 }).catch(() => {});
     T.check('…set: used again (no new copy); the top bar shows it', gitSeen.filter((x) => x.args[0] === 'clone').length === clonesBefore && /used again/.test(await text(page, '#vbsuResult')) && /EquipRite ▸ javeed-26c-titles/.test(await text(page, '#nxWork')), await text(page, '#vbsuResult'));
     await page.click('#vbsuStart');
+    await page.waitForFunction(() => /Application pages/.test((document.querySelector('.nx-tab--on') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    T.check('…Start working: Application pages again (the tab already open, brought to the front)', /Application pages/.test(await text(page, '.nx-tab--on')) && (await page.$$('.nx-tab:has-text("Application pages")')).length === 1, await text(page, '.nx-tab--on'));
+    await page.click('#nxWorkMenuBtn');
+    await page.waitForSelector('#nxWorkOpen', { state: 'visible', timeout: 3000 }).catch(() => {});
+    await page.click('#nxWorkOpen');
     await page.waitForSelector('#vbspWorkRemove', { state: 'visible', timeout: 8000 }).catch(() => {});
     let askedRm = '';
     page.once('dialog', (d) => { askedRm = d.message(); d.accept(); });

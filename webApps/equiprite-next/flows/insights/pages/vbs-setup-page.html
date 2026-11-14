@@ -117,12 +117,12 @@
         <oj-bind-if test="[[ !$variables.busy && !!$variables.done && $variables.done.ok ]]">
           <div class="nx-vbsu-done" id="vbsuDone">
             <p class="nx-vbsu-doneh">✓ <oj-bind-text value="[[ 'Your workspace is set: ' + $variables.done.copy.workspace + ' (' + $variables.done.copy.branch + ')' ]]"></oj-bind-text></p>
-            <p class="nx-note">It shows in the top bar. Build.Rite works in its working folder from now on.</p>
+            <p class="nx-note">It shows in the top bar. Build.Rite works in its working folder from now on: <b>Start working</b> opens Application pages, with your workspace's pages. Its project (save, apply to main, push) is in the top bar's workspace menu.</p>
             <dl class="nx-vbsp-git">
               <dt>working</dt><dd><code id="vbsuDoneWorking"><oj-bind-text value="[[ $variables.done.copy.working ]]"></oj-bind-text></code></dd>
               <dt>main</dt><dd><code id="vbsuDoneMain"><oj-bind-text value="[[ $variables.done.copy.main ]]"></oj-bind-text></code></dd>
             </dl>
-            <div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--primary" id="vbsuStart" data-act="start" on-click="[[ $listeners.onAct ]]">Start working ›</button>
+            <div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--primary" id="vbsuStart" data-act="start" on-click="[[ $listeners.onAct ]]" title="Open Application pages: your workspace's pages">Start working ›</button>
               <button type="button" class="nx-btn" id="vbsuOpenFolder" data-act="openFolder" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-folder" aria-hidden="true"></span>Open the folder</button></div>
           </div>
         </oj-bind-if>

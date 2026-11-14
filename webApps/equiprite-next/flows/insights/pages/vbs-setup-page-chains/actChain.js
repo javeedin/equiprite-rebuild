@@ -3,7 +3,7 @@ define(['vb/action/actionChain', 'resources/js/vbsClient', 'resources/js/vbsView
 
   // The wizard's steps: a project chosen (its workspaces read from VB Studio when none were), a workspace; the folder
   // (typed, or the desktop app's folder dialog); the preview (workPlan: what is made, what is in the way); Set workspace &
-  // working folder (workUse: main cloned, working made, made current — the top bar shows it); then start working.
+  // working folder (workUse: main cloned, working made, made current — the top bar shows it); then start working (Application pages).
   const fill = (id, val) => { try { const e = document.getElementById(id); if (e) e.value = val; } catch (er) { /* not drawn */ } };
   class actChain extends ActionChain {
     async run(context, { act, key }) {
@@ -16,9 +16,12 @@ define(['vb/action/actionChain', 'resources/js/vbsClient', 'resources/js/vbsView
       if (act === 'openProjects') { bus.open({ navId: 'projects' }); return; }
       if (act === 'ws') { v.selWs = String(key || ''); v.plan = null; return; }
       if (act === 'back') { v.result = null; v.step = Math.max(1, v.step - (v.step === 4 ? 2 : 1)); return; }
+      // start working: Application pages, your workspace's pages read from its working folder (read again, should it be
+      // open already); its project's tab (save, apply to main, push) is in the top bar's workspace menu
       if (act === 'start') {
-        const c = v.done && v.done.copy;
-        if (c) bus.open({ record: 'vbs-project', params: { key: c.orgKey + '/' + c.project, name: c.projectName, ws: c.workspace } });
+        if (!(v.done && v.done.ok)) return;
+        bus.emit('vbs-changed', { work: true, switched: true });
+        bus.open({ navId: 'app-pages' });
         return;
       }
       if (act === 'cancel') {
