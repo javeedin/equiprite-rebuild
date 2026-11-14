@@ -29,6 +29,14 @@ define([
         setTimeout(() => { const d = dlg(); try { if (d && !d.open) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); } } catch (e) { /* already open */ } }, 0);
         return;
       }
+      if (act === 'copyPath') {
+        // the working folder's full path, copied
+        const t = String((v.codeFrom && v.codeFrom.root) || '');
+        let ok = false;
+        try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(t); ok = true; } } catch (e) { ok = false; }
+        v.result = ok ? { ok: true, text: 'Copied: ' + t } : { ok: false, text: 'Could not copy here: ' + t };
+        return;
+      }
       if (act === 'unview') { const d = dlg(); try { if (d && d.open) d.close(); } catch (e) { /* closed */ } v.viewer = -1; return; }
       if (act === 'closed') { v.viewer = -1; return; } // Esc, or closed by the browser
       if (act === 'prev') { if (v.viewer > 0) v.viewer = v.viewer - 1; return; }

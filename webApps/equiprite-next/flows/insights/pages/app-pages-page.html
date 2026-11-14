@@ -7,8 +7,13 @@
       <div class="nx-kicker">Insights · Code</div>
       <h1 id="pgTitle">Application pages</h1>
       <div class="nx-sub" id="pgSub"><oj-bind-text value="[[ $functions.subText($variables.pages) ]]"></oj-bind-text></div>
-      <oj-bind-if test="[[ !!$variables.codeFrom ]]"><div class="nx-pg-codefrom" id="pgCodeFrom" :title="[[ $variables.codeFrom.root ]]"><span class="oj-ux-ico-folder" aria-hidden="true"></span>
-        <span><oj-bind-text value="[[ 'Your workspace: ' + $variables.codeFrom.source + ' — its working folder' ]]"></oj-bind-text></span></div></oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.codeFrom ]]">
+        <div class="nx-pg-codefrom" id="pgCodeFrom"><span class="oj-ux-ico-folder" aria-hidden="true"></span>
+          <span><oj-bind-text value="[[ 'Your workspace: ' + $variables.codeFrom.source ]]"></oj-bind-text></span></div>
+        <div class="nx-pg-codepath" id="pgCodePath"><span class="nx-pg-codepath-l">Working folder</span><code id="pgCodeRoot"><oj-bind-text value="[[ $variables.codeFrom.root ]]"></oj-bind-text></code>
+          <button type="button" class="nx-pg-codecopy" id="pgCodeCopy" data-act="copyPath" on-click="[[ $listeners.onAct ]]" aria-label="Copy the working folder's path"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy</button></div>
+        <div class="nx-pg-codenote" id="pgCodeNote">This project's sheets, screenshots and Jira stories are its own — kept apart from Build.Rite's (Old EquipRite…).</div>
+      </oj-bind-if>
     </div>
     <div class="nx-actions">
       <oj-bind-if test="[[ $variables.info.canWrite ]]">

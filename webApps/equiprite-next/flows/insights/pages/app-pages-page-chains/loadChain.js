@@ -25,7 +25,7 @@ define([
         v.info = info;
         v.pages = cat.body.pages;
         // whose code: your workspace's working folder (Build.Rite's top bar), or this project
-        v.codeFrom = cat.body && cat.body.source ? { source: cat.body.source, root: cat.body.root } : null;
+        v.codeFrom = cat.body && cat.body.source ? { source: cat.body.source, root: cat.body.root, space: cat.body.space || '' } : null;
         v.git = info.canWrite ? ((await PC.gitStatus()).body || null) : null;
         try { const a = await M.aiSettings(); v.aiReady = !!(a.ok && a.body && a.body.active); } catch (e) { v.aiReady = false; }
       } finally {

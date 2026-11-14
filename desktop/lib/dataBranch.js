@@ -96,10 +96,12 @@ function open(opts) {
     if (theirs == null) return ours;
     const pages = require('./pages');
     try {
-      if (file === PAGES_RES + '/catalog.json') {
-        return pages.mergeCatalog(ours, theirs, (id) => { try { return JSON.parse(fs.readFileSync(path.join(dir, PAGES_RES, 'sheets', pages.fileOf(id) + '.json'), 'utf8')); } catch (e) { return null; } });
+      // this project's pages, or a VB Studio project's (projects/<org>_<project>/): the same files, merged the same way
+      const sp = (/^(?:projects\/[^/]+\/)?/.exec(file.indexOf(PAGES_RES + '/') === 0 ? file.slice(PAGES_RES.length + 1) : '') || [''])[0];
+      if (file === PAGES_RES + '/' + sp + 'catalog.json') {
+        return pages.mergeCatalog(ours, theirs, (id) => { try { return JSON.parse(fs.readFileSync(path.join(dir, PAGES_RES, sp, 'sheets', pages.fileOf(id) + '.json'), 'utf8')); } catch (e) { return null; } });
       }
-      if (file.indexOf(PAGES_RES + '/sheets/') === 0) return pages.mergeSheet(ours, theirs);
+      if (file.indexOf(PAGES_RES + '/' + sp + 'sheets/') === 0) return pages.mergeSheet(ours, theirs);
       if (file === FDD_RES + '/library.json') return require('./fdd').mergeLibrary(ours, theirs);
       // an issue: the later state, and every comment and step of both (two people answering at once both keep their words)
       if (file.indexOf(ISSUES + '/') === 0) return JSON.stringify(require('./issues').mergeIssue(JSON.parse(ours), JSON.parse(theirs)), null, 1) + '\n';

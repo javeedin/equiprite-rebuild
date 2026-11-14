@@ -47,6 +47,30 @@ try {
   const file = st.codeFile('vbredwoodapp/customer-portal/customer-dashboard', code.files.filter((f) => /\.html$/.test(f.path))[0].path);
   T.check('…a file of it read from there', file.ok && /from the workspace/.test(file.text) && file.abs.indexOf(work) === 0, file.abs);
 
+  T.section('a VB Studio project\'s own sheets, screenshots and stories — never this project\'s (the same page name)');
+  const dataDir = path.join(tmp, 'data');
+  const fakeData = { ok: true, dir: dataDir, onMerged: () => {}, resolve: () => null, merged: () => {}, info: () => ({ separate: true, branch: 'data', reason: '' }) };
+  let cur2 = '';
+  const st2 = P.open({ root: REPO, data: fakeData, rootFn: () => cur2, rootLabel: () => (cur2 ? 'Rebuild_App ▸ Dev_One (dev-one)' : ''), spaceFn: () => (cur2 ? 'acme-dev1-demo-phx_rebuild-app_100010' : '') });
+  const ID = 'vbredwoodapp/customer-portal/customer-dashboard';
+  // this project's page of that name: its sheet and a screenshot
+  const own = st2.build(ID, { by: 'priya.raman' });
+  const ownShot = st2.saveShot(ID, { base64: Buffer.from('own-png').toString('base64'), mime: 'image/png', by: 'priya.raman' });
+  T.check('this project\'s page: its sheet and screenshot where they always were', own.ok && ownShot.ok && ownShot.shot.file.indexOf('screens/') === 0 && fs.existsSync(path.join(dataDir, P.RES, 'sheets', P.fileOf(ID) + '.json')), JSON.stringify(ownShot.shot || ownShot));
+  cur2 = work;
+  const before = st2.sheet(ID);
+  T.check('your workspace\'s page of the same name: no sheet, no screenshot of its own yet — this project\'s not lent to it', before.ok && !before.saved && (before.sheet.screenshots || []).length === 0 && st2.catalog().space === P.RES + '/projects/acme-dev1-demo-phx_rebuild-app_100010', JSON.stringify(before).slice(0, 200));
+  const b2 = st2.build(ID, { by: 'javeed.shaik' });
+  const shot2 = st2.saveShot(ID, { base64: Buffer.from('ws-png').toString('base64'), mime: 'image/png', by: 'javeed.shaik' });
+  const spaceDir = path.join(dataDir, P.RES, 'projects', 'acme-dev1-demo-phx_rebuild-app_100010');
+  T.check('…its sheet built and a screenshot added: in that project\'s own folder (projects/<org>_<project>/), its app named as it is', b2.ok && shot2.ok && shot2.shot.file === 'projects/acme-dev1-demo-phx_rebuild-app_100010/screens/' + P.fileOf(ID) + '.1.png'
+      && fs.existsSync(path.join(spaceDir, 'sheets', P.fileOf(ID) + '.json')) && fs.readFileSync(path.join(dataDir, P.RES, shot2.shot.file), 'utf8') === 'ws-png' && st2.sheet(ID).sheet.facts.appName === 'vbredwoodapp', JSON.stringify(shot2.shot || shot2));
+  const ws1 = st2.sheet(ID).sheet;
+  cur2 = '';
+  const own2 = st2.sheet(ID).sheet;
+  T.check('…each keeps its own: the workspace\'s one screenshot (its own image), this project\'s one (its own) — never mixed', (ws1.screenshots || []).length === 1 && ws1.screenshots[0].file.indexOf('projects/') === 0 && (own2.screenshots || []).length === 1 && own2.screenshots[0].file.indexOf('screens/') === 0
+      && own2.by === 'priya.raman' && ws1.by === 'javeed.shaik', JSON.stringify([ws1.screenshots, own2.screenshots]));
+
   T.section('the workspace gone (or removed): this project again');
   current = '';
   T.check('this project\'s pages again', st.catalog(true).pages.length > 100 && st.catalog().source === '');

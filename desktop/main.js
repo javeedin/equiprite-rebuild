@@ -212,7 +212,9 @@ async function pagesStore() {
     const current = () => { try { const c = vbsStoreInst && vbsStoreInst.work().current; return c && c.exists ? c : null; } catch (e) { return null; } };
     pagesStoreInst = require('./lib/pages').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git', capture: capturePage,
       rootFn: () => { const c = current(); return c ? c.working : ''; },
-      rootLabel: () => { const c = current(); return c ? c.projectName + ' ▸ ' + c.workspace + ' (' + c.branch + ')' : ''; } });
+      rootLabel: () => { const c = current(); return c ? c.projectName + ' ▸ ' + c.workspace + ' (' + c.branch + ')' : ''; },
+      // its sheets, screenshots and stories: that VB Studio project's own (all its workspaces share them), not this project's
+      spaceFn: () => { const c = current(); return c ? String(c.orgKey).split('/').pop() + '_' + c.project : ''; } });
   }
   return pagesStoreInst;
 }

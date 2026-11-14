@@ -94,6 +94,10 @@ function open(opts) {
   // the code read: root — or, when the desktop app says so (o.rootFn: Build.Rite's workspace on this PC), that folder (its
   // working folder); the data (sheets, screenshots, stories) stay where they are
   const rootNow = () => { let r = ''; try { r = typeof o.rootFn === 'function' ? str(o.rootFn()) : ''; } catch (e) { r = ''; } return r ? path.resolve(r) : root; };
+  // whose data: this project's (resources/pages/…), or — reading a VB Studio project (o.spaceFn: '<org>_<project>') — that
+  // project's own (resources/pages/projects/<org>_<project>/…: its own catalog, sheets and screenshots, the same for all its
+  // workspaces), so a page of the same name in this project never lends it its sheet, screenshots or stories
+  const space = () => { let s = ''; try { s = typeof o.spaceFn === 'function' ? str(o.spaceFn()) : ''; } catch (e) { s = ''; } s = s.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^[.-]+/, ''); return s ? 'projects/' + s + '/' : ''; };
   const sourceNow = () => { try { return typeof o.rootLabel === 'function' ? str(o.rootLabel()) : ''; } catch (e) { return ''; } };
   // the data (sheets, screenshots, stories, the catalog): on the app's data branch when there is one (lib/dataBranch.js),
   // else in the project folder itself; the code is always read from root
@@ -145,8 +149,8 @@ function open(opts) {
   }
   if (data) data.onMerged(sync); // others' sheets merged in: into the build copy at once
 
-  const saved = () => readJson(path.join(resDir, 'catalog.json'), { pages: [] });
-  const sheetFile = (id) => 'sheets/' + fileOf(id) + '.json';
+  const saved = () => readJson(path.join(resDir, space() + 'catalog.json'), { pages: [] });
+  const sheetFile = (id) => space() + 'sheets/' + fileOf(id) + '.json';
   const readSheet = (id) => readJson(path.join(resDir, sheetFile(id)), null);
 
   /** The catalog: every page the code has now, with what was saved for it (stories, sheet); pages gone from the code
@@ -166,13 +170,13 @@ function open(opts) {
     const pages = live.map((p) => Object.assign({}, p, { stories: (old[p.id] && old[p.id].stories) || [], sheet: (old[p.id] && old[p.id].sheet) || null,
       deleted: !!(old[p.id] && old[p.id].deleted) }));
     Object.keys(old).forEach((id) => { if (!pages.some((p) => p.id === id) && (old[id].stories || []).length) pages.push(Object.assign({}, old[id], { missing: true })); });
-    return { scannedAt: now().toISOString(), pages: pages, root: rootNow(), source: rootNow() === root ? '' : sourceNow() };
+    return { scannedAt: now().toISOString(), pages: pages, root: rootNow(), source: rootNow() === root ? '' : sourceNow(), space: space() ? RES + '/' + space().replace(/\/$/, '') : '' };
   }
   function writeCatalog(cat) {
     const slim = { scannedAt: cat.scannedAt, pages: cat.pages.map((p) => ({ id: p.id, app: p.app, appName: p.appName, flow: p.flow, page: p.page, label: p.label,
       route: p.route, next: (p.next || []).length ? p.next : undefined, menu: p.menu || undefined,
       stories: p.stories || [], sheet: p.sheet || null, missing: p.missing || undefined, deleted: p.deleted || undefined })) };
-    write('catalog.json', JSON.stringify(slim, null, 1) + '\n');
+    write(space() + 'catalog.json', JSON.stringify(slim, null, 1) + '\n');
   }
   function saveSheet(sh) {
     write(sheetFile(sh.id), JSON.stringify(sh, null, 1) + '\n');
@@ -243,7 +247,7 @@ function open(opts) {
     const ext = /png/i.test(str(b.mime)) ? '.png' : /webp/i.test(str(b.mime)) ? '.webp' : '.jpg';
     let n = shots.length + 1;
     while (shots.some((x) => x.id === 's' + n)) n++;
-    const file = 'screens/' + fileOf(id) + '.' + n + ext;
+    const file = space() + 'screens/' + fileOf(id) + '.' + n + ext;
     write(file, buf);
     const shot = { id: 's' + n, file: file, at: now().toISOString(), by: str(b.by), source: b.source === 'capture' ? 'capture' : 'upload',
       caption: str(b.caption).slice(0, 120), bytes: buf.length };
@@ -349,7 +353,7 @@ function open(opts) {
     dataInfo: () => (o.data ? o.data.info() : { separate: false, branch: '', reason: '' }),
     setMirror: (dir) => { const was = mirrorDir(); mirror = dir || ''; if (mirrorDir() !== was) sync(); },
     synced: () => syncing || Promise.resolve(), // the build copy's refresh, done
-    RES: RES, root: root, rootNow: rootNow, dataRoot: dataRoot,
+    RES: RES, root: root, rootNow: rootNow, space: space, dataRoot: dataRoot,
   };
 }
 
