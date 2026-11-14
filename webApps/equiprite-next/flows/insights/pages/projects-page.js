@@ -33,7 +33,13 @@ define([], () => {
       }));
     }
     // ── Find in VB Studio ──
-    hasFound(f) { return !!f && ((f.orgs || []).length + (f.projects || []).length + (f.workspaces || []).length > 0 || !!(f.finder && f.finder.open)); }
+    hasFound(f) { return !!f && ((f.orgs || []).length + (f.projects || []).length + (f.workspaces || []).length > 0 || !!(f.finder && (f.finder.open || (f.finder.log || []).length))); }
+    /** The VB Studio window's log: each step it took (addresses without their query), oldest first. */
+    finderLogCount(f) { return ((f && f.finder && f.finder.log) || []).length; }
+    finderLogText(f) {
+      const p2 = (n) => (n < 10 ? '0' : '') + n;
+      return ((f && f.finder && f.finder.log) || []).map((l) => { const d = new Date(l.at); return (isNaN(d.getTime()) ? '' : p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds())) + '  ' + l.text; }).join('\n');
+    }
     foundNote(f, watching) {
       if (!f) return '';
       if ((f.finder && f.finder.open) || watching) return 'The VB Studio window is open: sign in as usual, open the organization\'s page, then a project\'s Repositories and Workspaces — what VB Studio shows appears here.';

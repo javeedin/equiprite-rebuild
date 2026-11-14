@@ -39,7 +39,9 @@ const SECRET = 'Pa55-w0rd#e2e';
   const B = 'https://' + HOST + '/' + ORG;
   const vbsFind = async (url) => {
     opened.push(url);
-    vbs.setFinder(true, url);
+    vbs.setFinder(true, url, true);
+    vbs.finderLog('opening ' + url);
+    vbs.finderLog('redirected to https://idcs-0000.identity.oraclecloud.com/ui/v1/signin   (Oracle\'s sign-in: sign in here)');
     const lr = L.learner();
     setTimeout(() => {
       lr.see({ url: url, status: 200 });
@@ -50,6 +52,7 @@ const SECRET = 'Pa55-w0rd#e2e';
         { id: 'w2', name: 'Release 26D', branch: 'release-26d', repository: { name: 'equiprite' }, owner: { username: 'rite.user' } }] } });
       lr.see({ url: B + '/rest/me/organizations', status: 200, json: { items: [{ url: 'https://other-dev2-demo-iad.developer.ocp.oraclecloud.com/other-dev2-demo-iad/' }] } });
       vbs.learn(Object.assign(lr.found(), { calls: lr.calls() }));
+      vbs.finderLog('read /<org>/rest/' + ORG + '/projects (HTTP 200) — found so far: 2 org · 3 projects · 2 repos · 2 workspaces');
     }, 400);
     setTimeout(() => vbs.setFinder(false, url), 5000);
     return { ok: true, url: url };
@@ -125,6 +128,10 @@ const SECRET = 'Pa55-w0rd#e2e';
     await page.waitForSelector('#vbsFoundProjects .nx-vbs-foundrow', { timeout: 10000 }).catch(() => {});
     T.check('VB Studio opened in a window of Build.Rite, at the organization chosen; watched (a spinner) while it is open', opened[0] === ORG_URL && /^VB Studio is open in a window of Build\.Rite \(/.test(await text(page, '#vbsResult'))
       && /The VB Studio window is open: sign in as usual/.test(await text(page, '#vbsFoundNote')) && !!(await page.$('#vbsFoundNote .nx-spin')), await text(page, '#vbsResult'));
+    await page.waitForFunction(() => /found so far/.test((document.getElementById('vbsFinderLogText') || {}).textContent || ''), null, { timeout: 6000 }).catch(() => {});
+    T.check('the VB Studio window\'s log, live and open while it is open: each step (going to, Oracle\'s sign-in, what it read)', /opening https:\/\/acme-dev1-demo-phx/.test(await text(page, '#vbsFinderLogText'))
+      && /Oracle's sign-in: sign in here/.test(await text(page, '#vbsFinderLogText')) && /read \/<org>\/rest\/.*found so far: 2 org/.test(await text(page, '#vbsFinderLogText'))
+      && (await page.getAttribute('#vbsFinderLog', 'open')) !== null && /^VB Studio window log · 3 lines$/.test(await text(page, '#vbsFinderLog summary')), await text(page, '#vbsFinderLog'));
     T.check('found: 2 organizations · 3 projects · 2 repositories · 2 workspaces', (await text(page, '#vbsFoundCounts')) === '2 organizations · 3 projects · 2 repositories · 2 workspaces', await text(page, '#vbsFoundCounts'));
     const forg = await page.$$eval('#vbsFoundOrgs .nx-vbs-foundrow', (l) => l.map((x) => Array.from(x.querySelectorAll('b, code, .nx-vbs-st, button')).map((y) => y.textContent.trim()).join('|')));
     T.check('its organizations: this one set up; another one, with Set up', forg.length === 2 && forg[0] === ORG + '|' + ORG_URL + '|✓ Set up' && forg[1] === 'other-dev2-demo-iad|https://other-dev2-demo-iad.developer.ocp.oraclecloud.com/other-dev2-demo-iad/|Set up', forg.join(' || '));

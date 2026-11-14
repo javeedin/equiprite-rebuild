@@ -13,6 +13,7 @@ define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) =>
     watcher = setInterval(async () => {
       const f = await VC.discovered();
       if (f.ok) v.found = f.body;
+      setTimeout(() => { try { const e = document.getElementById('vbsFinderLogText'); if (e) e.scrollTop = e.scrollHeight; } catch (er) { /* not drawn */ } }, 50);
       if (Date.now() > until || (f.ok && f.body.finder && !f.body.finder.open)) {
         clearInterval(watcher); watcher = null; v.watching = false;
         const s = await VC.state();
@@ -90,6 +91,12 @@ define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) =>
           const r = await VC.diagnostic();
           const ok = r.ok && await copy(r.body.text || '');
           v.result = ok ? { ok: true, text: 'Copied: the calls VB Studio\'s pages made, as paths and field names only (no names, no values, no password). Paste it to Claude to make the reading exact.' } : { ok: false, text: 'Could not copy here.' };
+          return;
+        }
+        if (act === 'copyLog') {
+          const lines = ((v.found && v.found.finder && v.found.finder.log) || []).map((l) => l.at + '  ' + l.text).join('\n');
+          const ok = await copy(lines);
+          v.result = ok ? { ok: true, text: 'Copied the VB Studio window\'s log (' + lines.split('\n').length + ' lines; addresses without their query, no password). Paste it to Claude.' } : { ok: false, text: 'Could not copy here.' };
           return;
         }
         if (act === 'clearFound') {

@@ -363,25 +363,72 @@ async function openVbsFinder(url) {
   let target = String(url || '').trim();
   if (!target) { const o = store.state().orgs[0]; target = o ? o.url : ''; }
   if (!/^https:\/\/[^/]+\.oraclecloud\.com\/[^/]+/i.test(target)) return { ok: false, error: 'Give the VB Studio address first (https://<host>/<organization>/): add the organization, or paste it here.' };
-  if (vbsFinderWin && !vbsFinderWin.isDestroyed()) { vbsFinderWin.loadURL(target).catch(() => {}); vbsFinderWin.show(); vbsFinderWin.focus(); store.setFinder(true, target); return { ok: true, url: target, again: true }; }
+  // its log: live on the Setup screen and in this app's log — each address without its query (never a sign-in code)
+  const bare = (u) => { try { const x = new URL(u); return x.origin + x.pathname + (x.hash ? x.hash.split('?')[0].slice(0, 80) : ''); } catch (e) { return String(u || '').split('?')[0].slice(0, 160); } };
+  const say = (text) => { const line = String(text).slice(0, 400); try { store.finderLog(line); } catch (e) { /* no store */ } pushLog(`${new Date().toTimeString().slice(0, 8)} VB Studio window: ${line}`); };
+  if (vbsFinderWin && !vbsFinderWin.isDestroyed()) {
+    say('already open: going to ' + bare(target));
+    vbsFinderWin.loadURL(target).catch((e) => say('could not load: ' + e.message));
+    vbsFinderWin.show(); vbsFinderWin.focus();
+    store.setFinder(true, target);
+    return { ok: true, url: target, again: true };
+  }
+  store.setFinder(true, target, true);
+  say('opening ' + bare(target));
   const L = require('./lib/vbsLearn');
   const learner = L.learner();
-  const w = new BrowserWindow({ width: 1320, height: 900, title: 'VB Studio — Build.Rite reads its organizations, projects and workspaces as you browse', backgroundColor: '#ffffff',
+  const w = new BrowserWindow({ width: 1320, height: 900, show: true, backgroundColor: '#ffffff', title: 'VB Studio · opening…',
     webPreferences: { partition: 'persist:vbstudio', contextIsolation: true, sandbox: true, nodeIntegration: false } });
   vbsFinderWin = w;
-  w.on('page-title-updated', (e) => e.preventDefault());
+  const wc = w.webContents;
+  // a browser's own name: VB Studio and Oracle's sign-in may turn away one they do not know (Electron's, this app's)
+  try { wc.setUserAgent(wc.getUserAgent().replace(/\s(Electron|build-?rite|equiprite[\w-]*)\/\S+/gi, '')); } catch (e) { /* kept */ }
+  const title = (t) => { try { if (!w.isDestroyed()) w.setTitle('VB Studio · ' + t + ' — Build.Rite reads its organizations, projects and workspaces as you browse'); } catch (e) { /* closed */ } };
+  w.on('page-title-updated', (e, t) => { e.preventDefault(); title(t || 'VB Studio'); });
   // Oracle's sign-in may open a window of its own: allowed for Oracle's hosts only (same session); anything else in the browser
-  w.webContents.setWindowOpenHandler(({ url: next }) => {
-    if (/^https:\/\/[^/]+\.(oraclecloud|oracle)\.com\//i.test(next)) return { action: 'allow', overrideBrowserWindowOptions: { webPreferences: { partition: 'persist:vbstudio', contextIsolation: true, sandbox: true, nodeIntegration: false } } };
-    if (/^https?:/i.test(next)) shell.openExternal(next);
+  wc.setWindowOpenHandler(({ url: next }) => {
+    if (/^https:\/\/[^/]+\.(oraclecloud|oracle)\.com\//i.test(next)) { say('the page opened a window: ' + bare(next)); return { action: 'allow', overrideBrowserWindowOptions: { webPreferences: { partition: 'persist:vbstudio', contextIsolation: true, sandbox: true, nodeIntegration: false } } }; }
+    if (/^https?:/i.test(next)) { say('opened in your browser: ' + bare(next)); shell.openExternal(next); }
     return { action: 'deny' };
   });
+  // each step of the window, said: going to, redirected (Oracle's sign-in), the page and its HTTP status, loaded, failed
+  const SIGNIN_HOST = /identity\.oraclecloud\.com|\/sso\/|signin|login\.|\/oauth2\//i;
+  wc.on('did-start-loading', () => title('loading…'));
+  // (newer Electron gives the details on the event, older as arguments: both read)
+  const nav = (e, u, inPage, isMain) => ({ url: (e && e.url) || u || '', same: e && e.isSameDocument !== undefined ? e.isSameDocument : !!inPage, main: e && e.isMainFrame !== undefined ? e.isMainFrame : isMain !== false });
+  wc.on('did-start-navigation', (e, u, inPage, isMain) => { const n = nav(e, u, inPage, isMain); if (n.main && !n.same && !/^data:/.test(n.url)) say('going to ' + bare(n.url)); });
+  wc.on('did-redirect-navigation', (e, u, inPage, isMain) => { const n = nav(e, u, inPage, isMain); if (n.main) say('redirected to ' + bare(n.url) + (SIGNIN_HOST.test(n.url) ? '   (Oracle\'s sign-in: sign in here)' : '')); });
+  wc.on('did-navigate', (e, u, code, status) => { if (!/^data:/.test(u)) say('page ' + bare(u) + ' — HTTP ' + code + (status ? ' ' + status : '')); });
+  wc.on('did-finish-load', () => { const u = wc.getURL(); if (!/^data:/.test(u)) say('loaded: "' + (wc.getTitle() || 'no title') + '" — ' + bare(u)); });
+  wc.on('did-fail-load', (e, code, desc, u, isMain) => {
+    if (!isMain || code === -3) return; // -3: replaced by another navigation (a redirect), not a failure
+    say('could not load ' + bare(u) + ': ' + desc + ' (' + code + ')');
+    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    const html = '<!doctype html><meta charset="utf-8"><title>VB Studio did not open</title><body style="font:15px system-ui,Segoe UI,sans-serif;margin:48px;color:#16212c">'
+      + '<h2 style="margin:0 0 12px">VB Studio did not open</h2><p><b>' + esc(desc) + '</b> (' + code + ')<br><code>' + esc(bare(u)) + '</code></p>'
+      + '<p>Check that this PC can open that address in a browser (the network, a VPN or a proxy). Build.Rite\'s log (Setup → Organizations &amp; projects) shows each step.</p>'
+      + '<p><a href="' + esc(target) + '" style="display:inline-block;padding:8px 14px;border-radius:8px;background:#0a66c9;color:#fff;text-decoration:none">Try again</a></p></body>';
+    wc.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html)).catch(() => {});
+  });
+  wc.on('certificate-error', (e, u, err) => say('its certificate was refused: ' + bare(u) + ' — ' + err));
+  wc.on('render-process-gone', (e, d) => say('the page stopped: ' + ((d && d.reason) || 'crashed')));
+  wc.on('unresponsive', () => say('the page stopped responding'));
+  let pageErrors = 0;
+  wc.on('console-message', (e, level, message) => {
+    const lvl = e && e.level !== undefined ? e.level : level;
+    const msg = e && e.message !== undefined ? e.message : message;
+    if ((lvl === 3 || lvl === 'error') && pageErrors < 12) { pageErrors++; say('page error: ' + String(msg || '').slice(0, 200)); }
+  });
+  // what its pages load: VB Studio's own JSON answers read (never a sign-in call, never another site); each one said
   const keepNow = () => { try { store.learn(Object.assign(learner.found(), { calls: learner.calls() })); } catch (e) { /* closed */ } };
   let flush = null;
   const keep = () => { if (flush) return; flush = setTimeout(() => { flush = null; keepNow(); }, 800); };
+  const counts = () => { const f = learner.found(); return f.orgs.length + ' org · ' + f.projects.length + ' projects · ' + f.projects.reduce((n, p) => n + p.repos.length, 0) + ' repos · ' + f.workspaces.length + ' workspaces'; };
   const pending = {};
-  const dbg = w.webContents.debugger;
-  try { dbg.attach('1.3'); } catch (e) { pushLog(`${new Date().toTimeString().slice(0, 8)} Find in VB Studio: could not watch the window (${e.message})`); }
+  let skipped = 0, read = 0;
+  const dbg = wc.debugger;
+  try { dbg.attach('1.3'); say('watching its network: on'); } catch (e) { say('could not watch its network (' + e.message + '): it opens, but nothing can be read from it'); }
+  dbg.on('detach', (e, reason) => say('stopped watching its network: ' + reason));
   dbg.on('message', async (event, method, params) => {
     if (method === 'Network.responseReceived') {
       const r = params.response || {};
@@ -392,21 +439,25 @@ async function openVbsFinder(url) {
       delete pending[params.requestId];
       let u;
       try { u = new URL(p.url); } catch (e) { return; }
-      if (!L.isVbsHost(u.hostname) || L.SIGNIN.test(u.pathname + u.search)) return; // never a sign-in call, never another site
+      if (!L.isVbsHost(u.hostname) || L.SIGNIN.test(u.pathname + u.search)) { skipped++; return; } // never a sign-in call, never another site
       try {
         const b = await dbg.sendCommand('Network.getResponseBody', { requestId: params.requestId });
         const text = b.base64Encoded ? Buffer.from(b.body, 'base64').toString('utf8') : b.body;
         let json = null;
         try { json = JSON.parse(text); } catch (e) { json = null; }
-        if (json !== null && learner.see({ url: p.url, status: p.status, json: json })) keep();
-      } catch (e) { /* the page moved on */ }
-    } else if (method === 'Network.loadingFailed') delete pending[params.requestId];
+        if (json !== null && learner.see({ url: p.url, status: p.status, json: json })) { read++; say('read ' + u.pathname.replace(/^\/[^/]+/, '/<org>') + ' (HTTP ' + p.status + ') — found so far: ' + counts()); keep(); }
+      } catch (e) { say('could not read ' + u.pathname + ': ' + e.message); }
+    } else if (method === 'Network.loadingFailed' && pending[params.requestId]) {
+      const p = pending[params.requestId];
+      delete pending[params.requestId];
+      say('a call failed: ' + bare(p.url) + ' — ' + (params.errorText || 'failed'));
+    }
   });
-  try { await dbg.sendCommand('Network.enable'); } catch (e) { /* not watched */ }
-  w.on('closed', () => { keepNow(); store.setFinder(false, target); if (vbsFinderWin === w) vbsFinderWin = null; });
-  store.setFinder(true, target);
-  w.loadURL(target).catch(() => {});
-  pushLog(`${new Date().toTimeString().slice(0, 8)} Find in VB Studio: opened ${target}`);
+  // the page loads at once; its network watched as soon as it is ready (never waited for longer than a moment)
+  w.loadURL(target).catch((e) => say('could not load: ' + e.message));
+  const on = await Promise.race([dbg.sendCommand('Network.enable').then(() => 'on', (e) => 'not on: ' + e.message), new Promise((r) => setTimeout(() => r('slow'), 2000))]).catch((e) => 'not on: ' + e.message);
+  if (on !== 'on') say('reading its pages: ' + (on === 'slow' ? 'switching on (slowly)' : on));
+  w.on('closed', () => { keepNow(); say('closed — read ' + read + ' answer(s) from VB Studio, skipped ' + skipped + ' (sign-in, other sites); found ' + counts()); store.setFinder(false, target); if (vbsFinderWin === w) vbsFinderWin = null; });
   return { ok: true, url: target };
 }
 // Code Fix (Application pages → a page → Code fix): the AI chosen in AI settings proposes a change to a page; it is

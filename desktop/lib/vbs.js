@@ -215,7 +215,7 @@ function open(opts) {
 
   // ── Find in VB Studio: what VB Studio's own pages loaded (desktop/lib/vbsLearn.js), kept and merged across visits ──
   const L = require('./vbsLearn');
-  let finder = { open: false, url: '', at: '' };
+  let finder = { open: false, url: '', at: '', log: [] };
   function learn(found) {
     data.discovered = Object.assign(L.merge(data.discovered || {}, found || {}), { at: now().toISOString() });
     save();
@@ -238,10 +238,12 @@ function open(opts) {
     return JSON.stringify({ seen: d.at || '', organizations: (d.orgs || []).length, projects: (d.projects || []).length, repositories: (d.projects || []).reduce((n, p) => n + (p.repos || []).length, 0),
       workspaces: (d.workspaces || []).length, calls: (d.calls || []).map((c) => ({ path: c.path, status: c.status, shape: c.shape })) }, null, 1);
   }
-  function setFinder(open, url) { finder = { open: !!open, url: str(url), at: now().toISOString() }; }
+  /** The VB Studio window: open or not, its address, and its log (the last 200 lines; addresses without their query). */
+  function setFinder(open, url, fresh) { finder = { open: !!open, url: str(url), at: now().toISOString(), log: fresh ? [] : (finder.log || []) }; }
+  function finderLog(text) { finder.log = (finder.log || []).concat([{ at: now().toISOString(), text: str(text).slice(0, 400) }]).slice(-200); }
 
   return { state: state, saveOrg: saveOrg, removeOrg: removeOrg, addProject: addProject, checkProject: checkProject, removeProject: removeProject, auth: auth, git: git,
-    learn: learn, discovered: discovered, clearDiscovered: clearDiscovered, diagnostic: diagnostic, setFinder: setFinder };
+    learn: learn, discovered: discovered, clearDiscovered: clearDiscovered, diagnostic: diagnostic, setFinder: setFinder, finderLog: finderLog };
 }
 
 module.exports = { open, parseOrgUrl, parseRepoUrl, branchesOf, jobsOf, why };

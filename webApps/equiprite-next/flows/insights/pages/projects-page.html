@@ -67,7 +67,14 @@
           </oj-bind-for-each>
         </div>
       </oj-bind-if>
+      <oj-bind-if test="[[ $functions.finderLogCount($variables.found) > 0 ]]">
+        <details class="nx-vbs-log" id="vbsFinderLog" :open="[[ $variables.watching ]]">
+          <summary><oj-bind-text value="[[ 'VB Studio window log · ' + $functions.finderLogCount($variables.found) + ' lines' ]]"></oj-bind-text></summary>
+          <pre class="nx-vbs-logtext" id="vbsFinderLogText"><oj-bind-text value="[[ $functions.finderLogText($variables.found) ]]"></oj-bind-text></pre>
+        </details>
+      </oj-bind-if>
       <div class="nx-fx-row nx-vbs-foundacts">
+        <oj-bind-if test="[[ $functions.finderLogCount($variables.found) > 0 ]]"><button type="button" class="nx-btn nx-btn--sm" id="vbsCopyLog" data-act="copyLog" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy the log</button></oj-bind-if>
         <button type="button" class="nx-btn nx-btn--sm" id="vbsDiag" data-act="diag" on-click="[[ $listeners.onAct ]]" title="The calls VB Studio's pages made, as paths and field names only — no names, no values, no password"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy what Build.Rite saw (no values)</button>
         <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="vbsClearFound" data-act="clearFound" on-click="[[ $listeners.onAct ]]">Clear what was found</button>
       </div>
