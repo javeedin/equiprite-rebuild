@@ -24,6 +24,8 @@ define([
       // the screenshot viewer: a native dialog (showModal: the browser's top layer, above everything; Esc closes it)
       const shots = (v.sheet && v.sheet.screenshots) || [];
       const dlg = () => { try { return document.getElementById('pgViewer'); } catch (e) { return null; } };
+      // the screenshot just added: its thumbnail flies in (for a moment)
+      const arrived = (sid) => { v.shotNew = sid; setTimeout(() => { if (v.shotNew === sid) v.shotNew = ''; }, 2600); };
       if (act === 'view') {
         v.viewer = Math.max(0, Math.min(shots.length - 1, Number(key) || 0));
         setTimeout(() => { const d = dlg(); try { if (d && !d.open) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); } } catch (e) { /* already open */ } }, 0);
@@ -111,6 +113,11 @@ define([
           const from = b.from === 'workspace' ? ' From your workspace\'s working folder' + (b.built ? ' (built just now, with your changes).' : ' (your changes included).') : '';
           const went = b.landed ? ' Note: the page did not show itself — it sent you to ' + b.landed + ' (a guard: a module turned off, or a role it is not for), so the screenshot shows that page.' : '';
           await done(r, 'Screenshot captured.' + from + went);
+          if (b.ok && b.shot) {
+            const n = ((v.sheet && v.sheet.screenshots) || []).findIndex((x) => x.id === b.shot.id) + 1;
+            bus.toast('📸 Screenshot ' + (n || '') + ' captured' + (b.from === 'workspace' ? ' — from your workspace' : '') + (b.landed ? ' (the page sent you to ' + b.landed + ')' : ''), b.landed ? 'warning' : 'success');
+            arrived(b.shot.id);
+          }
           return;
         }
         if (act === 'run') {
@@ -134,18 +141,25 @@ define([
             if (!(r.body && r.body.ok)) break;
           }
           await done(r, files.length > 1 ? files.length + ' screenshots saved.' : 'Screenshot saved.');
+          if (r && r.body && r.body.ok) { bus.toast(files.length > 1 ? '📸 ' + files.length + ' screenshots added' : '📸 Screenshot added', 'success'); if (r.body.shot) arrived(r.body.shot.id); }
           return;
         }
-        if (act === 'unshot') {
-          const s1 = shots[v.viewer];
+        // a screenshot deleted: the one in the viewer (its Delete), or a thumbnail's × (key: its place) — asked first
+        if (act === 'unshot' || act === 'unshotAt') {
+          const at = act === 'unshotAt' ? Number(key) : v.viewer;
+          const s1 = shots[at];
           if (!s1) return;
+          const d0 = dlg(), inViewer = !!(d0 && d0.open);
           let yes = true;
-          try { yes = window.confirm('Delete screenshot ' + (v.viewer + 1) + ' of this page?'); } catch (e) { /* no DOM */ }
+          try { yes = window.confirm('Delete screenshot ' + (at + 1) + ' of this page?\n\n' + (s1.caption ? s1.caption + ' — ' : '') + (s1.source === 'capture' ? 'captured' : 'uploaded') + ' ' + (s1.at ? new Date(s1.at).toLocaleString() : '') + (s1.by ? ' by ' + s1.by : '') + '\n\nIt is removed for everyone (the change is kept in git).'); } catch (e) { /* no DOM */ }
           if (!yes) return;
           const r = await PC.removeShot(id, s1.id, v.commit);
-          await done(r, 'Screenshot deleted.');
-          v.viewer = ((v.sheet && v.sheet.screenshots) || []).length ? Math.min(v.viewer, v.sheet.screenshots.length - 1) : -1;
-          if (v.viewer < 0) { const d = dlg(); try { if (d && d.open) d.close(); } catch (e) { /* closed */ } }
+          await done(r, 'Screenshot ' + (at + 1) + ' deleted.');
+          if (r && r.body && r.body.ok) bus.toast('Screenshot ' + (at + 1) + ' deleted', 'info');
+          if (inViewer) {
+            v.viewer = ((v.sheet && v.sheet.screenshots) || []).length ? Math.min(v.viewer, v.sheet.screenshots.length - 1) : -1;
+            if (v.viewer < 0) { const d = dlg(); try { if (d && d.open) d.close(); } catch (e) { /* closed */ } }
+          }
           return;
         }
         if (act === 'delete') {

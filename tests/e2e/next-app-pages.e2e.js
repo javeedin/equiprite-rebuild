@@ -88,7 +88,11 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.click('#pgCapture');
     await page.waitForSelector('#pgShots .nx-pg-shotbtn', { timeout: 20000 });
     await page.waitForFunction(() => { const i = document.querySelector('#pgShots .nx-pg-shotimg'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => /Screenshot 1 captured/.test((document.querySelector('.nx-toast') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    T.check('…the new thumbnail flies in (for a moment)', !!(await page.$('#pgShots .nx-pg-shotbtn--new')));
+    await page.waitForFunction(() => { const b = document.querySelector('#pgShots .nx-pg-shotbtn'); return b && b.getAnimations().every((a) => a.playState !== 'running'); }, null, { timeout: 5000 }).catch(() => {}); // landed
     const thumb = await page.$eval('#pgShots .nx-pg-shotbtn', (b) => { const r = b.getBoundingClientRect(), acts = document.querySelector('.nx-pg-acts').getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), below: r.top >= acts.bottom - 1, inHead: !!b.closest('.nx-pg-head'), n: b.textContent.trim(), img: b.querySelector('img').naturalWidth > 0 }; });
+    T.check('Capture screenshot: a toast says it is captured (which one)', /📸 Screenshot 1 captured/.test(await text(page, '.nx-toast')) && /nx-toast--success/.test((await page.getAttribute('.nx-toast', 'class')) || ''), await text(page, '.nx-toast'));
     T.check('Capture screenshot: the page opened at its address; a small thumbnail (numbered) in the header, under the buttons', shots[0] === 'vbredwoodapp /vp/shell/equipment-foundation/equipment-workbench'
       && (await page.$$('#pgShots .nx-pg-shotbtn')).length === 1 && thumb.inHead && thumb.below && thumb.w <= 120 && thumb.h <= 80 && thumb.n === '1' && thumb.img && !(await page.$eval('#pgViewer', (d) => d.open)), JSON.stringify(thumb));
     await page.setInputFiles('#pgShotFile', [{ name: 'Filters open.png', mimeType: 'image/png', buffer: Buffer.from(PNG, 'base64') }, { name: 'Row picked.png', mimeType: 'image/png', buffer: Buffer.from(PNG, 'base64') }]);
@@ -130,6 +134,19 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.click('#pgViewerDone');
     await settle(page, 200);
     T.check('…and so does the Close button at the bottom', !(await page.$eval('#pgViewer', (d) => d.open)));
+    // a thumbnail's ×: that one deleted, asked first (a third added for it, so two stay)
+    await page.setInputFiles('#pgShotFile', [{ name: 'To delete.png', mimeType: 'image/png', buffer: Buffer.from(PNG, 'base64') }]);
+    await page.waitForFunction(() => document.querySelectorAll('#pgShots .nx-pg-shotbtn').length === 3, null, { timeout: 20000 }).catch(() => {});
+    await page.waitForFunction(() => /Screenshot added/.test((document.querySelector('.nx-toast') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    T.check('an added screenshot: a toast says so; its thumbnail flies in', /Screenshot added/.test(await text(page, '.nx-toast')) && !!(await page.$('#pgShots .nx-pg-shotbtn--new')), await text(page, '.nx-toast'));
+    T.check('each thumbnail has its × (Delete screenshot n)', (await page.$$('#pgShots .nx-pg-shotx')).length === 3 && (await page.getAttribute('#pgShots .nx-pg-shotx[data-key="2"]', 'aria-label')) === 'Delete screenshot 3');
+    let askedDel = '';
+    page.once('dialog', (d) => { askedDel = d.message(); d.accept(); });
+    await page.click('#pgShots .nx-pg-shotx[data-key="2"]');
+    await page.waitForFunction(() => document.querySelectorAll('#pgShots .nx-pg-shotbtn').length === 2, null, { timeout: 20000 }).catch(() => {});
+    await page.waitForFunction(() => /Screenshot 3 deleted/.test((document.querySelector('.nx-toast') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    T.check('…clicked: asked first (which one, what it is), that one deleted and pushed, the viewer not opened; a toast', /Screenshot 3 deleted/.test(await text(page, '.nx-toast')) && /^Delete screenshot 3 of this page\?/.test(askedDel) && /uploaded/.test(askedDel) && (await page.$$('#pgShots .nx-pg-shotbtn')).length === 2
+      && pg.gitRemote('log', '-1', '--format=%s', 'pages/test') === 'Application pages: a screenshot of ' + ID + ' deleted' && !(await page.$eval('#pgViewer', (d) => d.open)) && /Screenshot 3 deleted/.test(await text(page, '#pgResult')), askedDel);
     await page.click('#pgExplain');
     await page.waitForFunction(() => { const f = document.getElementById('pgAi'); return f && /What this page is for/.test(f.getAttribute('srcdoc') || ''); }, null, { timeout: 20000 }).catch(() => {});
     await page.click('#pgOverview .nx-pg-facts [data-key="pgIntegrations"]');

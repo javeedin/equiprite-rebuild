@@ -119,7 +119,10 @@
             <span class="nx-pg-maplbl">Screenshots</span>
             <oj-bind-for-each data="[[ $functions.indexed($variables.sheet.screenshots) ]]">
               <template data-oj-as="sh">
-                <button type="button" class="nx-pg-shotbtn" data-act="view" :data-key="[[ sh.data.i ]]" on-click="[[ $listeners.onAct ]]" :title="[[ $functions.shotText(sh.data) + ' — click to view' ]]" :aria-label="[[ 'Screenshot ' + sh.data.n + ': ' + $functions.shotText(sh.data) ]]"><img class="nx-pg-shotimg" loading="lazy" alt="" :src="[[ $functions.shot($application.path, sh.data) ]]"><span class="nx-pg-shotn"><oj-bind-text value="[[ sh.data.n ]]"></oj-bind-text></span></button>
+                <span class="nx-pg-shotwrap">
+                  <button type="button" :class="[[ 'nx-pg-shotbtn' + (sh.data.id === $variables.shotNew ? ' nx-pg-shotbtn--new' : '') ]]" data-act="view" :data-key="[[ sh.data.i ]]" on-click="[[ $listeners.onAct ]]" :title="[[ $functions.shotText(sh.data) + ' — click to view' ]]" :aria-label="[[ 'Screenshot ' + sh.data.n + ': ' + $functions.shotText(sh.data) ]]"><img class="nx-pg-shotimg" loading="lazy" alt="" :src="[[ $functions.shot($application.path, sh.data) ]]"><span class="nx-pg-shotn"><oj-bind-text value="[[ sh.data.n ]]"></oj-bind-text></span></button>
+                  <oj-bind-if test="[[ $variables.info.canWrite ]]"><button type="button" class="nx-pg-shotx" data-act="unshotAt" :data-key="[[ sh.data.i ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" :title="[[ 'Delete screenshot ' + sh.data.n ]]" :aria-label="[[ 'Delete screenshot ' + sh.data.n ]]">×</button></oj-bind-if>
+                </span>
               </template>
             </oj-bind-for-each>
             <oj-bind-if test="[[ ($variables.sheet.screenshots || []).length === 0 ]]"><span class="nx-pg-shotnone"><oj-bind-text value="[[ $variables.info.canWrite ? 'None yet: Capture or Upload some (a page keeps several).' : 'None yet.' ]]"></oj-bind-text></span></oj-bind-if>

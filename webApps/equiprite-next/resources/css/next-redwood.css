@@ -101,6 +101,7 @@ html[data-nx-look="redwood"] .nx-profile-label { font-size: 12.5px; font-weight:
 html[data-nx-look="redwood"] .nx-toast { background: var(--rw-cta); border-radius: 6px; }
 html[data-nx-look="redwood"] .nx-toast--error { background: var(--nx-danger); }
 html[data-nx-look="redwood"] .nx-toast--warning { background: var(--nx-warn); }
+html[data-nx-look="redwood"] .nx-toast--success { background: #146c2e; }
 
 /* ── Every page's head: Oracle's Redwood page header, with its own colour strip ─────────────────────────── */
 html[data-nx-look="redwood"] .nx-pagehead { background: var(--nx-band); padding-top: 24px; padding-bottom: 32px; }
