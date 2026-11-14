@@ -42,7 +42,7 @@ define(['vb/action/actionChain', 'resources/js/shellBus', 'resources/js/vbsClien
       if (act === 'remove') {
         const r = await VC.workRemove(c);
         if (r.body && r.body.cancelled) return;
-        if (r.ok) { v.work = r.body; changed(); bus.toast('Removed ' + wsName + ' from this PC.', 'info'); } else bus.toast(r.body.error || 'It could not be removed.', 'error');
+        if (r.ok) { v.work = r.body; changed(); bus.toast(r.body.keptFolder ? 'Removed ' + wsName + ' from Build.Rite: its folder is kept at ' + r.body.keptFolder + '.' : 'Removed ' + wsName + ' from this PC.', 'info'); } else bus.toast(r.body.error || 'It could not be removed.', 'error');
         return;
       }
       if (c) bus.open({ record: 'vbs-project', params: { key: c.orgKey + '/' + c.project, name: c.projectName, ws: c.workspace } });

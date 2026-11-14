@@ -65,9 +65,14 @@ define([], function () {
         if (s.toPush) lost.push(s.toPush + ' commit' + (s.toPush === 1 ? '' : 's') + ' not pushed to VB Studio');
         var msg = 'Remove ' + c.projectName + ' ▸ ' + c.workspace + ' from this PC?\n\nIts folder is deleted (working and main):\n' + c.base +
           (lost.length ? '\n\nThese would be lost: ' + lost.join('; ') + '.' : '\n\nEverything in it is in VB Studio already: nothing is lost.') + '\n\nNothing changes in VB Studio.';
-        var ok = typeof window === 'undefined' || !window.confirm ? true : window.confirm(msg);
-        if (!ok) return { ok: false, status: 0, body: { cancelled: true } };
-        return post('work/forget', { id: c.id, removeFolder: true });
+        var ask = function (t) { return typeof window === 'undefined' || !window.confirm ? true : window.confirm(t); };
+        if (!ask(msg)) return { ok: false, status: 0, body: { cancelled: true } };
+        return post('work/forget', { id: c.id, removeFolder: true }).then(function (r) {
+          // Windows refusing (the folder in use): remove it from Build.Rite only, its folder kept — asked
+          if (r.ok || !(r.body && r.body.inUse)) return r;
+          if (!ask(r.body.error + '\n\nRemove it from Build.Rite only? Its folder stays at:\n' + r.body.path + '\n(delete it yourself once nothing has it open).')) return r;
+          return post('work/forget', { id: c.id, removeFolder: false }).then(function (r2) { if (r2.ok) r2.body.keptFolder = r.body.path; return r2; });
+        });
       });
     },
     workOpen: function (id, which) { return post('work/open', { id: id || '', which: which || 'working' }); },

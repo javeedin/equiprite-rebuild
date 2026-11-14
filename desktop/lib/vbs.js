@@ -797,16 +797,42 @@ function open(opts) {
     return Object.assign(work(), { stopped: c.workspace });
   }
   /** A workspace removed from this PC: forgotten, and its folders deleted when asked (only the folder Build.Rite made). */
+  // A folder deleted on any PC: Windows refuses while something has it open (an Explorer window, an editor, a terminal; an
+  // antivirus reading new files) — tried again a few times — and git's own object files are read-only there (made writable
+  // first, then once more). → null, or the error.
+  const removeDir = o.removeDir || ((dir) => {
+    const opts = { recursive: true, force: true, maxRetries: 8, retryDelay: 250 };
+    try { fs.rmSync(dir, opts); return null; } catch (e) {
+      const writable = (d) => {
+        let list = [];
+        try { list = fs.readdirSync(d, { withFileTypes: true }); } catch (er) { return; }
+        list.forEach((x) => { const f = path.join(d, x.name); try { fs.chmodSync(f, x.isDirectory() ? 0o777 : 0o666); } catch (er) { /* left */ } if (x.isDirectory()) writable(f); });
+      };
+      try { writable(dir); fs.rmSync(dir, opts); return null; } catch (e2) { return e2; }
+    }
+  });
+  /**
+   * A workspace removed from this PC: forgotten, and its folder deleted when asked (only the folder Build.Rite made, even
+   * half deleted by an earlier try). Windows refusing (in use): said what usually holds it, nothing forgotten — removing
+   * it from Build.Rite only (its folder kept) is the other way.
+   */
   function workForget(id, removeFolder) {
     const c = workOf(id);
     if (!c) return Object.assign(work(), { ok: false, error: 'No such workspace on this PC.' });
-    if (removeFolder && c.made && c.base && path.basename(c.base) && fs.existsSync(path.join(c.base, 'main'))) {
-      try { fs.rmSync(c.base, { recursive: true, force: true }); } catch (e) { return Object.assign(work(), { ok: false, error: 'Its folder could not be deleted: ' + e.message }); }
+    const ours = c.made && c.base && path.basename(c.base) && (!c.folder || path.dirname(c.base) === path.resolve(c.folder));
+    if (removeFolder && ours && fs.existsSync(c.base)) {
+      const err = removeDir(c.base);
+      if (err) {
+        const inUse = /EPERM|EBUSY|EACCES|ENOTEMPTY/.test(str(err.code) + ' ' + str(err.message));
+        return Object.assign(work(), { ok: false, inUse: inUse, path: c.base,
+          error: inUse ? 'Its folder could not be deleted: Windows says it is in use (' + (err.code || 'EPERM') + '). Close any Explorer window, editor or terminal open in ' + c.base + ', then try again — or remove it from Build.Rite only and delete the folder yourself later.'
+            : 'Its folder could not be deleted: ' + str(err.message) });
+      }
     }
     works().copies = works().copies.filter((x) => x !== c);
     if (works().current === c.id) works().current = '';
     save();
-    return work();
+    return Object.assign(work(), { removedFolder: !!(removeFolder && ours) });
   }
 
   return { state: state, saveOrg: saveOrg, removeOrg: removeOrg, addProject: addProject, checkProject: checkProject, removeProject: removeProject, auth: auth, git: git,

@@ -115,6 +115,26 @@ const ENV = Object.assign({}, process.env, { GIT_AUTHOR_NAME: 'Team Mate', GIT_A
     T.check('the same workspace again: its folders reused (nothing copied again)', again.ok && again.reused && !again.set && st.work().copies.length === 1 && st.workPlan(WS).reuse);
     const f = st.workForget(st.work().current.id, true);
     T.check('removed: forgotten, its folder deleted; the folder chosen kept', f.ok && f.current === null && !fs.existsSync(base) && fs.existsSync(chosen));
+
+    T.section('removing on Windows: the folder in use (EPERM) — said, nothing forgotten; removed from Build.Rite only, its folder kept');
+    let refuse = true;
+    const st3 = V.open({ file: path.join(tmp, 'd3', 'vbs.json'), encrypt: enc, decrypt: dec, git: realGit, fetch: async () => ({ ok: false, status: 404, text: async () => '' }),
+      removeDir: (d) => { if (refuse) { const e = new Error("EPERM: operation not permitted, rmdir '" + d + "'"); e.code = 'EPERM'; return e; } fs.rmSync(d, { recursive: true, force: true }); return null; } });
+    st3.saveOrg({ name: 'Rite demo', url: 'https://' + HOST + '/' + ORG + '/', user: 'demo.user', password: 'S3cret!#' });
+    const W3 = Object.assign({}, WS, { folder: path.join(tmp, 'Win') });
+    const u3 = await st3.workUse(W3);
+    const base3 = path.join(tmp, 'Win', 'rebuild-app-dev_one');
+    const r3 = st3.workForget(st3.work().current.id, true);
+    T.check('Windows refuses: said — in use, what usually holds it (Explorer, an editor, a terminal), the other way; nothing forgotten, its folder there', u3.ok && !r3.ok && r3.inUse && r3.path === base3 && /in use \(EPERM\)/.test(r3.error) && /Explorer window, editor or terminal/.test(r3.error) && /remove it from Build\.Rite only/.test(r3.error)
+      && st3.work().current && fs.existsSync(path.join(base3, 'main')), r3.error);
+    const r4 = st3.workForget(st3.work().current.id, false);
+    T.check('…removed from Build.Rite only: forgotten, its folder kept (to delete later)', r4.ok && r4.current === null && r4.copies.length === 0 && fs.existsSync(path.join(base3, 'working')));
+    refuse = false;
+    const u5 = await st3.workUse(Object.assign({}, W3, { folder: path.join(tmp, 'Win2') }));
+    const ro = path.join(tmp, 'Win2', 'rebuild-app-dev_one', 'main', '.git', 'objects', 'readonly-test');
+    fs.writeFileSync(ro, 'x'); fs.chmodSync(ro, 0o444);
+    const r5 = st3.workForget(st3.work().current.id, true);
+    T.check('…and when nothing holds it: deleted (read-only files too), forgotten', u5.ok && r5.ok && r5.removedFolder && !fs.existsSync(path.join(tmp, 'Win2', 'rebuild-app-dev_one')) && r5.copies.length === 0);
     const missing = await st.workUse(Object.assign({}, WS, { branch: 'not-pushed' }));
     T.check('a workspace whose branch is not pushed yet: said; nothing left behind', !missing.ok && /not in App\.git yet/.test(missing.error) && !fs.existsSync(base), missing.error);
   } catch (e) {

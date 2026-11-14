@@ -65,7 +65,7 @@ define(['vb/action/actionChain', 'resources/js/vbsClient', 'resources/js/vbsView
           if (r.body && r.body.cancelled) return;
           if (!r.ok) { v.result = { ok: false, text: r.body.error || 'It could not be done.' }; return; }
           v.work = r.body; v.workSt = null;
-          v.result = { ok: true, text: act === 'workStop' ? 'Stopped using ' + wsName + ': its folders are kept — set it up again to use it.' : 'Removed ' + wsName + ' from this PC: its folders are deleted.' };
+          v.result = { ok: true, text: act === 'workStop' ? 'Stopped using ' + wsName + ': its folders are kept — set it up again to use it.' : r.body.keptFolder ? 'Removed ' + wsName + ' from Build.Rite: its folder is kept at ' + r.body.keptFolder + ' (delete it yourself once nothing has it open).' : 'Removed ' + wsName + ' from this PC: its folders are deleted.' };
           bus.emit('vbs-changed', { key: v.key, work: true, switched: true });
           return;
         }
