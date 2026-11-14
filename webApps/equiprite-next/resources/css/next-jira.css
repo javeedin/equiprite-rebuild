@@ -1583,3 +1583,26 @@ html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, htm
 .nx-vbsp-steps { margin: 14px 0 0; }
 .nx-vbsp-steps .nx-btn { margin-top: 8px; }
 @media (max-width: 760px) { .nx-vbs-ptr { grid-template-columns: minmax(0, 1fr) auto; } .nx-vbs-ptr > span:nth-child(2), .nx-vbs-ptr > span:nth-child(3) { display: none; } }
+/* a project's tab: the workspace chosen — open it in VB Studio; its Git (repository, branch, clone, head, last commit) */
+.nx-vbsp-wsel { background: rgba(42, 120, 214, .07); box-shadow: inset 3px 0 0 #2a78d6; }
+.nx-vbsp-lastcell { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.nx-vbsp-ws { margin: 14px 16px 16px; padding: 14px; border: 1px solid var(--nx-line); border-left: 4px solid #2a78d6; border-radius: 12px; background: var(--nx-surface); }
+.nx-vbsp-wshead { display: flex; align-items: flex-start; gap: 10px; }
+.nx-vbsp-wshead .nx-vbs-pbody { flex: 1 1 auto; min-width: 0; }
+.nx-vbsp-wshead #vbspWsName { font-size: 16px; }
+.nx-vbsp-wsacts { margin-top: 12px; flex-wrap: wrap; }
+.nx-vbsp-wsacts a.nx-btn { text-decoration: none; }
+.nx-vbsp-wsnote { margin: 8px 0 0; }
+.nx-vbsp-git { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 13px; }
+.nx-vbsp-git dt { color: var(--nx-muted); font-weight: 600; }
+.nx-vbsp-git dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.nx-vbsp-clone code { word-break: break-all; }
+.nx-vbsp-by { display: block; }
+.nx-vbsp-files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.nx-vbsp-files li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.nx-vbsp-files code { overflow-wrap: anywhere; font-size: 12px; }
+.nx-vbsp-fs { flex: none; width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; background: #e9eef3; color: #3b4a58; }
+.nx-vbsp-fs--A { background: #e3f3e8; color: #1f6d3c; }
+.nx-vbsp-fs--D { background: #fbe6e1; color: #a1381b; }
+.nx-vbsp-fs--M { background: #e3edf8; color: #1d5fae; }
+@media (max-width: 640px) { .nx-vbsp-git { grid-template-columns: minmax(0, 1fr); } }

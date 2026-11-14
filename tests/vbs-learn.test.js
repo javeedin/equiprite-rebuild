@@ -79,6 +79,18 @@ T.check('a project\'s workspaces (…/s2/…/vbdt/design/workspaces): inside tha
   return w.project === 'rebuild-app_100010' && w.environment === 'OICDEMO' && w.lastOpened === '1763084220000' && w.repo === 'app' && f.projects.length === 1 && f.projects[0].repos.length === 1
     && c.map((x) => x.path + '=' + x.role).join() === '/<org>/s2/<org>_<project>/vbdt/design/workspaces=workspaces,/<org>/s2/<org>_<project>/scm/api/repository=repos';
 })());
+T.check('…each workspace\'s application, as VB Studio\'s designer opens it: a field, a value that starts like one, or an id shaped like one', (() => {
+  const l7 = L.learner();
+  const full = ORG + '_rebuild-app_100010';
+  l7.see({ url: base + '/s2/' + full + '/vbdt/design/workspaces', json: { items: [
+    { id: 'a', name: 'One', applicationId: full + '_741-1.0' },
+    { id: 'b', name: 'Two', meta: { app: full + '_742-1.0' } },
+    { id: '743-1.0', name: 'Three' },
+    { id: 'c', name: 'Four' }] } });
+  const ws = l7.found().workspaces;
+  const app = (n) => (ws.filter((w) => w.name === n)[0] || {}).appId;
+  return app('One') === full + '_741-1.0' && app('Two') === full + '_742-1.0' && app('Three') === full + '_743-1.0' && app('Four') === '';
+})());
 T.check('…a call about one project (…/projects/<name>/get, …/projects/stat) is not a list of projects; VB Studio\'s services (cloudgate…) are not organizations', (() => {
   const l6 = L.learner();
   l6.see({ url: base + '/api2/projects/rebuild-app/get', json: { members: [{ id: 'm1', name: 'Someone' }], links: ['https://' + HOST + '/cloudgate/v1/x', 'https://' + HOST + '/' + ORG + '/s2/' + ORG + '_x/scm/a.git'] } });

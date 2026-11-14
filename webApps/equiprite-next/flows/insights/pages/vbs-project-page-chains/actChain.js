@@ -17,6 +17,38 @@ define(['vb/action/actionChain', 'resources/js/vbsClient', 'resources/js/vbsView
       const orgKey = parts.slice(0, 2).join('/');
       const pid = parts.slice(2).join('/');
       const p = V.project(v.found, v.key);
+      // the workspace chosen: its Git read at once (never blocked by a refresh)
+      const readGit = async () => {
+        const w = p && p.workspaces.filter((x) => x.key === v.wsSel)[0];
+        if (!w) return;
+        const sel = v.wsSel;
+        if (!w.repo || w.repo === '—') { v.wsGit = { ok: false, error: 'VB Studio did not say which repository it uses.' }; return; }
+        v.wsGitBusy = true;
+        try {
+          const r = await VC.workspaceGit(orgKey, pid, w.repo, w.branchName);
+          if (v.wsSel === sel) v.wsGit = Object.assign({}, r.body, { ok: !!r.ok });
+        } finally { if (v.wsSel === sel) v.wsGitBusy = false; }
+      };
+      if (act === 'selectWs') {
+        if (v.wsSel === String(key || '') && v.wsGit) return;
+        v.wsSel = String(key || ''); v.wsGit = null;
+        setTimeout(() => { try { const e = document.querySelector('#vbspWsPanel'); if (e && e.offsetParent && e.scrollIntoView) e.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (er) { /* not drawn */ } }, 60);
+        await readGit();
+        return;
+      }
+      if (act === 'closeWs') { v.wsSel = ''; v.wsGit = null; return; }
+      if (act === 'gitRead') { await readGit(); return; }
+      if (act === 'copyText') {
+        const ok = await copy(String(key || ''));
+        v.result = ok ? { ok: true, text: 'Copied: ' + String(key || '').slice(0, 120) + (String(key || '').length > 120 ? '…' : '') } : { ok: false, text: 'Could not copy here.' };
+        return;
+      }
+      if (act === 'openWs') {
+        // the workspace in VB Studio's designer, in Build.Rite's VB Studio window (signed in there)
+        const r = await VC.find(String(key || ''));
+        v.result = r.ok ? { ok: true, text: 'Opening the workspace in Build.Rite\'s VB Studio window (sign in there if VB Studio asks).' } : { ok: false, text: r.body.error || 'Could not open VB Studio.' };
+        return;
+      }
       if (act === 'copySteps') {
         const ok = await copy(((v.refresh && v.refresh.steps) || []).map((s) => s.at + '  ' + s.text).join('\n'));
         v.result = ok ? { ok: true, text: 'Copied what the refresh did (addresses with their ids hidden, no password). Paste it to Claude.' } : { ok: false, text: 'Could not copy here.' };

@@ -142,8 +142,21 @@ function learner() {
         const env = pick(it, /^(environment|environmentName|env|targetEnvironment)$/i);
         const opened = scalar(pick(it, /^(lastOpened|lastOpenedDate|lastOpenedTime|lastAccessed|lastAccessTime|lastUsed|lastModified|modifiedDate|modifiedTime|updatedAt|updated|updateTime)$/i));
         const link = scalar(pick(it, /^(url|href|link|designerUrl|webUrl|workspaceUrl)$/i));
+        // its visual application's id, as VB Studio's designer opens it (application=<org>_<project>_<app>): a field named so,
+        // else any value that starts like it (one level deep), else an id shaped like one (741-1.0)
+        const full = o + '_' + (pid || scalar(pick(it, /^(project|projectId|projectIdentifier)$/i)));
+        let appId = scalar(pick(it, /^(applicationId|appId|vbApplicationId|visualApplicationId|application)$/i));
+        const starts = (v) => typeof v === 'string' && v.indexOf(full + '_') === 0 && v.length > full.length + 1;
+        if (!starts(appId)) {
+          const vals = [];
+          Object.keys(it).forEach((k) => { const x = it[k]; if (x && typeof x === 'object' && !Array.isArray(x)) Object.keys(x).forEach((k2) => vals.push(x[k2])); else vals.push(x); });
+          const hit = vals.filter(starts)[0];
+          const wid = scalar(pick(it, /^(id|workspaceId|identifier)$/i));
+          appId = hit || (/^[0-9a-z]+-\d+(\.\d+)+$/i.test(appId) ? full + '_' + appId : /^\d+-\d+(\.\d+)+$/.test(wid) ? full + '_' + wid : '');
+        }
         const ws = { host: host, org: o, project: pid || scalar(pick(it, /^(project|projectId|projectName|projectIdentifier)$/i)), name: name, branch: branch, repo: repoV.replace(/^.*\/scm\//, '').replace(/\.git$/, ''), owner: owner,
           environment: env && typeof env === 'object' ? str(env.name || env.displayName || env.id || '') : str(env || ''), lastOpened: opened,
+          appId: appId,
           url: /^https:\/\//.test(link) && isVbsHost((() => { try { return new URL(link).hostname; } catch (e) { return ''; } })()) ? link : '',
           id: scalar(pick(it, /^(id|workspaceId|identifier)$/i)) };
         const k = host + '/' + o + '/' + (ws.project || '') + '/' + (ws.id || ws.name);

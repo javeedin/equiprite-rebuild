@@ -28,9 +28,19 @@ const SECRET = 'Pa55-w0rd#e2e';
   const enc = (t) => Buffer.from('enc:' + Buffer.from(t, 'utf8').toString('base64'));
   const dec = (b) => Buffer.from(b.toString().slice(4), 'base64').toString('utf8');
   const gitSeen = [];
+  let wsBranchPushed = false; // the workspace's branch, pushed to its repository
   let branches = 'ref: refs/heads/main\tHEAD\n1111111\tHEAD\n1111111\trefs/heads/main\n2222222\trefs/heads/release-26c\n3333333\trefs/heads/ws-javeed\n';
   const vbs = V.open({ file: path.join(dir, 'vbs.json'), encrypt: enc, decrypt: dec,
-    git: (args, auth) => { gitSeen.push({ args: args, auth: auth }); return /other\.git/.test(args.join(' ')) ? { code: 128, stdout: '', stderr: 'fatal: Authentication failed' } : { code: 0, stdout: branches, stderr: '' }; },
+    git: (args, auth) => {
+      gitSeen.push({ args: args, auth: auth });
+      const a = args.join(' ');
+      if (/other\.git/.test(a)) return { code: 128, stdout: '', stderr: 'fatal: Authentication failed' };
+      // a workspace's Git: its branch pushed; its last commit (log) and the files it changed (show); the cache (init, fetch)
+      if (args.indexOf('log') !== -1) return { code: 0, stdout: 'abcdef1234567890abcdef\x1fDemo User\x1fdemo@example.com\x1f2026-11-14T01:37:00Z\x1fTitles on the customer dashboard\n', stderr: '' };
+      if (args.indexOf('show') !== -1) return { code: 0, stdout: 'M\twebApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html\nA\tdocs/titles.md\n', stderr: '' };
+      if (args[0] === 'init' || args.indexOf('fetch') !== -1) return { code: 0, stdout: '', stderr: '' };
+      return { code: 0, stdout: branches + (wsBranchPushed && /ls-remote/.test(a) ? '5555555aaaa\trefs/heads/ws-javeed\n' : ''), stderr: '' };
+    },
     // VB Studio's API: its builds (jobs); for Sync, the organization's projects (10 a page, 23 in all; the calls its pages
     // make), each project's repositories (refused with the username and password, read with the window's session) and workspaces
     fetch: async (url, init) => vbsApi(url, init && init.headers && init.headers.Authorization ? 'basic' : 'none'),
@@ -226,12 +236,12 @@ const SECRET = 'Pa55-w0rd#e2e';
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspTitle')).some((e) => e.offsetParent && e.textContent.trim() === 'EquipRite'), null, { timeout: 8000 }).catch(() => {});
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspWsTable [role="row"]:not(.nx-vbs-wth)')).some((x) => x.offsetParent), null, { timeout: 5000 }).catch(() => {});
     const wsr = await page.$$eval('#vbspWsTable [role="row"]:not(.nx-vbs-wth)', (l) => l.filter((x) => x.offsetParent).map((x) => Array.from(x.querySelectorAll('[role="cell"]')).map((y) => y.textContent.trim()).join('|')));
-    T.check('EquipRite: its 2 workspaces, the last opened first — workspace (owner), repository, branch, environment, last opened; as last read (not read again by itself)', (await text(page, '#vbspWsTitle:visible')) === 'Workspaces · 2'
-      && wsr.join(' || ') === 'javeed-26c-titlesjaveed.shaik|equiprite|ws-javeed|OICDEMO|14 Nov 2026, 01:37 || Release 26Ddemo.user|equiprite|release-26d|—|—'
+    T.check('EquipRite: its 2 workspaces, the last opened first — workspace (owner), repository, branch, environment, last opened, Open; as last read (not read again by itself)', (await text(page, '#vbspWsTitle:visible')) === 'Workspaces · 2'
+      && wsr.join(' || ') === 'javeed-26c-titlesjaveed.shaik|equiprite|ws-javeed|OICDEMO|14 Nov 2026, 01:37Open || Release 26Ddemo.user|equiprite|release-26d|—|—Open'
       && /^As Build\.Rite last read them from VB Studio\./.test(await text(page, '#vbspStatus:visible')), wsr.join(' || ') + ' / ' + await text(page, '#vbspStatus:visible'));
     await page.fill('#vbspWsQ:visible', 'release');
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspWsTable [role="row"]:not(.nx-vbs-wth)')).filter((x) => x.offsetParent).length === 1, null, { timeout: 3000 }).catch(() => {});
-    T.check('its workspaces filtered (“release”: Release 26D)', (await page.$$eval('#vbspWsTable [role="row"]:not(.nx-vbs-wth)', (l) => l.filter((x) => x.offsetParent).map((x) => x.querySelector('b').textContent))).join() === 'Release 26D');
+    T.check('its workspaces filtered (“release”: Release 26D)', (await page.$$eval('#vbspWsTable [role="row"]:not(.nx-vbs-wth)', (l) => l.filter((x) => x.offsetParent).map((x) => x.querySelector('.nx-vbs-plink').textContent.trim()))).join() === 'Release 26D');
     await page.fill('#vbspWsQ:visible', '');
     await page.click('#vbspRefresh:visible');
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspStatus')).some((e) => e.offsetParent && /^✓ Read from VB Studio at/.test(e.textContent.trim())), null, { timeout: 8000 }).catch(() => {});
@@ -248,6 +258,32 @@ const SECRET = 'Pa55-w0rd#e2e';
     signedOut = false; // signed in, in VB Studio's window
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspStatus')).some((e) => e.offsetParent && /^✓ Read from VB Studio at/.test(e.textContent.trim())), null, { timeout: 20000 }).catch(() => {});
     T.check('…VB Studio\'s window opened at the organization; once closed, the workspaces read again by themselves', opened.length === openedNow + 1 && opened[opened.length - 1] === ORG_URL && /^✓ Read from VB Studio at .*: 2 workspaces/.test(await text(page, '#vbspStatus:visible')), opened.slice(-1)[0] + ' / ' + await text(page, '#vbspStatus:visible'));
+
+    T.section('a workspace: its Git (repository, branch, clone, head, last commit, the files it changed); opened in VB Studio');
+    wsBranchPushed = true;
+    gitSeen.length = 0;
+    await page.click('#vbspWsTable [data-ws="w1"] [data-act="selectWs"]');
+    await page.waitForSelector('#vbspGitCommit', { state: 'visible', timeout: 8000 }).catch(() => {});
+    T.check('javeed-26c-titles chosen: its row marked; its owner, environment, when last opened', (await text(page, '#vbspWsName')) === 'javeed-26c-titles' && /^javeed\.shaik · environment OICDEMO · last opened 14 Nov 2026, 01:37$/.test(await text(page, '#vbspWsMeta'))
+      && !!(await page.$('#vbspWsTable [data-ws="w1"].nx-vbsp-wsel')), await text(page, '#vbspWsMeta'));
+    const git = await text(page, '#vbspGit');
+    T.check('its Git: repository equiprite, branch ws-javeed (its page in VB Studio), the clone address, its head, its last commit and the files it changed', /Repository\s*equiprite\s*Branch\s*ws-javeed\s*Its Git in VB Studio ↗/.test(git)
+      && (await text(page, '#vbspGitClone')) === REPO && (await text(page, '#vbspGitHead')) === '5555555aaa' && /Titles on the customer dashboard\s*Demo User · 14 Nov 2026, \d\d:\d\d · abcdef1234/.test(await text(page, '#vbspGitCommit'))
+      && /The 2 files it changed/.test(git) && /M\s*webApps\/vbredwoodapp\/flows\/customer-portal\/pages\/customer-dashboard-page\.html\s*A\s*docs\/titles\.md/.test(await text(page, '#vbspGitFiles'))
+      && (await page.getAttribute('#vbspGitPage', 'href')) === B + '/#projects/equiprite/scm/equiprite.git/tree/?revision=ws-javeed', git);
+    T.check('…read with git and the saved sign-in (VB Studio\'s repository only)', gitSeen.some((x) => x.args.join(' ') === 'ls-remote --symref ' + REPO && x.auth && /^Basic /.test(x.auth.header)) && gitSeen.some((x) => x.args.indexOf('fetch') !== -1 && x.auth && /^Basic /.test(x.auth.header)), JSON.stringify(gitSeen.map((x) => x.args.slice(0, 3).join(' '))));
+    const designer = B + '/uiext/vbdt/index.html?projectId=' + ORG + '_equiprite_1234&organizationId=' + ORG + '&organizationName=' + ORG + '&projectUrlId=equiprite&restUrl=s2/' + ORG + '_equiprite_1234/vbdt/&workspaceName=javeed-26c-titles&launchedFromUrl=/' + ORG + '/&serverRoot=/';
+    T.check('Open in your browser: the workspace\'s address in VB Studio\'s designer (as VB Studio opens it)', (await page.getAttribute('#vbspWsBrowser', 'href')) === designer && (await page.getAttribute('#vbspWsBrowser', 'target')) === '_blank', await page.getAttribute('#vbspWsBrowser', 'href'));
+    const nOpened = opened.length;
+    await page.click('#vbspWsOpen');
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('#vbspResult')).some((e) => e.offsetParent && /Opening the workspace/.test(e.textContent)), null, { timeout: 5000 }).catch(() => {});
+    T.check('Open in VB Studio: the designer opened at the workspace, in Build.Rite\'s VB Studio window', opened.length === nOpened + 1 && opened[opened.length - 1] === designer && /^Opening the workspace in Build\.Rite's VB Studio window/.test(await text(page, '#vbspResult:visible')), opened.slice(-1)[0]);
+    await page.click('#vbspWsTable [data-ws="w2"] [data-act="selectWs"]');
+    await page.waitForFunction(() => /Release 26D/.test((document.getElementById('vbspWsName') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    await page.waitForFunction(() => /release-26d/.test((document.getElementById('vbspGitBranch') || {}).textContent || '') && !/Reading/.test((document.getElementById('vbspGitHead') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    T.check('another workspace chosen: its own Git (release-26d: its head)', (await text(page, '#vbspGitBranch')) === 'release-26d' && (await text(page, '#vbspGitHead')) === '4444444', await text(page, '#vbspGitHead'));
+    await page.click('#vbspWsTable [data-ws="w1"] [data-act="selectWs"]');
+    await page.waitForSelector('#vbspGitCommit', { state: 'visible', timeout: 8000 }).catch(() => {});
     await env.shot('buildrite-vbs-project.png');
     T.check('no errors in the browser console', errs().length === 0, errs().join(' | '));
   } catch (e) {

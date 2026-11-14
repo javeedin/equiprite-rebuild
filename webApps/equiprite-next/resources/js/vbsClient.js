@@ -32,6 +32,8 @@ define([], function () {
     /** Sync from VB Studio (API, no window): every project (all pages), its repositories and workspaces. */
     sync: function (o) { return post('sync', typeof o === 'object' && o ? o : { orgId: o || '' }); },
     /** Find a project's repositories: VB Studio's API, else the names VB Studio usually gives (each checked with git). */
+    /** A workspace's Git: its branch, head commit and last commit (who, when, what, the files it changed). */
+    workspaceGit: function (orgKey, project, repo, branch) { return post('workspace-git', { orgKey: orgKey, project: project, repo: repo, branch: branch }); },
     findRepos: function (orgKey, project, name) { return post('repos', { orgKey: orgKey, project: project, name: name || '' }); },
   };
 });

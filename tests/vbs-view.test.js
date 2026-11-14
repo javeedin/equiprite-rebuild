@@ -45,6 +45,16 @@ T.check('its workspaces, the last opened first — one read without its id found
 const w = p.workspaces[1];
 T.check('…each as VB Studio lists it: name, owner, repository, branch, environment, last opened (a date, or milliseconds, shown as a date)', w.owner === 'demo.user' && w.repo === 'app' && w.branch === 'dev-one' && w.environment === 'OICDEMO' && w.lastOpened === '12 Nov 2026, 09:05'
   && p.workspaces[0].lastOpened === '14 Nov 2026, 01:37' && p.workspaces[0].branch === '—' && p.workspaces[0].environment === '—', JSON.stringify(p.workspaces));
+T.section('a workspace opened in VB Studio; its Git');
+const p2 = { host: H1, org: O, project: 'rebuild-app_100010', name: 'Rebuild_App', repos: [{ repo: 'App', url: 'https://' + H1 + '/' + O + '/s/' + O + '_rebuild-app_100010/scm/App.git' }] };
+const full = O + '_rebuild-app_100010';
+T.check('the designer\'s address, exactly as VB Studio opens a workspace (its application when known)', V.designerUrl(p2, { name: 'Dev_One', appId: full + '_741-1.0' }) === 'https://' + H1 + '/' + O + '/uiext/vbdt/index.html?projectId=' + full + '&organizationId=' + O + '&organizationName=' + O
+  + '&projectUrlId=rebuild-app&restUrl=s2/' + full + '/vbdt/&workspaceName=Dev_One&launchedFromUrl=/' + O + '/&serverRoot=/&root=application&application=' + full + '_741-1.0', V.designerUrl(p2, { name: 'Dev_One', appId: full + '_741-1.0' }));
+T.check('…without its application: the workspace (VB Studio chooses); a name with spaces encoded', V.designerUrl(p2, { name: 'Mastec Dev' }).indexOf('&workspaceName=Mastec%20Dev&launchedFromUrl=/' + O + '/&serverRoot=/') !== -1 && V.designerUrl(p2, { name: 'x' }).indexOf('root=application') === -1);
+const row = V.project({ projects: [p2], workspaces: [{ host: H1, org: O, project: 'rebuild-app_100010', id: 'w1', name: 'Dev_One', repo: 'app', branch: 'dev-one' }] }, H1 + '/' + O + '/rebuild-app_100010').workspaces[0];
+T.check('a workspace\'s row: its repository (the project\'s, by name), its clone address, its Git page at its branch, its designer address', row.repo === 'App' && row.clone === p2.repos[0].url
+  && row.gitPage === 'https://' + H1 + '/' + O + '/#projects/rebuild-app/scm/App.git/tree/?revision=dev-one' && row.designer.indexOf('workspaceName=Dev_One') !== -1 && row.branchName === 'dev-one', JSON.stringify(row));
+T.check('…a repository not among the project\'s: its address made as VB Studio makes it', V.repoOf(p2, 'tools.git').url === 'https://' + H1 + '/' + O + '/s/' + O + '_rebuild-app_100010/scm/tools.git');
 T.check('a project not among what was found: none', V.project(found, H1 + '/' + O + '/nope') === null && V.project(null, 'x') === null);
 T.check('when, as VB Studio may give it: seconds, milliseconds, a date, or its own words', V.opened('') === '—' && V.opened(String(Math.floor(new Date(2026, 0, 2, 3, 4).getTime() / 1000))) === '2 Jan 2026, 03:04' && V.opened('yesterday') === 'yesterday');
 T.report();

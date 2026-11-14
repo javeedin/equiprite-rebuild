@@ -34,6 +34,21 @@ define(['resources/js/vbsView'], (V) => {
       if (refresh && !refresh.ok) return 'Could not read them: ' + (refresh.error || 'VB Studio did not answer.');
       return 'Not read yet: click Refresh workspaces.';
     }
+    // ── the workspace chosen: open it; its Git ──
+    wsChosen(found, key, sel) { const p = V.project(found, key); return (p && sel && p.workspaces.filter((w) => w.key === sel)[0]) || null; }
+    wsMeta(w) { return !w ? '' : [w.owner, w.environment !== '—' ? 'environment ' + w.environment : '', w.lastOpened !== '—' ? 'last opened ' + w.lastOpened : ''].filter(Boolean).join(' · '); }
+    gitHead(g, busy) {
+      if (busy) return 'Reading its Git…';
+      if (!g) return '—';
+      if (!g.ok) return '✗ ' + (g.error || 'Not read.');
+      return g.sha.slice(0, 10) + (g.commitError ? ' (its last commit could not be read: ' + g.commitError + ')' : '');
+    }
+    commitBy(g) { const c = g && g.commit; return !c ? '' : c.author + ' · ' + V.when(c.date) + ' · ' + String(c.sha || '').slice(0, 10); }
+    filesTitle(g) { const n = ((g && g.files) || []).length + ((g && g.more) || 0); return n === 1 ? 'The file it changed' : 'The ' + n + ' files it changed'; }
+    gitFiles(g) {
+      const LABEL = { A: 'added', M: 'changed', D: 'deleted', R: 'renamed', C: 'copied', T: 'type changed' };
+      return ((g && g.files) || []).map((f) => ({ status: f.status, label: LABEL[f.status] || f.status, path: f.path }));
+    }
     stepCount(refresh) { return ((refresh && refresh.steps) || []).length; }
     stepsText(refresh) { return ((refresh && refresh.steps) || []).map((s) => clock(s.at) + '  ' + s.text).join('\n'); }
   }

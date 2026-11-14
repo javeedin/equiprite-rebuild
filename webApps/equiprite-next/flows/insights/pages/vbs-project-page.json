@@ -12,7 +12,10 @@
     "refresh": { "type": "any", "defaultValue": null, "description": "The last refresh on this tab: { at, ok, error, signIn, steps }." },
     "stepsOpen": { "type": "boolean", "defaultValue": false },
     "wsQ": { "type": "string", "defaultValue": "", "description": "The workspaces filtered by name, owner, branch or environment." },
-    "signingIn": { "type": "boolean", "defaultValue": false, "description": "The VB Studio window is open to sign in: refreshed again once it is closed." }
+    "signingIn": { "type": "boolean", "defaultValue": false, "description": "The VB Studio window is open to sign in: refreshed again once it is closed." },
+    "wsSel": { "type": "string", "defaultValue": "", "description": "The workspace chosen (its id or name): opened in VB Studio, its Git shown." },
+    "wsGit": { "type": "any", "defaultValue": null, "description": "Its Git (desktop/lib/vbs.js workspaceGit): repository, branch, head, last commit, the files it changed." },
+    "wsGitBusy": { "type": "boolean", "defaultValue": false }
   },
   "eventListeners": {
     "vbEnter": { "chains": [ { "chain": "loadChain" } ] },

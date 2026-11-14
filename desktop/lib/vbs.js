@@ -22,6 +22,7 @@
  *     sync({ orgId })                          Sync from VB Studio (API, no window): the calls VB Studio's pages make,
  *                                              made directly (Basic; else the window's session) — projects (every page),
  *                                              their repositories and workspaces
+ *     workspaceGit({ orgKey, project, repo, branch })  a workspace's Git: its branch, head and last commit (git)
  *     windowSignIn(host, header)               the window's own sign-in, for Sync this run only (memory)
  *     learn(found)  discovered()  clearDiscovered()  diagnostic()  setFinder(open, url)
  *                                              Find in VB Studio: organizations, projects (their Git addresses) and
@@ -472,9 +473,64 @@ function open(opts) {
       error: found.length ? '' : (tried.length && /refused|may not open/.test(tried[tried.length - 1].why) ? tried[tried.length - 1].why : 'No repository found under the names VB Studio usually gives (' + names.join(', ') + '). Open VB Studio, open this project\'s Repositories page, and Build.Rite reads its real address (and learns how, for every project).') });
   }
 
+  /**
+   * A workspace's Git: { orgKey, project, repo, branch } → its repository's address, the workspace's branch (its head commit;
+   * whether it is the default branch) and its last commit — who, when, what, the files it changed — read with git and the
+   * saved sign-in (ls-remote, then that branch fetched two commits deep into a cache next to this app's data, never a
+   * working copy). → { ok, url, repo, branch, head, isDefault, sha, commit: { sha, author, email, date, subject }, files, more }
+   */
+  async function workspaceGit(b) {
+    b = b || {};
+    const m = /^([^/]+)\/([^/]+)$/.exec(str(b.orgKey).toLowerCase());
+    const pid = str(b.project);
+    const repo = str(b.repo).trim().replace(/\.git$/i, '');
+    const branch = str(b.branch).trim();
+    if (!m || !pid || !repo || !/^[A-Za-z0-9._-]+$/.test(repo)) return { ok: false, error: 'Which workspace (its repository)?' };
+    if (branch && !/^[A-Za-z0-9._/-]+$/.test(branch)) return { ok: false, error: 'That branch name cannot be read.' };
+    const host = m[1], orgId = m[2];
+    const saved = data.orgs.filter((x) => x.host === host && x.org === orgId)[0] || data.orgs.filter((x) => x.host === host)[0];
+    if (!saved || !header(saved)) return { ok: false, error: 'Set up the organization first (its sign-in): Build.Rite reads the workspace\'s Git with it.' };
+    const url = 'https://' + host + '/' + orgId + '/s/' + orgId + '_' + pid + '/scm/' + repo + '.git';
+    const out = { ok: false, url: url, repo: repo, branch: branch, head: '', isDefault: false, sha: '', commit: null, files: [], more: 0 };
+    const ls = await git(['ls-remote', '--symref', url], saved, 60000);
+    if (ls.code !== 0) return Object.assign(out, { error: why(ls.stderr) });
+    const refs = {};
+    str(ls.stdout).split('\n').forEach((l) => {
+      const sym = /^ref:\s+refs\/heads\/(\S+)\s+HEAD/.exec(l);
+      if (sym) { out.head = sym[1]; return; }
+      const r = /^([0-9a-f]{7,64})\s+refs\/heads\/(\S+)$/.exec(l.trim());
+      if (r) refs[r[2]] = r[1];
+    });
+    const br = branch || out.head;
+    out.branch = br;
+    out.isDefault = !!br && br === out.head;
+    out.sha = refs[br] || '';
+    out.branches = Object.keys(refs).length;
+    if (!out.sha) return Object.assign(out, { error: 'The branch ' + br + ' is not in ' + repo + '.git yet (the workspace has not pushed it).' });
+    // its last commit: that branch only, two commits deep (the commit and its parent: the files it changed), in a cache
+    const cache = path.join(file ? path.dirname(file) : require('os').tmpdir(), 'vbs-git', crypto.createHash('sha1').update(url).digest('hex').slice(0, 16) + '.git');
+    try {
+      if (!fs.existsSync(path.join(cache, 'HEAD'))) { fs.mkdirSync(cache, { recursive: true }); const ini = await git(['init', '--bare', '-q', cache], null, 30000); if (ini.code !== 0) throw new Error(why(ini.stderr)); }
+      const ref = 'refs/ws/' + br;
+      const f = await git(['-C', cache, 'fetch', '--depth=2', '--no-tags', '-q', url, '+refs/heads/' + br + ':' + ref], saved, 180000);
+      if (f.code !== 0) throw new Error(why(f.stderr));
+      const lg = await git(['-C', cache, 'log', '-1', '--format=%H%x1f%an%x1f%ae%x1f%cI%x1f%s', ref], null, 30000);
+      const c = str(lg.stdout).trim().split('\x1f');
+      if (lg.code === 0 && c.length >= 5) out.commit = { sha: c[0], author: c[1], email: c[2], date: c[3], subject: c.slice(4).join(' ') };
+      const sh = await git(['-C', cache, 'show', '--name-status', '--format=', ref], null, 30000);
+      const files = str(sh.stdout).split('\n').map((l) => l.trim()).filter(Boolean).map((l) => { const x = l.split(/\t+/); return { status: x[0].charAt(0), path: x[x.length - 1] }; });
+      out.files = files.slice(0, 30);
+      out.more = Math.max(0, files.length - 30);
+    } catch (e) {
+      out.commitError = str(e && e.message) || 'Its last commit could not be read.';
+    }
+    out.ok = true;
+    return out;
+  }
+
   return { state: state, saveOrg: saveOrg, removeOrg: removeOrg, addProject: addProject, checkProject: checkProject, removeProject: removeProject, auth: auth, git: git,
     learn: learn, discovered: discovered, clearDiscovered: clearDiscovered, diagnostic: diagnostic, setFinder: setFinder, finderLog: finderLog,
-    sync: sync, findRepos: findRepos, windowSignIn: windowSignIn };
+    sync: sync, findRepos: findRepos, workspaceGit: workspaceGit, windowSignIn: windowSignIn };
 }
 
 module.exports = { open, parseOrgUrl, parseRepoUrl, branchesOf, jobsOf, why, BUILT_IN };

@@ -34,9 +34,39 @@ define([], function () {
     return isNaN(d.getTime()) ? t : when(d.toISOString());
   }
   function openedAt(v) { var t = String(v || ''); var n = /^\d{10}$/.test(t) ? Number(t) * 1000 : /^\d{12,13}$/.test(t) ? Number(t) : t; var d = new Date(n); return isNaN(d.getTime()) ? 0 : d.getTime(); }
-  function wsRow(w) {
-    return { key: (w.id || w.name), name: w.name, owner: w.owner || '', branch: w.branch || '—', repo: w.repo || '—', environment: w.environment || '—',
-      lastOpened: opened(w.lastOpened), url: w.url || '' };
+  // an address part as VB Studio writes it: encoded, its slashes kept
+  function enc(v) { return encodeURIComponent(String(v === undefined || v === null ? '' : v)).replace(/%2F/g, '/'); }
+  /** The project's short id, as VB Studio's own addresses use it (its id without its number): my-app_123456 → my-app. */
+  function shortId(project) { return String(project || '').replace(/_\d+$/, ''); }
+  /**
+   * A workspace opened in VB Studio's designer, as VB Studio opens it (Workspaces → a workspace):
+   * https://<host>/<org>/uiext/vbdt/index.html?projectId=<org>_<project>&organizationId=<org>&organizationName=<org>
+   *   &projectUrlId=<short id>&restUrl=s2/<org>_<project>/vbdt/&workspaceName=<name>&launchedFromUrl=/<org>/&serverRoot=/
+   *   [&root=application&application=<its application>]
+   */
+  function designerUrl(p, w) {
+    var full = p.org + '_' + p.project;
+    var q = ['projectId=' + enc(full), 'organizationId=' + enc(p.org), 'organizationName=' + enc(p.org), 'projectUrlId=' + enc(shortId(p.project)),
+      'restUrl=' + enc('s2/' + full + '/vbdt/'), 'workspaceName=' + enc(w.name), 'launchedFromUrl=' + enc('/' + p.org + '/'), 'serverRoot=' + enc('/')];
+    if (w.appId) q.push('root=application', 'application=' + enc(w.appId));
+    return 'https://' + p.host + '/' + p.org + '/uiext/vbdt/index.html?' + q.join('&');
+  }
+  /** The workspace's repository among the project's (by name, with or without .git), else its address made the way VB Studio makes it. */
+  function repoOf(p, name) {
+    var n = String(name || '').replace(/\.git$/i, '');
+    if (!n) return null;
+    var r = (p.repos || []).filter(function (x) { return String(x.repo || '').toLowerCase() === n.toLowerCase(); })[0];
+    return { repo: r ? r.repo : n, url: r ? r.url : 'https://' + p.host + '/' + p.org + '/s/' + p.org + '_' + p.project + '/scm/' + n + '.git', added: !!(r && r.added) };
+  }
+  /** The repository at the workspace's branch in VB Studio's Git page (Git → the repository → the branch). */
+  function gitPageUrl(p, repo, branch) {
+    return 'https://' + p.host + '/' + p.org + '/#projects/' + enc(shortId(p.project)) + '/scm/' + enc(repo) + '.git/tree/' + (branch ? '?revision=' + enc(branch) : '');
+  }
+  function wsRow(w, p) {
+    var r = p ? repoOf(p, w.repo) : null;
+    return { key: (w.id || w.name), name: w.name, owner: w.owner || '', branch: w.branch || '—', branchName: w.branch || '', repo: (r && r.repo) || w.repo || '—', environment: w.environment || '—',
+      lastOpened: opened(w.lastOpened), url: w.url || '', designer: p ? designerUrl(p, w) : (w.url || ''), clone: r ? r.url : '', gitPage: p && r ? gitPageUrl(p, r.repo, w.branch) : '',
+      appId: w.appId || '' };
   }
   function matches(p, t) {
     var q = String(t || '').trim().toLowerCase();
@@ -61,8 +91,8 @@ define([], function () {
     var ws = wsOf(found, p).slice().sort(function (a, b) { return openedAt(b.lastOpened) - openedAt(a.lastOpened) || String(a.name).localeCompare(String(b.name)); });
     return { key: projKey(p), orgKey: orgKey(p), host: p.host, org: p.org, name: p.name || p.project, project: p.project, description: p.description || '', orgSetUp: !!p.orgId,
       repos: (p.repos || []).map(function (r) { return { repo: r.repo, url: r.url, added: !!r.added }; }),
-      workspaces: ws.map(wsRow) };
+      workspaces: ws.map(function (w) { return wsRow(w, p); }) };
   }
 
-  return { when: when, plural: plural, projKey: projKey, orgKey: orgKey, wsMatch: wsMatch, wsOf: wsOf, opened: opened, wsRow: wsRow, matches: matches, projectRows: projectRows, project: project };
+  return { designerUrl: designerUrl, gitPageUrl: gitPageUrl, repoOf: repoOf, shortId: shortId, when: when, plural: plural, projKey: projKey, orgKey: orgKey, wsMatch: wsMatch, wsOf: wsOf, opened: opened, wsRow: wsRow, matches: matches, projectRows: projectRows, project: project };
 });

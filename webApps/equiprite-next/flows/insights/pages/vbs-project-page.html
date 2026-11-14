@@ -28,11 +28,46 @@
           <div class="nx-vbs-wtr nx-vbs-wtr--p nx-vbs-wth" role="row"><span role="columnheader">Workspace</span><span role="columnheader">Repository</span><span role="columnheader">Branch</span><span role="columnheader">Environment</span><span role="columnheader">Last opened</span></div>
           <oj-bind-for-each data="[[ $functions.wsRows($variables.found, $variables.key, $variables.wsQ) ]]">
             <template data-oj-as="w">
-              <div class="nx-vbs-wtr nx-vbs-wtr--p" role="row" :data-ws="[[ w.data.key ]]"><span role="cell"><b><oj-bind-text value="[[ w.data.name ]]"></oj-bind-text></b><oj-bind-if test="[[ !!w.data.owner ]]"><span class="nx-note nx-vbs-wowner"><oj-bind-text value="[[ w.data.owner ]]"></oj-bind-text></span></oj-bind-if></span>
+              <div :class="[[ 'nx-vbs-wtr nx-vbs-wtr--p' + (w.data.key === $variables.wsSel ? ' nx-vbsp-wsel' : '') ]]" role="row" :data-ws="[[ w.data.key ]]"><span role="cell"><button type="button" class="nx-vbs-plink" data-act="selectWs" :data-key="[[ w.data.key ]]" on-click="[[ $listeners.onAct ]]" title="Its Git, and open it in VB Studio"><oj-bind-text value="[[ w.data.name ]]"></oj-bind-text></button><oj-bind-if test="[[ !!w.data.owner ]]"><span class="nx-note nx-vbs-wowner"><oj-bind-text value="[[ w.data.owner ]]"></oj-bind-text></span></oj-bind-if></span>
                 <span role="cell"><oj-bind-text value="[[ w.data.repo ]]"></oj-bind-text></span><span role="cell"><code><oj-bind-text value="[[ w.data.branch ]]"></oj-bind-text></code></span><span role="cell"><oj-bind-text value="[[ w.data.environment ]]"></oj-bind-text></span>
-                <span role="cell"><oj-bind-text value="[[ w.data.lastOpened ]]"></oj-bind-text><oj-bind-if test="[[ !!w.data.url ]]"> <button type="button" class="nx-vbs-plink nx-vbs-plink--sm" data-act="openVbs" :data-key="[[ w.data.url ]]" on-click="[[ $listeners.onAct ]]">Open in VB Studio</button></oj-bind-if></span></div>
+                <span role="cell" class="nx-vbsp-lastcell"><span><oj-bind-text value="[[ w.data.lastOpened ]]"></oj-bind-text></span><button type="button" class="nx-btn nx-btn--sm" data-act="openWs" :data-key="[[ w.data.designer ]]" on-click="[[ $listeners.onAct ]]" title="Open the workspace in VB Studio's designer (Build.Rite's VB Studio window, signed in)">Open</button></span></div>
             </template>
           </oj-bind-for-each>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$functions.wsChosen($variables.found, $variables.key, $variables.wsSel) ]]">
+        <div class="nx-vbsp-ws" id="vbspWsPanel" aria-live="polite">
+          <div class="nx-vbsp-wshead">
+            <span class="nx-vbs-ico nx-vbs-ico--proj" aria-hidden="true"><span class="oj-ux-ico-edit"></span></span>
+            <span class="nx-vbs-pbody"><b id="vbspWsName"><oj-bind-text value="[[ $functions.wsChosen($variables.found, $variables.key, $variables.wsSel).name ]]"></oj-bind-text></b>
+              <span class="nx-note" id="vbspWsMeta"><oj-bind-text value="[[ $functions.wsMeta($functions.wsChosen($variables.found, $variables.key, $variables.wsSel)) ]]"></oj-bind-text></span></span>
+            <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="vbspWsClose" data-act="closeWs" on-click="[[ $listeners.onAct ]]" aria-label="Close the workspace"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+          </div>
+          <div class="nx-fx-row nx-vbsp-wsacts">
+            <button type="button" class="nx-btn nx-btn--primary" id="vbspWsOpen" data-act="openWs" :data-key="[[ $functions.wsChosen($variables.found, $variables.key, $variables.wsSel).designer ]]" on-click="[[ $listeners.onAct ]]" title="In Build.Rite's VB Studio window, signed in"><span class="oj-ux-ico-launch" aria-hidden="true"></span>Open in VB Studio</button>
+            <a class="nx-btn" id="vbspWsBrowser" :href="[[ $functions.wsChosen($variables.found, $variables.key, $variables.wsSel).designer ]]" target="_blank" rel="noopener noreferrer">Open in your browser ↗</a>
+            <button type="button" class="nx-btn nx-btn--plain" id="vbspWsCopy" data-act="copyText" :data-key="[[ $functions.wsChosen($variables.found, $variables.key, $variables.wsSel).designer ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy its address</button>
+          </div>
+          <oj-bind-if test="[[ !$functions.wsChosen($variables.found, $variables.key, $variables.wsSel).appId ]]"><p class="nx-note nx-vbsp-wsnote">VB Studio opens the workspace; its application is chosen there (Build.Rite has not read which application it opens first).</p></oj-bind-if>
+          <h3 class="nx-pg-h3 nx-vbs-h3">Git</h3>
+          <dl class="nx-vbsp-git" id="vbspGit">
+            <dt>Repository</dt><dd><oj-bind-text value="[[ $functions.wsChosen($variables.found, $variables.key, $variables.wsSel).repo ]]"></oj-bind-text></dd>
+            <dt>Branch</dt><dd><code id="vbspGitBranch"><oj-bind-text value="[[ $functions.wsChosen($variables.found, $variables.key, $variables.wsSel).branch ]]"></oj-bind-text></code><oj-bind-if test="[[ !!$variables.wsGit && $variables.wsGit.isDefault ]]"> <span class="nx-vbs-chip">default branch</span></oj-bind-if>
+              <oj-bind-if test="[[ !!$functions.wsChosen($variables.found, $variables.key, $variables.wsSel).gitPage ]]"> <a class="nx-vbs-plink nx-vbs-plink--sm" id="vbspGitPage" :href="[[ $functions.wsChosen($variables.found, $variables.key, $variables.wsSel).gitPage ]]" target="_blank" rel="noopener noreferrer">Its Git in VB Studio ↗</a></oj-bind-if></dd>
+            <dt>Clone (HTTPS)</dt><dd class="nx-vbsp-clone"><code id="vbspGitClone"><oj-bind-text value="[[ $functions.wsChosen($variables.found, $variables.key, $variables.wsSel).clone || '—' ]]"></oj-bind-text></code>
+              <oj-bind-if test="[[ !!$functions.wsChosen($variables.found, $variables.key, $variables.wsSel).clone ]]"> <button type="button" class="nx-btn nx-btn--sm" data-act="copyText" :data-key="[[ $functions.wsChosen($variables.found, $variables.key, $variables.wsSel).clone ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy</button></oj-bind-if></dd>
+            <dt>Head</dt><dd id="vbspGitHead"><oj-bind-if test="[[ $variables.wsGitBusy ]]"><span class="nx-spin" aria-hidden="true"></span> </oj-bind-if><oj-bind-text value="[[ $functions.gitHead($variables.wsGit, $variables.wsGitBusy) ]]"></oj-bind-text></dd>
+            <oj-bind-if test="[[ !!$variables.wsGit && !!$variables.wsGit.commit ]]">
+              <dt>Last commit</dt><dd id="vbspGitCommit"><b><oj-bind-text value="[[ $variables.wsGit.commit.subject ]]"></oj-bind-text></b><span class="nx-note nx-vbsp-by"><oj-bind-text value="[[ $functions.commitBy($variables.wsGit) ]]"></oj-bind-text></span></dd>
+              <dt><oj-bind-text value="[[ $functions.filesTitle($variables.wsGit) ]]"></oj-bind-text></dt>
+              <dd><ul class="nx-vbsp-files" id="vbspGitFiles">
+                <oj-bind-for-each data="[[ $functions.gitFiles($variables.wsGit) ]]">
+                  <template data-oj-as="f"><li><span :class="[[ 'nx-vbsp-fs nx-vbsp-fs--' + f.data.status ]]" :title="[[ f.data.label ]]"><oj-bind-text value="[[ f.data.status ]]"></oj-bind-text></span><code><oj-bind-text value="[[ f.data.path ]]"></oj-bind-text></code></li></template>
+                </oj-bind-for-each>
+              </ul><oj-bind-if test="[[ $variables.wsGit.more > 0 ]]"><span class="nx-note"><oj-bind-text value="[[ '+' + $variables.wsGit.more + ' more' ]]"></oj-bind-text></span></oj-bind-if></dd>
+            </oj-bind-if>
+          </dl>
+          <div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--sm" id="vbspGitRead" data-act="gitRead" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.wsGitBusy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Read its Git again</button></div>
         </div>
       </oj-bind-if>
       <oj-bind-if test="[[ $functions.wsRows($variables.found, $variables.key, $variables.wsQ).length === 0 ]]"><div class="nx-empty" id="vbspNoWs"><oj-bind-text value="[[ $functions.noWs($variables.refresh, $variables.refreshing, $variables.wsQ) ]]"></oj-bind-text></div></oj-bind-if>
