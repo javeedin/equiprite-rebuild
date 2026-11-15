@@ -45,7 +45,14 @@ define([
       if (act === 'prev') { if (v.viewer > 0) v.viewer = v.viewer - 1; return; }
       if (act === 'next') { if (v.viewer < shots.length - 1) v.viewer = v.viewer + 1; return; }
       // a count in the Overview: its part of the sheet
-      if (act === 'jump') { try { const el = document.getElementById(key); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* no DOM */ } return; }
+      // a count in the Overview: to its part — smoothly, then once more when the scroll is over, in case the sheet above it
+      // changed meanwhile (a progress line gone, a result shown), so it lands where it should
+      if (act === 'jump') {
+        const go = (smooth) => { try { const el = document.getElementById(key); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' }); } catch (e) { /* no DOM */ } };
+        go(true);
+        setTimeout(() => go(false), 650);
+        return;
+      }
       const refresh = async () => {
         const cat = await PC.catalog(base);
         v.pages = cat.body.pages;

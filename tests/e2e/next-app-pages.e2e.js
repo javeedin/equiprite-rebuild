@@ -151,7 +151,9 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.waitForFunction(() => { const f = document.getElementById('pgAi'); return f && /What this page is for/.test(f.getAttribute('srcdoc') || ''); }, null, { timeout: 20000 }).catch(() => {});
     await page.click('#pgOverview .nx-pg-facts [data-key="pgIntegrations"]');
     await settle(page, 600);
-    T.check('a count in the Overview scrolls to its part', await page.$eval('#pgIntegrations', (e) => { const r = e.getBoundingClientRect(); return r.top < 200 && r.top > -50; }).catch(() => false));
+    await page.waitForFunction(() => { const t = document.getElementById('pgIntegrations').getBoundingClientRect().top; return t < 200 && t > -50; }, null, { timeout: 3000 }).catch(() => {});
+    const intTop = await page.$eval('#pgIntegrations', (e) => Math.round(e.getBoundingClientRect().top)).catch(() => null);
+    T.check('a count in the Overview scrolls to its part', intTop !== null && intTop < 200 && intTop > -50, 'its top: ' + intTop + ' (window ' + (await page.evaluate(() => window.innerHeight)) + ')');
     T.check('Explain with AI: from the code facts (the page, its chains and REST calls), saved with the sheet', /What this page is for/.test((await page.getAttribute('#pgAi', 'srcdoc')) || '')
       && llm.some((b) => /PAGE Equipment Manager Workbench/.test(b) && /GET \/equiprite\/v1\/views\/workbench-requests/.test(b)) && /Explained by ChatGPT/.test(await text(page, '#pgOverview')));
     await page.fill('#pgSearch', '');
