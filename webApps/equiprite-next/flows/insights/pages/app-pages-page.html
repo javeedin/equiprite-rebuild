@@ -225,10 +225,11 @@
           <div class="nx-cv" id="pgCodeView">
             <div class="nx-cv-bar">
               <span class="nx-cv-ro"><span class="oj-ux-ico-lock" aria-hidden="true"></span>Read only</span>
-              <span class="nx-note nx-cv-where"><oj-bind-text value="[[ $variables.codeInfo && $variables.codeInfo.folder ? 'As it is in ' + $variables.codeInfo.folder + ' now' : '' ]]"></oj-bind-text></span>
+              <span class="nx-note nx-cv-where" id="pgCodeWhere"><oj-bind-text value="[[ $functions.codeWhereText($variables.codeInfo, $variables.codeReadAt) ]]"></oj-bind-text></span>
               <span class="nx-min-flex"></span>
               <input type="search" class="nx-flib-filter nx-cv-find" id="pgCodeFind" data-field="codeFind" :value="[[ $variables.codeFind ]]" on-input="[[ $listeners.onField ]]" placeholder="Find in this file…">
               <span class="nx-note nx-cv-hits" id="pgCodeHits"><oj-bind-text value="[[ $functions.codeHits($variables.codeText, $variables.codeFind) ]]"></oj-bind-text></span>
+              <button type="button" class="nx-btn nx-btn--sm" id="pgCodeRefresh" data-act="refresh" on-click="[[ $listeners.onCode ]]" :disabled="[[ $variables.codeBusy ]]" title="Read the page's code again, as it is now (after a change, a save or a commit)"><span class="oj-ux-ico-refresh" aria-hidden="true"></span><oj-bind-text value="[[ $variables.codeBusy ? 'Reading…' : 'Refresh' ]]"></oj-bind-text></button>
               <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgCodeCopy" data-act="copy" on-click="[[ $listeners.onCode ]]" :disabled="[[ !$variables.codeText ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy</button>
             </div>
             <oj-bind-if test="[[ !!($variables.codeInfo && $variables.codeInfo.error) ]]"><div class="nx-flib-result nx-flib-result--err"><oj-bind-text value="[[ $variables.codeInfo.error ]]"></oj-bind-text></div></oj-bind-if>

@@ -2,7 +2,8 @@ define(['vb/action/actionChain', 'resources/js/pagesClient', 'resources/js/codeV
   'use strict';
 
   // The Page code tab (read only): the open page's files (desktop/lib/pages.js code()), one shown at a time, what changed in
-  // it marked (against VB Studio, or the branch's remote) and gone through change by change; copy it.
+  // it marked (against VB Studio, or the branch's remote) and gone through change by change; read again (each time the tab
+  // opens, and Refresh); copy it.
   class codeChain extends ActionChain {
     async run(context, { act, key }) {
       const v = context.$page.variables;
@@ -24,18 +25,27 @@ define(['vb/action/actionChain', 'resources/js/pagesClient', 'resources/js/codeV
           else if (v.codeAt === 0) CV.scrollTo('pgCodeFrame', CV.changeLine(v.codeMarks, 0));
         } finally { v.codeBusy = false; }
       };
-      if (act === 'open') {
-        if (v.codePage === id && v.codeInfo) return; // as it was left
+      // the page's files and the one shown, read (again) as they are now — each time the tab opens (a change made in Code
+      // fix, saved or committed, or by hand, is there) and on Refresh; the file you were on stays shown
+      const reload = async (keep) => {
         v.codeBusy = true;
         let r;
         try { r = await PC.code(id); } finally { v.codeBusy = false; }
         if (v.selId !== id) return;
         v.codePage = id;
         v.codeInfo = r.ok ? r.body : { files: [], error: (r.body && r.body.error) || 'The code could not be read (it needs the desktop app).' };
-        v.codeText = ''; v.codeSel = '';
         const files = v.codeInfo.files || [];
-        const first = files.filter((f) => /-page\.html$/.test(f.path))[0] || files[0];
-        if (first) await show(first.path);
+        const kept = keep && files.some((f) => f.path === keep) ? keep : '';
+        const first = kept || ((files.filter((f) => /-page\.html$/.test(f.path))[0] || files[0] || {}).path || '');
+        if (!first) { v.codeText = ''; v.codeSel = ''; v.codeMarks = null; }
+        else await show(first);
+        v.codeReadAt = new Date().toISOString();
+      };
+      if (act === 'open') { await reload(v.codePage === id ? v.codeSel : ''); return; }
+      if (act === 'refresh') {
+        const was = v.codeText;
+        await reload(v.codeSel);
+        bus.toast(v.codeText !== was ? 'Page code read again: the file has changed since' : 'Page code read again: no change in this file', 'info');
         return;
       }
       if (act === 'file' && key) { await show(key); return; }

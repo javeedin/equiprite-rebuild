@@ -69,6 +69,12 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
       if (m.isNew) return 'A new file: not in ' + m.base + ' yet (' + m.added + ' line' + (m.added === 1 ? '' : 's') + ')';
       return n ? n + ' change' + (n === 1 ? '' : 's') + ' since ' + m.base + ': +' + m.added + ' −' + m.removed + ' line' + (m.added + m.removed === 1 ? '' : 's') : 'No change since ' + m.base;
     }
+    codeWhereText(info, at) {
+      if (!info || !info.folder) return '';
+      let t = '';
+      try { const d = at ? new Date(at) : null; t = d && !isNaN(d.getTime()) ? ' · read at ' + d.toLocaleTimeString() : ''; } catch (e) { t = ''; }
+      return 'As it is in ' + info.folder + t;
+    }
     codeAtText(m, at) { const n = (m && m.regions) ? m.regions.length : 0; return n && at >= 0 ? 'Change ' + (at + 1) + ' of ' + n : ''; }
     codeHasNotes(text) { return Object.keys(CV.noteLines(text)).length > 0; }
     codeFileBadge(f) { const c = f && f.changed; return !c ? '' : (c.isNew ? 'new' : '+' + c.added + ' −' + c.removed); }

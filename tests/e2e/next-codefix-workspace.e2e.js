@@ -114,6 +114,24 @@ const opened = [];
     await page.click('#pgCodeNext');
     await page.waitForTimeout(300);
     T.check('Next change: the next one (Change 2 of n)', nChanges < 2 || (await text(page, '#pgCodeAt')) === 'Change 2 of ' + nChanges, await text(page, '#pgCodeAt'));
+    // changed by hand after it was read: Refresh reads it again; so does opening the tab again
+    const srcOf = () => page.evaluate(() => document.getElementById('pgCodeFrame').contentDocument.body.textContent);
+    T.check('Refresh beside Copy; when it was read is said', !!(await page.$('#pgCodeRefresh')) && /As it is in .*working · read at /.test(await text(page, '#pgCodeWhere')), await text(page, '#pgCodeWhere'));
+    const billFile = path.join(working, BILL + '.html');
+    fs.writeFileSync(billFile, fs.readFileSync(billFile, 'utf8').replace('<style>', '<!-- an edit made by hand, after Page code read it -->\n<style>'));
+    T.check('…an edit made by hand meanwhile: not shown yet (read before it)', !/an edit made by hand/.test(await srcOf()));
+    await page.click('#pgCodeRefresh');
+    await page.waitForFunction(() => /an edit made by hand/.test(document.getElementById('pgCodeFrame').contentDocument.body.textContent), null, { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => /Page code read again/.test((document.querySelector('.nx-toast') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    const rf = { there: /an edit made by hand/.test(await srcOf()), toast: await text(page, '.nx-toast'),
+      marked: await page.evaluate(() => Array.from(document.getElementById('pgCodeFrame').contentDocument.querySelectorAll('.l')).filter((l) => /an edit made by hand/.test(l.textContent)).map((l) => l.className).join()) };
+    T.check('…Refresh: read again — the edit is there (and marked as added since VB Studio); a toast says the file changed', rf.there && /the file has changed since/.test(rf.toast) && / ca/.test(rf.marked), JSON.stringify(rf));
+    fs.writeFileSync(billFile, fs.readFileSync(billFile, 'utf8').replace('<style>', '<!-- a second edit -->\n<style>'));
+    await page.click('#pgTabFix');
+    await page.waitForSelector('#fxRequest', { timeout: 10000 }).catch(() => {});
+    await page.click('#pgTabCode');
+    await page.waitForFunction(() => /a second edit/.test(((document.getElementById('pgCodeFrame') || {}).contentDocument || { body: { textContent: '' } }).body.textContent), null, { timeout: 10000 }).catch(() => {});
+    T.check('…opening the tab again reads it again too (the same file shown)', /a second edit/.test(await srcOf()) && /customer-my-billing-page\.html/.test(await text(page, '#pgCodeView .nx-cv-head')), await text(page, '#pgCodeView .nx-cv-head'));
     await env.shot('next-codefix-workspace-pagecode.png');
 
     T.section('Capture and Run it: from your workspace\'s working folder');
