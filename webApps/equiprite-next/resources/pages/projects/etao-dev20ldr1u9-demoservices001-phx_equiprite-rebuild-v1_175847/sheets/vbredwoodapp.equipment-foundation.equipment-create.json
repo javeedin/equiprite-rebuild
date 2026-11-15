@@ -16,11 +16,11 @@
   "files": [
    {
     "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page.json",
-    "lines": 123
+    "lines": 126
    },
    {
     "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page.html",
-    "lines": 289
+    "lines": 298
    },
    {
     "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page.js",
@@ -31,6 +31,10 @@
     "lines": 17
    },
    {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page-chains/deleteChain.js",
+    "lines": 35
+   },
+   {
     "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page-chains/requireFullAccessChain.js",
     "lines": 41
    },
@@ -39,7 +43,7 @@
     "lines": 26
    }
   ],
-  "codeHash": "0fd0426df6973a9d",
+  "codeHash": "eccd3caeb4e7635a",
   "features": {
    "sections": [
     "Equipment Master"
@@ -54,9 +58,9 @@
     },
     {
      "label": "Equipment Master: sp secondary action",
-     "listener": "onSpCancel",
+     "listener": "onSpDelete",
      "chains": [
-      "cancelChain"
+      "deleteChain"
      ]
     }
    ],
@@ -157,6 +161,22 @@
      "lines": 17
     },
     {
+     "name": "deleteChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page-chains/deleteChain.js",
+     "about": "The header fires one secondary-action handler for all secondary actions. Branch on the action id so Cancel still just returns, and Delete runs its (demo) delete then returns to the list.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page equipment-master"
+     ],
+     "modules": [],
+     "on": [
+      "onSpDelete"
+     ],
+     "lines": 35
+    },
+    {
      "name": "requireFullAccessChain",
      "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page-chains/requireFullAccessChain.js",
      "about": "Page-entry guard for Create: creating an equipment definition needs FULL access to EQR_EQUIPMENT_MASTER, not just the READ_ONLY that lets someone browse the list. (The generic enforcePageAccessChain accepts READ_ONLY.) Before 2026-10-05 this page had no guard at all, so a read-only user -- or anyone with the URL -- could open it. The master page also hides its Create action below FULL; this closes the direct-URL path. Access not loaded yet -> let the page open, as every guard here does (canEnterPage): the map resolves moments after app start, and blocking on it would bounce real users. Save…",
@@ -207,6 +227,7 @@
     "label": "Equipment Master",
     "via": [
      "cancelChain",
+     "deleteChain",
      "requireFullAccessChain",
      "saveChain"
     ]
@@ -228,7 +249,7 @@
   }
  ],
  "stories": [],
- "at": "2026-11-15T05:41:26.360Z",
+ "at": "2026-11-15T05:46:13.503Z",
  "by": "javeed.shaik",
- "codeHash": "0fd0426df6973a9d"
+ "codeHash": "eccd3caeb4e7635a"
 }
