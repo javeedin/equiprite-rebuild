@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-15T05:08:42.186Z",
+ "scannedAt": "2026-11-15T05:41:26.428Z",
  "pages": [
   {
    "id": "vbredwoodapp//shell",
@@ -60,7 +60,7 @@
    "appName": "vbredwoodapp",
    "flow": "customer-portal",
    "page": "customer-dashboard",
-   "label": "customer dashboard 26C",
+   "label": "Customer Dashboard",
    "route": {
     "url": "/vp/shell/customer-portal/customer-dashboard",
     "menu": "",
@@ -297,7 +297,15 @@
     "vbredwoodapp/equipment-foundation/equipment-master"
    ],
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-15T05:41:26.360Z",
+    "by": "javeed.shaik",
+    "codeHash": "0fd0426df6973a9d",
+    "screenshots": 0,
+    "ai": false,
+    "rest": 0,
+    "chains": 3
+   }
   },
   {
    "id": "vbredwoodapp/equipment-foundation/equipment-detail",
