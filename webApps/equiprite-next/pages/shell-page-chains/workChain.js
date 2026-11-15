@@ -3,8 +3,9 @@ define(['vb/action/actionChain', 'resources/js/shellBus', 'resources/js/vbsClien
 
   // Build.Rite's top bar: the working copy — the VB Studio project ▸ workspace whose repository is cloned on this PC and
   // where changes are made (desktop/lib/vbs.js work). 'load': read it (again when a project's tab changes it); 'open':
-  // its project's tab, on that workspace — or, none yet, Set up your workspace (the wizard). Its menu: open its project, set
-  // up another, stop using it (its folders kept), remove it from this PC (asked first: what would be lost said).
+  // its project's tab, on that workspace — or, none yet, Set up your workspace (the wizard). Its menu: run its app, open its
+  // project, set up another, stop using it (its folders kept), remove it from this PC (asked first: what would be lost
+  // said). ▶ Run (beside it): its app, built from the working folder, in a window of its own.
   class workChain extends ActionChain {
     async run(context, { act }) {
       const v = context.$page.variables;
@@ -33,6 +34,21 @@ define(['vb/action/actionChain', 'resources/js/shellBus', 'resources/js/vbsClien
         return;
       }
       v.workMenu = false;
+      // ▶ Run: your workspace's app, built from its working folder (when its code changed), in a window of its own; Run
+      // again after more changes builds again and reloads that window
+      if (act === 'run') {
+        if (v.workRunning || !c) return;
+        v.workRunning = true;
+        try {
+          bus.toast('▶ Building ' + wsName + '\'s app from its working folder (when its code changed) and opening it…', 'info');
+          const r = await VC.workRun('');
+          const b = r.body || {};
+          if (r.ok && b.ok) {
+            bus.toast('▶ ' + b.app + ' is running in its own window — ' + wsName + '\'s working folder, ' + (b.built ? 'built just now (' + (Math.round((b.ms || 0) / 100) / 10) + ' s)' : 'no change since its last build') + '. Run again after more changes.', 'success');
+          } else bus.toast(b.error || 'It could not be run.', 'error');
+        } finally { v.workRunning = false; }
+        return;
+      }
       if (act === 'switch') { bus.open({ record: 'vbs-setup', params: {} }); bus.emit('vbs-setup', { reset: true }); return; }
       if (act === 'stop') {
         const r = await VC.workStop();

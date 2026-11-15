@@ -99,9 +99,16 @@
         </button>
         <oj-bind-if test="[[ !!$variables.work && !!$variables.work.current ]]">
           <button type="button" class="nx-work-caret" id="nxWorkMenuBtn" data-act="menu" on-click="[[ $listeners.onWorkAct ]]" aria-haspopup="menu" :aria-expanded="[[ $variables.workMenu ? 'true' : 'false' ]]" aria-label="Your workspace: open, change, stop using or remove it"><span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <!-- ▶ Run: your workspace's app, built from its working folder (when its code changed), in a window of its own -->
+          <button type="button" :class="[[ 'nx-work-run' + ($variables.workRunning ? ' nx-work-run--busy' : '') ]]" id="nxWorkRun" data-act="run" on-click="[[ $listeners.onWorkAct ]]" :disabled="[[ $variables.workRunning ]]"
+            title="Run your workspace's app in a window of its own — built from its working folder when its code changed: your changes, running. Run again after more changes.">
+            <oj-bind-if test="[[ $variables.workRunning ]]"><span class="nx-spin nx-spin--btn" aria-hidden="true"></span></oj-bind-if>
+            <oj-bind-if test="[[ !$variables.workRunning ]]"><span class="nx-work-runico" aria-hidden="true">▶</span></oj-bind-if>
+            <oj-bind-text value="[[ $variables.workRunning ? 'Building…' : 'Run' ]]"></oj-bind-text></button>
         </oj-bind-if>
         <oj-bind-if test="[[ $variables.workMenu ]]">
           <div class="nx-work-menu" id="nxWorkMenu" role="menu" aria-label="Your workspace">
+            <button type="button" role="menuitem" id="nxWorkRunMenu" data-act="run" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-play" aria-hidden="true"></span><span>Run its app<span class="nx-work-mnote">in a window of its own, with your changes</span></span></button>
             <button type="button" role="menuitem" id="nxWorkOpen" data-act="open" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-folder" aria-hidden="true"></span>Open its project</button>
             <button type="button" role="menuitem" id="nxWorkSwitch" data-act="switch" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-settings" aria-hidden="true"></span>Set up another workspace…</button>
             <button type="button" role="menuitem" id="nxWorkStop" data-act="stop" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span><span>Stop using it<span class="nx-work-mnote">its folders kept, to use again</span></span></button>

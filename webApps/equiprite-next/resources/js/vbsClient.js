@@ -51,6 +51,7 @@ define([], function () {
     workForget: function (id, removeFolder) { return post('work/forget', { id: id || '', removeFolder: !!removeFolder }); },
     /** Stop using the current workspace (its folders kept). */
     workStop: function () { return post('work/stop', {}); },
+    workRun: function (app) { return post('work/run', { app: app || '' }); },
     /**
      * Remove the current workspace from this PC, asked first — what would be lost said (changes not saved, not applied, not
      * pushed): its folders deleted, forgotten. → { ok, body } or { ok: false, body: { cancelled } } when not confirmed.

@@ -27,6 +27,7 @@
     "jiraKind": { "type": "string", "defaultValue": "all", "description": "Which updates: all, mine, new, status, assign, comment, priority, sprint, attach, edit." },
     "jiraSeen": { "type": "string", "defaultValue": "", "description": "When the panel was last opened (kept on this PC): what came after is new." },
     "jiraNew": { "type": "number", "defaultValue": 0, "description": "How many updates came since it was last opened (the bell's count)." },
+    "workRunning": { "type": "boolean", "defaultValue": false, "description": "Build.Rite: ▶ Run is building your workspace's app and opening it in a window of its own." },
     "workMenu": { "type": "boolean", "defaultValue": false, "description": "Build.Rite: the workspace's menu is open (open its project, set up another, stop using it, remove it)." },
     "work": {
       "type": "any",

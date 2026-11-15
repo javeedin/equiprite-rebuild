@@ -117,7 +117,16 @@ const SECRET = 'Pa55-w0rd#e2e';
     setTimeout(() => vbs.setFinder(false, url), 5000);
     return { ok: true, url: url };
   };
-  const env = await E.start({ port: 19960, app: 'next', product: 'buildrite', vbsStore: vbs, vbsFind: vbsFind });
+  // ▶ Run: the desktop app builds your workspace's working folder and opens its app in a window of its own — a stand-in
+  const ran = [];
+  let runFails = 1;
+  const vbsRun = async (b) => {
+    ran.push(b);
+    await new Promise((r) => setTimeout(r, 700)); // a build takes a moment
+    if (runFails-- > 0) return { ok: false, error: 'Your workspace could not be built: a broken file (the build tool says so).' };
+    return { ok: true, url: 'http://127.0.0.1:4100/', app: 'vbredwoodapp', apps: ['vbredwoodapp'], built: true, ms: 4200, workspace: 'javeed-26c-titles' };
+  };
+  const env = await E.start({ port: 19960, app: 'next', product: 'buildrite', vbsStore: vbs, vbsFind: vbsFind, vbsRun: vbsRun });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -303,6 +312,7 @@ const SECRET = 'Pa55-w0rd#e2e';
 
     T.section('Set up your workspace (the wizard): the workspace, the folder, a preview — then main and working made');
     T.check('the top bar: no build selector — your workspace, none set up yet', !(await page.$('#nxScope')) && /^Workspace\s*Set up your workspace$/.test(await text(page, '#nxWork')), await text(page, '#nxWork'));
+    T.check('…no ▶ Run yet (nothing to run)', !(await page.$('#nxWorkRun')));
     await page.click('#nxWork');
     await page.waitForSelector('#vbsuStep1', { state: 'visible', timeout: 8000 }).catch(() => {});
     T.check('the top bar opens the wizard: 4 steps, on the first (which workspace?)', /1\s*Workspace\s*2\s*Folder\s*3\s*Preview\s*4\s*Set/.test(await text(page, '#vbsuSteps')) && !!(await page.$('#vbsuStep1')) && (await page.$eval('#vbsuNext1', (e) => e.disabled)), await text(page, '#vbsuSteps'));
@@ -345,6 +355,20 @@ const SECRET = 'Pa55-w0rd#e2e';
     await page.waitForFunction(() => /EquipRite ▸ javeed-26c-titles/.test((document.getElementById('nxWork') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
     T.check('…the top bar: your workspace — EquipRite ▸ javeed-26c-titles, its branch', /^Workspace\s*EquipRite ▸ javeed-26c-titles\s*ws-javeed$/.test(await text(page, '#nxWork')), await text(page, '#nxWork'));
     await env.shot('buildrite-vbs-setup.png');
+
+    T.section('▶ Run: your workspace\'s app, in a window of its own');
+    T.check('▶ Run beside your workspace in the top bar', /^▶\s*Run$/.test(await text(page, '#nxWorkRun')) && /in a window of its own/.test((await page.getAttribute('#nxWorkRun', 'title')) || ''), await text(page, '#nxWorkRun'));
+    await page.click('#nxWorkRun');
+    await page.waitForFunction(() => /Building…/.test((document.getElementById('nxWorkRun') || {}).textContent || '') && /Building .*'s app from its working folder/.test((document.querySelector('.nx-toast') || {}).textContent || ''), null, { timeout: 3000 }).catch(() => {});
+    const busy = { label: await text(page, '#nxWorkRun'), disabled: await page.isDisabled('#nxWorkRun'), toast: await text(page, '.nx-toast') };
+    T.check('…while it builds: "Building…", not clickable twice; said', /Building…/.test(busy.label) && busy.disabled && /Building javeed-26c-titles's app from its working folder/.test(busy.toast), JSON.stringify(busy));
+    await page.waitForFunction(() => /could not be built/.test((document.querySelector('.nx-toast') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    T.check('…a build that fails: said (the build tool\'s words), in red; Run again offered', /Your workspace could not be built: a broken file/.test(await text(page, '.nx-toast')) && /nx-toast--error/.test((await page.getAttribute('.nx-toast', 'class')) || '')
+      && /^▶\s*Run$/.test(await text(page, '#nxWorkRun')) && !(await page.isDisabled('#nxWorkRun')), await text(page, '.nx-toast'));
+    await page.click('#nxWorkRun');
+    await page.waitForFunction(() => /is running in its own window/.test((document.querySelector('.nx-toast') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    T.check('…run: the app in its own window — your working folder, built just now (how long); run again after more changes', ran.length === 2 && /▶ vbredwoodapp is running in its own window — javeed-26c-titles's working folder, built just now \(4\.2 s\)\. Run again after more changes\./.test(await text(page, '.nx-toast'))
+      && /nx-toast--success/.test((await page.getAttribute('.nx-toast', 'class')) || ''), await text(page, '.nx-toast'));
     T.check('…the done step says where Start working goes (Application pages) and where the project is (the top bar\'s menu)', /Start working opens Application pages, with your workspace's pages/.test(await text(page, '#vbsuDone')) && /top bar's workspace menu/.test(await text(page, '#vbsuDone')));
     await page.click('#vbsuStart');
     await page.waitForFunction(() => /Application pages/.test((document.querySelector('.nx-tab--on') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
@@ -397,10 +421,10 @@ const SECRET = 'Pa55-w0rd#e2e';
     const wb = path.join(dir, 'My Projects', 'equiprite-javeed-26c-titles');
     await page.click('#nxWorkMenuBtn');
     await page.waitForSelector('#nxWorkMenu', { state: 'visible', timeout: 3000 }).catch(() => {});
-    T.check('the top bar\'s workspace menu: open its project, set up another, stop using it, remove it', /Open its project\s*Set up another workspace…\s*Stop using it\s*its folders kept, to use again\s*Remove it from this PC…\s*its folders deleted \(asked first\)/.test(await text(page, '#nxWorkMenu')), await text(page, '#nxWorkMenu'));
+    T.check('the top bar\'s workspace menu: run its app, open its project, set up another, stop using it, remove it', /Run its app\s*in a window of its own, with your changes\s*Open its project\s*Set up another workspace…\s*Stop using it\s*its folders kept, to use again\s*Remove it from this PC…\s*its folders deleted \(asked first\)/.test(await text(page, '#nxWorkMenu')), await text(page, '#nxWorkMenu'));
     await page.click('#nxWorkStop');
     await page.waitForFunction(() => /Set up your workspace/.test((document.getElementById('nxWork') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
-    T.check('Stop using it: none in the top bar; its folders kept, known', /^Workspace\s*Set up your workspace$/.test(await text(page, '#nxWork')) && fs.existsSync(path.join(wb, 'main')) && fs.existsSync(path.join(wb, 'working')) && vbs.work().current === null && vbs.work().copies.length === 1
+    T.check('Stop using it: none in the top bar (no ▶ Run); its folders kept, known', !(await page.$('#nxWorkRun')) && /^Workspace\s*Set up your workspace$/.test(await text(page, '#nxWork')) && fs.existsSync(path.join(wb, 'main')) && fs.existsSync(path.join(wb, 'working')) && vbs.work().current === null && vbs.work().copies.length === 1
       && !(await page.$('#nxWorkMenu')), await text(page, '#nxWork'));
     await page.waitForSelector('#vbspWorkSetup', { state: 'visible', timeout: 5000 }).catch(() => {});
     T.check('…its project\'s tab: Set it up as my workspace offered again', !!(await page.$('#vbspWorkSetup:visible')));

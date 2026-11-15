@@ -240,7 +240,7 @@ async function pagesStore() {
         if (!c) { const u = appUrlOf(app); if (!u) return { ok: false, error: 'The app is not running in Build.Rite: build it (npm run build), then try again.' }; openAppWindow(u + url, 'EquipRite'); return { ok: true, url: u + url, from: '' }; }
         const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: app });
         if (!p.ok) return { ok: false, error: p.error };
-        openAppWindow(p.url + url, 'Your workspace — ' + c.projectName + ' ▸ ' + c.workspace);
+        openRunWindow(p.url + url, 'Your workspace — ' + c.projectName + ' ▸ ' + c.workspace + ' (' + app + ')');
         return { ok: true, url: p.url + url, from: 'workspace', built: p.built, builtAt: p.builtAt };
       },
       rootFn: () => { const c = current(); return c ? c.working : ''; },
@@ -292,6 +292,7 @@ async function appServerOptions(v) {
     vbsStore: v === 'build' ? vbsStore() : undefined,
     vbsFind: v === 'build' ? openVbsFinder : undefined,
     vbsOpenPath: v === 'build' ? (p) => shell.openPath(p) : undefined,
+    vbsRun: v === 'build' ? runWorkspaceApp : undefined, // ▶ Run: your workspace's app, in a window of its own
     vbsPickFolder: v === 'build' ? async (start) => {
       const w = BrowserWindow.getFocusedWindow();
       const r = await dialog.showOpenDialog(w && !w.isDestroyed() ? w : undefined, { title: 'Where your workspace goes (Build.Rite makes its folder inside)', defaultPath: start || undefined, properties: ['openDirectory', 'createDirectory'] });
@@ -317,6 +318,40 @@ function workPreview() {
   if (!workPreviewInst) workPreviewInst = require('./lib/workPreview').open({ buildTool: REPO_ROOT, serve: serveSandbox, log: (l) => { try { pushLog(`${new Date().toTimeString().slice(0, 8)} ${l}`); } catch (e) { console.log(l); } } });
   return workPreviewInst;
 }
+// ▶ Run (Build.Rite's top bar): your workspace's whole app, built from its working folder when its code changed, in a
+// window of its own; Run again (after more changes) builds again and reloads that same window
+let runWin = null;
+function openRunWindow(url, title) {
+  if (runWin && !runWin.isDestroyed()) {
+    runWin.setTitle(String(title || 'EquipRite'));
+    runWin.loadURL(url).catch(() => {});
+    if (runWin.isMinimized()) runWin.restore();
+    runWin.focus();
+    return runWin;
+  }
+  runWin = openAppWindow(url, title);
+  return runWin;
+}
+/** The apps in a working folder (webApps/<app>/app-flow.json). */
+function appsIn(folder) {
+  try { return fs.readdirSync(path.join(folder, 'webApps')).filter((a) => fs.existsSync(path.join(folder, 'webApps', a, 'app-flow.json'))).sort(); } catch (e) { return []; }
+}
+async function runWorkspaceApp(b) {
+  let c = null;
+  try { const x = vbsStoreInst && vbsStoreInst.work().current; c = x && x.exists ? x : null; } catch (e) { c = null; }
+  if (!c) return { ok: false, error: 'No workspace is set up: set one up first (Workspace, in the top bar).' };
+  const apps = appsIn(c.working);
+  const want = String((b && b.app) || '');
+  const appName = apps.indexOf(want) !== -1 ? want : (apps.length === 1 ? apps[0] : (apps.indexOf('vbredwoodapp') !== -1 ? 'vbredwoodapp' : apps[0]));
+  if (!appName) return { ok: false, error: 'Your working folder has no app in it (webApps/<app>/app-flow.json): ' + c.working };
+  const t0 = Date.now();
+  const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: appName });
+  if (!p.ok) return { ok: false, error: p.error, app: appName, apps: apps };
+  const url = p.url + '/';
+  openRunWindow(url, 'Your workspace — ' + c.projectName + ' ▸ ' + c.workspace + ' (' + appName + ')');
+  pushLog(`${new Date().toTimeString().slice(0, 8)} ▶ Run: ${appName} of ${c.workspace} at ${url}${p.built ? ' (built ' + Math.round((Date.now() - t0) / 100) / 10 + ' s)' : ''}`);
+  return { ok: true, url: url, app: appName, apps: apps, built: p.built, ms: Date.now() - t0, workspace: c.workspace, builtAt: p.builtAt };
+}
 // The app as it is now (this PC's own build), for comparing with a sandbox.
 const appUrlOf = (webApp) => { const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === webApp && !VERSIONS[k].product)[0]; return v && servers[v] ? servers[v].url : ''; };
 // A window of its own for a sandbox (or the app as it is now, beside it): links inside its own address stay in it.
@@ -337,7 +372,7 @@ function openAppWindow(url, title) {
     if (/^https?:/i.test(next)) shell.openExternal(next);
   });
   w.loadURL(url).catch(() => {});
-  return true;
+  return w; // (truthy: opened)
 }
 async function capturePage(webApp, url, base) {
   const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === webApp)[0];
