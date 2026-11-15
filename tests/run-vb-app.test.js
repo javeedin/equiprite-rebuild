@@ -34,6 +34,11 @@ const files = (dir) => { const out = []; const walk = (d, rel) => fs.readdirSync
     const before = files(app);
 
     T.section('what it runs, where it builds');
+    const w0 = R.whoLine({ username: '' }), w1 = R.whoLine({ username: 'priya.raman', roles: null, fusion: null }), w2 = R.whoLine({ username: 'priya.raman', roles: ['RT_EQP_ADMINISTRATOR'] }), w3 = R.whoLine({ username: 'priya.raman', roles: null, fusion: { user: 'priya.raman', password: 'x' } });
+    T.check('who it runs as, said: anonymous (a warning); a user with NO roles — "You don\'t have access", --roles and the known roles said (a warning); roles answered here; roles from Fusion', w0.warn && /runs anonymous/.test(w0.text)
+      && w1.warn && /NO roles: the app will say "You don't have access" — add --roles RT_EQP_ADMINISTRATOR \(or one of: RT_EQP_ADMINISTRATOR, RT_EQP_MANAGER/.test(w1.text)
+      && !w2.warn && /runs as priya\.raman with the roles RT_EQP_ADMINISTRATOR \(answered here\)/.test(w2.text) && !w3.warn && /read from Fusion/.test(w3.text), JSON.stringify([w1, w2]));
+    T.check('--user and --roles (who the app runs as)', R.argsOf(['--user', 'priya.raman', '--roles', 'RT_EQP_ADMINISTRATOR']).user === 'priya.raman' && R.argsOf(['--roles', 'RT_EQP_MANAGER']).roles === 'RT_EQP_MANAGER');
     T.check('the folder given, the current one, or a workspace\'s folder (its working copy); not a VB app\'s folder: none', R.folderOf(app) === app && R.folderOf(path.join(tmp, 'apps')) === ''
       && R.argsOf(['x', '--app', 'a', '--port', '9000', '--open']).folder === 'x' && R.argsOf(['--port', '9000']).port === 9000 && R.argsOf([]).port === 8890);
     T.check('…built beside it (.build-rite/<name>/build-rite-preview), or beside a workspace\'s working copy (as ▶ Run)', R.outFor(app) === path.join(tmp, 'apps', '.build-rite', 'ledger-app', 'build-rite-preview')
@@ -51,7 +56,7 @@ const files = (dir) => { const out = []; const walk = (d, rel) => fs.readdirSync
     const up = await until(/running at (http:\/\/localhost:\d+)\//, 120000);
     const url = ((/running at (http:\/\/localhost:\d+)\//.exec(out)) || [])[1] || '';
     T.check('started in the app\'s folder (no folder given): built — no Component Exchange needed — and running at an address', up && !!url && /▶ equiprite-mobile from /.test(out) && /build {2}│ /.test(out), out.slice(-800));
-    T.check('…who it runs as said: anonymous (pages that need access hidden), and how to run as someone', /runs anonymous: pages that need access stay hidden — set EQP_USER/.test(out));
+    T.check('…who it runs as said: anonymous (pages that need access hidden), and how to run as someone', /runs anonymous: pages that need access stay hidden — run as someone with --user <name> --roles RT_EQP_ADMINISTRATOR/.test(out));
     const home = await fetch(url + '/');
     const html = await home.text();
     T.check('…the page served: that folder\'s app', home.status === 200 && /<html/i.test(html), home.status + ' ' + html.slice(0, 120));

@@ -55,8 +55,14 @@ npm run vb -- C:\path\to\workspace\working
 ```
 
 Options: `--app <name>` picks the app when the folder has several; `--port <n>` changes the port (8890 by default);
-`--open` opens it in your browser. It runs as `EQP_USER` (and `EQP_ROLES`), as `npm run serve` does, else
-anonymous: pages that need access stay hidden.
+`--open` opens it in your browser.
+
+Who the app runs as: `--user <name> --roles RT_EQP_ADMINISTRATOR` (one or more of `RT_EQP_ADMINISTRATOR`,
+`RT_EQP_MANAGER`, `RT_EQP_REQUESTOR`, `RT_EQP_INSPECTION`, `RT_EQP_TIMEKEEPER`, `RT_EQP_TIME_APPROVER`, `RT_EQP_FINANCE`,
+`RT_EQP_EXTERNAL_REQUESTOR`, comma separated). The roles are answered on this PC. `EQP_USER` and `EQP_ROLES` work too,
+as with `npm run serve`; `EQP_FUSION_USER` and `EQP_FUSION_PASSWORD` read the user's own roles from Fusion instead.
+Without a user it runs anonymous, and pages that need access stay hidden. With a user but no roles, the app says
+"You don't have access"; the command warns before that happens.
 
 ## Layout
 

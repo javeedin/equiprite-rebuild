@@ -9,11 +9,13 @@
  *   - built again each time you save a file in it: reload the page to see the change
  *
  *   node C:\path\to\equiprite-rebuild\tools\run-vb-app.js [folder] [--app <name>] [--port 8890] [--open]
- *   npm run vb -- <folder> [--app <name>] [--port 8890] [--open]          (from Build.Rite's own folder)
+ *        [--user <name>] [--roles RT_EQP_ADMINISTRATOR,RT_EQP_MANAGER]
+ *   npm run vb -- <folder> [--app <name>] [--port 8890] [--open] [--user …] [--roles …]   (from Build.Rite's own folder)
  *
  * folder: the VB app's folder (with visual-application.json) — the current one when left out; a workspace's folder
- * (with main and working inside) runs its working copy. Who the app runs as: EQP_USER (and EQP_ROLES, EQP_FUSION_USER /
- * EQP_FUSION_PASSWORD), as with `npm run serve`; else anonymous (pages that need access stay hidden).
+ * (with main and working inside) runs its working copy. Who the app runs as: --user and --roles (or EQP_USER, EQP_ROLES;
+ * EQP_FUSION_USER / EQP_FUSION_PASSWORD to read the user's own roles from Fusion), as with `npm run serve`; else anonymous
+ * (pages that need access stay hidden). A user with no roles sees "You don't have access": --roles answers them here.
  */
 const fs = require('fs');
 const path = require('path');
@@ -28,12 +30,14 @@ const fail = (s) => { console.error(paint('31', '✗ ' + s)); process.exit(1); }
 
 /** --flags and the folder. */
 function argsOf(argv) {
-  const o = { folder: '', app: '', port: 8890, open: false };
+  const o = { folder: '', app: '', port: 8890, open: false, user: '', roles: '' };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--app') o.app = String(argv[++i] || '');
     else if (a === '--port') o.port = Number(argv[++i]);
     else if (a === '--open') o.open = true;
+    else if (a === '--user' || a === '--as') o.user = String(argv[++i] || '');
+    else if (a === '--roles' || a === '--role') o.roles = String(argv[++i] || '');
     else if (a === '--help' || a === '-h') o.help = true;
     else if (!o.folder) o.folder = a;
   }
@@ -47,6 +51,14 @@ function folderOf(given) {
   return '';
 }
 const appsIn = (f) => { try { return fs.readdirSync(path.join(f, 'webApps')).filter((a) => fs.existsSync(path.join(f, 'webApps', a, 'app-flow.json'))).sort(); } catch (e) { return []; } };
+/** Who the app runs as, said: { text, warn } — anonymous, or a user with no roles, is a warning (what to add, said). */
+function whoLine(identity) {
+  const id = identity || {};
+  if (!id.username) return { warn: true, text: 'runs anonymous: pages that need access stay hidden — run as someone with --user <name> --roles RT_EQP_ADMINISTRATOR' };
+  if (id.roles && id.roles.length) return { warn: false, text: 'runs as ' + id.username + ' with the roles ' + id.roles.join(', ') + ' (answered here)' };
+  if (id.fusion) return { warn: false, text: 'runs as ' + id.username + ', with their roles read from Fusion' };
+  return { warn: true, text: 'runs as ' + id.username + ' with NO roles: the app will say "You don\'t have access" — add --roles RT_EQP_ADMINISTRATOR (or one of: ' + DS.KNOWN_ROLES.join(', ') + ')' };
+}
 /** Where it is built: beside a workspace's working copy (as ▶ Run), else in .build-rite/<name>/ beside the app's folder. */
 const outFor = (f) => (path.basename(f) === 'working' ? WP.outOf(f) : path.join(path.dirname(f), '.build-rite', path.basename(f), WP.PREVIEW_DIR));
 
@@ -60,7 +72,10 @@ async function main() {
   const app = o.app ? o.app : (apps.length === 1 ? apps[0] : (apps.indexOf('vbredwoodapp') !== -1 ? 'vbredwoodapp' : apps[0]));
   if (apps.indexOf(app) === -1) fail('No app "' + app + '" in ' + folder + ' — its apps: ' + apps.join(', '));
   if (!Number.isInteger(o.port) || o.port < 0 || o.port > 65535) fail('Not a port: ' + o.port);
-  const identity = DS.identityFromEnv(process.env);
+  // who it runs as: --user / --roles first, else EQP_USER / EQP_ROLES (as npm run serve)
+  const identity = DS.identityFromEnv(Object.assign({}, process.env, o.user ? { EQP_USER: o.user } : {}, o.roles ? { EQP_ROLES: o.roles } : {}));
+  const unknown = (identity.roles || []).filter((r) => DS.KNOWN_ROLES.indexOf(r) === -1);
+  if (unknown.length) say(paint('33', '  roles not known here: ' + unknown.join(', ') + ' — the known ones: ' + DS.KNOWN_ROLES.join(', ')));
 
   // one server for the whole run (the address stays the same: a rebuild only changes the files it serves)
   let srv = null;
@@ -78,8 +93,8 @@ async function main() {
   if (!r.ok) fail(r.error);
   say('');
   say(paint('32;1', '✓ running at ' + r.url + '/') + paint('2', '   (built in ' + Math.round((Date.now() - t0) / 100) / 10 + ' s)'));
-  say(identity.username ? '  runs as ' + identity.username + (identity.roles ? ' (roles ' + identity.roles.join(', ') + ')' : ' (roles from Fusion)')
-    : paint('33', '  runs anonymous: pages that need access stay hidden — set EQP_USER (and EQP_ROLES) to run as someone'));
+  const who = whoLine(identity);
+  say(who.warn ? paint('33', '  ' + who.text) : '  ' + who.text);
   say('  save a file in ' + folder + ' and it is built again: reload the page (F5) to see it.  Ctrl+C stops.');
   if (o.open) {
     const cmd = process.platform === 'win32' ? ['cmd', ['/c', 'start', '', r.url + '/']] : [process.platform === 'darwin' ? 'open' : 'xdg-open', [r.url + '/']];
@@ -106,4 +121,4 @@ async function main() {
 }
 
 if (require.main === module) main().catch((e) => fail(e && e.stack ? e.stack : String(e)));
-module.exports = { argsOf, folderOf, appsIn, outFor };
+module.exports = { argsOf, folderOf, appsIn, outFor, whoLine };
