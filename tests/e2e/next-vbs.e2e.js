@@ -423,7 +423,7 @@ const SECRET = 'Pa55-w0rd#e2e';
     const wb = path.join(dir, 'My Projects', 'equiprite-javeed-26c-titles');
     await page.click('#nxWorkMenuBtn');
     await page.waitForSelector('#nxWorkMenu', { state: 'visible', timeout: 3000 }).catch(() => {});
-    T.check('the top bar\'s workspace menu: run its app, open its project, set up another, stop using it, remove it', /Run its app\s*in a window of its own, with your changes\s*Open its project\s*Set up another workspace…\s*Stop using it\s*its folders kept, to use again\s*Remove it from this PC…\s*its folders deleted \(asked first\)/.test(await text(page, '#nxWorkMenu')), await text(page, '#nxWorkMenu'));
+    T.check('the top bar\'s workspace menu: run its app, the Run console, open its project, set up another, stop using it, remove it', /Run its app\s*in a window of its own, with your changes\s*>_\s*Run console\s*the build, its requests, the app's own console\s*Open its project\s*Set up another workspace…\s*Stop using it\s*its folders kept, to use again\s*Remove it from this PC…\s*its folders deleted \(asked first\)/.test(await text(page, '#nxWorkMenu')), await text(page, '#nxWorkMenu'));
     await page.click('#nxWorkStop');
     await page.waitForFunction(() => /Set up your workspace/.test((document.getElementById('nxWork') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
     T.check('Stop using it: none in the top bar (no ▶ Run); its folders kept, known', !(await page.$('#nxWorkRun')) && /^Workspace\s*Set up your workspace$/.test(await text(page, '#nxWork')) && fs.existsSync(path.join(wb, 'main')) && fs.existsSync(path.join(wb, 'working')) && vbs.work().current === null && vbs.work().copies.length === 1

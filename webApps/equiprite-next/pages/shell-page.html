@@ -105,10 +105,12 @@
             <oj-bind-if test="[[ $variables.workRunning ]]"><span class="nx-spin nx-spin--btn" aria-hidden="true"></span></oj-bind-if>
             <oj-bind-if test="[[ !$variables.workRunning ]]"><span class="nx-work-runico" aria-hidden="true">▶</span></oj-bind-if>
             <oj-bind-text value="[[ $variables.workRunning ? 'Building…' : 'Run' ]]"></oj-bind-text></button>
+          <button type="button" class="nx-work-console" id="nxWorkConsole" data-act="console" on-click="[[ $listeners.onWorkAct ]]" title="Run console: what happens when your workspace runs — the build, its requests, the app's own console — and commands">&gt;_</button>
         </oj-bind-if>
         <oj-bind-if test="[[ $variables.workMenu ]]">
           <div class="nx-work-menu" id="nxWorkMenu" role="menu" aria-label="Your workspace">
             <button type="button" role="menuitem" id="nxWorkRunMenu" data-act="run" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-play" aria-hidden="true"></span><span>Run its app<span class="nx-work-mnote">in a window of its own, with your changes</span></span></button>
+            <button type="button" role="menuitem" id="nxWorkConsoleMenu" data-act="console" on-click="[[ $listeners.onWorkAct ]]"><span aria-hidden="true">&gt;_</span><span>Run console<span class="nx-work-mnote">the build, its requests, the app's own console</span></span></button>
             <button type="button" role="menuitem" id="nxWorkOpen" data-act="open" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-folder" aria-hidden="true"></span>Open its project</button>
             <button type="button" role="menuitem" id="nxWorkSwitch" data-act="switch" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-settings" aria-hidden="true"></span>Set up another workspace…</button>
             <button type="button" role="menuitem" id="nxWorkStop" data-act="stop" on-click="[[ $listeners.onWorkAct ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span><span>Stop using it<span class="nx-work-mnote">its folders kept, to use again</span></span></button>

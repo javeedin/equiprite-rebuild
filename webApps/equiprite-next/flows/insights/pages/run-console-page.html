@@ -1,0 +1,59 @@
+<!-- Run console (Build.Rite): run your workspace's app and see what happens as it happens — the build, the requests its app
+     makes, the app's own console, where it went — and type commands like an editor's terminal (none run as a program:
+     desktop/lib/runConsole.js). The log is drawn by resources/js/runConsoleView.js. -->
+<div class="nx-page nx-rc">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Build.Rite</div>
+      <h1 id="rcTitle">Run console</h1>
+      <div class="nx-sub">Run your workspace's app and watch what happens: the build, the requests it makes, its own console. Type <code>help</code> for the commands.</div>
+    </div>
+  </div>
+
+  <section class="nx-card nx-rc-card" aria-label="Run console">
+    <!-- who the app runs as, the workspace, its build, its window -->
+    <div class="nx-rc-head" id="rcHead">
+      <span :class="[[ $functions.whoClass($variables.status) ]]" id="rcWho"><oj-bind-text value="[[ $functions.whoText($variables.status) ]]"></oj-bind-text></span>
+      <oj-bind-if test="[[ !!$variables.status && !$variables.status.signedInAs ]]"><button type="button" class="nx-btn nx-btn--sm" id="rcSignin" data-act="cmd" data-key="signin" on-click="[[ $listeners.onAct ]]">Sign in as…</button></oj-bind-if>
+      <span class="nx-rc-fact" id="rcWs"><oj-bind-text value="[[ $functions.wsText($variables.status) ]]"></oj-bind-text></span>
+      <span class="nx-rc-fact" id="rcBuild"><oj-bind-text value="[[ $functions.buildText($variables.status) ]]"></oj-bind-text></span>
+      <span class="nx-rc-fact" id="rcWin"><oj-bind-text value="[[ $functions.windowText($variables.status) ]]"></oj-bind-text></span>
+    </div>
+
+    <!-- the controls -->
+    <div class="nx-rc-bar" role="toolbar" aria-label="Run">
+      <button type="button" class="nx-pg-coderun" id="rcRun" data-act="cmd" data-key="run" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Build the working copy when its code changed, and open its app"><span aria-hidden="true">▶</span>Run</button>
+      <button type="button" class="nx-btn nx-btn--sm" id="rcBuildBtn" data-act="cmd" data-key="build" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Build the working copy now (only if its code changed)">Build</button>
+      <button type="button" class="nx-btn nx-btn--sm" id="rcRebuild" data-act="cmd" data-key="rebuild" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Build it again from scratch">Rebuild</button>
+      <button type="button" class="nx-btn nx-btn--sm" id="rcReload" data-act="cmd" data-key="reload" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Reload the app's window">Reload</button>
+      <button type="button" class="nx-btn nx-btn--sm" id="rcDevtools" data-act="cmd" data-key="devtools" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="The app window's developer tools: its console, network, elements">DevTools</button>
+      <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="rcStop" data-act="cmd" data-key="stop" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Close the app's window and stop its local server">Stop</button>
+      <span class="nx-min-flex"></span>
+      <button type="button" class="nx-btn nx-btn--sm" id="rcCode" data-act="cmd" data-key="code" on-click="[[ $listeners.onAct ]]" title="Open the working folder in VS Code">Open in VS Code</button>
+      <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="rcFolder" data-act="cmd" data-key="folder" on-click="[[ $listeners.onAct ]]" title="Open the working folder"><span class="oj-ux-ico-folder" aria-hidden="true"></span>Folder</button>
+    </div>
+
+    <!-- which lines show -->
+    <div class="nx-rc-filters" id="rcFilters">
+      <oj-bind-for-each data="[[ $functions.filters($variables.filter) ]]">
+        <template data-oj-as="f">
+          <button type="button" :class="[[ f.data.cls ]]" data-act="filter" :data-key="[[ f.data.id ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+        </template>
+      </oj-bind-for-each>
+      <span class="nx-min-flex"></span>
+      <span class="nx-note" id="rcBusy"><oj-bind-text value="[[ $functions.busyLabel($variables.busy, $variables.busyText) ]]"></oj-bind-text></span>
+      <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="rcClear" data-act="clear" on-click="[[ $listeners.onAct ]]">Clear</button>
+    </div>
+
+    <!-- the log (drawn by runConsoleView.js) -->
+    <div :class="[[ $functions.logClass($variables.filter) ]]" id="rcLog" role="log" aria-live="polite" aria-label="What happens"></div>
+
+    <!-- the command line -->
+    <div class="nx-rc-cmd">
+      <span class="nx-rc-prompt" aria-hidden="true">&gt;</span>
+      <input type="text" id="rcCmd" autocomplete="off" spellcheck="false" aria-label="A command" on-keydown="[[ $listeners.onCmdKey ]]"
+        placeholder="Type a command — help, run, run equipment-foundation/equipment-create, build, reload, devtools, status, changes, git status, signin">
+      <button type="button" class="nx-btn nx-btn--sm" id="rcGo" data-act="go" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Run command</button>
+    </div>
+  </section>
+</div>

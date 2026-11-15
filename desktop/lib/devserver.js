@@ -997,6 +997,8 @@ function createDevServer(o) {
           if (pathname === '/__vbs/discovered' && !post) return jsonV(200, vs.discovered ? vs.discovered() : { ok: false, error: 'Not here.' });
           if (pathname === '/__vbs/diagnostic' && !post) return jsonV(200, { ok: true, text: vs.diagnostic ? vs.diagnostic() : '' });
           if (pathname === '/__vbs/work' && !post) return jsonV(200, vs.work ? vs.work() : { ok: false, error: 'Needs the desktop app.' });
+          if (pathname === '/__vbs/console' && !post) return jsonV(200, o.vbsConsole ? Object.assign({ ok: true }, o.vbsConsole.lines(new URL(req.url, 'http://local').searchParams.get('after'))) : { ok: false, lines: [], error: 'The Run console needs the desktop app.' });
+          if (pathname === '/__vbs/console/status' && !post) return jsonV(200, o.vbsConsole ? o.vbsConsole.status() : { ok: false, error: 'The Run console needs the desktop app.' });
           if (pathname === '/__vbs/work/progress' && !post) return jsonV(200, vs.workProgress ? vs.workProgress() : { ok: true, active: false });
           if (!post) return jsonV(404, { error: 'Not found' });
           let r;
@@ -1023,6 +1025,9 @@ function createDevServer(o) {
           else if (pathname === '/__vbs/work/push') r = await vs.workPush(String(b.id || ''));
           else if (pathname === '/__vbs/work/forget') r = vs.workForget(String(b.id || ''), !!b.removeFolder);
           else if (pathname === '/__vbs/work/stop') r = vs.workStop();
+          // the Run console: its lines (after the last one seen), who the app runs as, a command (no shell: lib/runConsole.js)
+          else if (pathname === '/__vbs/console/cmd') r = o.vbsConsole ? await o.vbsConsole.command(String(b.text || '').slice(0, 500)) : { ok: false, text: 'The Run console needs the desktop app.' };
+          else if (pathname === '/__vbs/console/clear') r = o.vbsConsole ? { ok: true, last: o.vbsConsole.clear() } : { ok: false };
           // ▶ Run: your workspace's whole app, built from its working folder (when its code changed), in a window of its own
           else if (pathname === '/__vbs/work/run') r = typeof o.vbsRun === 'function' ? await o.vbsRun({ app: String(b.app || '') }) : { ok: false, error: 'Running your workspace needs the desktop app.' };
           else if (pathname === '/__vbs/work/open') { const c = (vs.work().copies || []).filter((x) => x.id === String(b.id || ''))[0]; const dir = c ? (b.which === 'main' ? c.main : b.which === 'base' ? c.base : c.working) : ''; r = c && typeof o.vbsOpenPath === 'function' ? (await o.vbsOpenPath(dir), { ok: true, path: dir }) : { ok: false, error: c ? 'Opening a folder needs the desktop app.' : 'No such workspace on this PC.' }; }

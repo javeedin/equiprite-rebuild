@@ -1736,6 +1736,41 @@ html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, htm
 /* ▶ Try it on this page (Code fix, applied in your workspace) */
 .nx-fx-try { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; }
 .nx-fx-try .nx-pg-coderun { margin-left: 0; }
+/* Console (>_) beside ▶ Run in the top bar */
+.nx-work-console { flex: none; height: 30px; padding: 0 10px; border: 1px solid #c9d3dc; border-radius: 999px; background: #1e1e1e; color: #9cdcfe; font: 700 12px/1 ui-monospace, Menlo, Consolas, monospace; cursor: pointer; }
+.nx-work-console:hover { background: #2d2d2d; color: #fff; }
+/* The Run console (flows/insights run-console): like an editor's terminal */
+.nx-rc-card { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.nx-rc-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border-bottom: 1px solid #e2e7ed; background: #f7f9fb; font-size: 13px; }
+.nx-rc-who { font-weight: 700; color: #146c2e; }
+.nx-rc-who--anon { color: #a15c00; }
+.nx-rc-fact { color: #4a5865; padding-left: 10px; border-left: 1px solid #d6dde4; }
+.nx-rc-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid #e2e7ed; }
+.nx-rc-bar .nx-pg-coderun { margin-left: 0; }
+.nx-rc-filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 14px; background: #fafbfc; border-bottom: 1px solid #e2e7ed; }
+.nx-rc-log { height: 56vh; min-height: 260px; overflow: auto; background: #1e1e1e; color: #d4d4d4; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 8px 0; }
+.rc-l { display: flex; gap: 10px; padding: 0 14px; white-space: pre-wrap; word-break: break-word; }
+.rc-l:hover { background: #2a2d2e; }
+.rc-t { flex: none; color: #6a737d; }
+.rc-kind { flex: none; width: 46px; color: #808080; text-transform: lowercase; }
+.rc-x { flex: 1; min-width: 0; }
+.rc-k-build .rc-x { color: #c5c5c5; } .rc-k-build .rc-kind { color: #b5cea8; }
+.rc-k-server .rc-x { color: #9cdcfe; } .rc-k-server .rc-kind { color: #4fc1ff; }
+.rc-k-app .rc-x { color: #dcdcaa; } .rc-k-app .rc-kind { color: #dcdcaa; }
+.rc-k-nav .rc-x { color: #c586c0; } .rc-k-nav .rc-kind { color: #c586c0; }
+.rc-k-warn { background: #3a3000; } .rc-k-warn .rc-x, .rc-k-warn .rc-kind { color: #ffd479; }
+.rc-k-error { background: #4b1818; } .rc-k-error .rc-x, .rc-k-error .rc-kind { color: #ff9b9b; }
+.rc-k-info .rc-x { color: #e0e0e0; }
+.rc-k-cmd .rc-x { color: #fff; font-weight: 700; } .rc-k-cmd { margin-top: 6px; }
+/* the filters: only that kind shows (and what you typed) */
+.rc-f-build .rc-l:not(.rc-k-build):not(.rc-k-cmd) { display: none; }
+.rc-f-server .rc-l:not(.rc-k-server):not(.rc-k-cmd) { display: none; }
+.rc-f-app .rc-l:not(.rc-k-app):not(.rc-k-nav):not(.rc-k-cmd) { display: none; }
+.rc-f-errors .rc-l:not(.rc-k-error):not(.rc-k-warn):not(.rc-k-cmd) { display: none; }
+.nx-rc-cmd { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: #252526; }
+.nx-rc-prompt { color: #4fc1ff; font: 700 14px ui-monospace, Menlo, Consolas, monospace; }
+.nx-rc-cmd input { flex: 1; min-width: 0; height: 32px; border: 1px solid #3c3c3c; border-radius: 4px; background: #1e1e1e; color: #fff; font: 13px ui-monospace, Menlo, Consolas, monospace; padding: 0 10px; }
+.nx-rc-cmd input:focus { outline: 1px solid #007fd4; border-color: #007fd4; }
 /* ▶ Run beside the working folder (Application pages) */
 .nx-pg-coderun { display: inline-flex; align-items: center; gap: 6px; height: 28px; margin-left: 6px; padding: 0 12px 0 10px; border: 0; border-radius: 999px; background: #1f7a3d; color: #fff; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
 .nx-pg-coderun:hover { background: #17652f; }

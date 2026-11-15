@@ -100,6 +100,11 @@ define(['resources/js/rules'], function (rules) {
       { id: 'projects', label: 'Organizations & projects', icon: 'oj-ux-ico-building', pageCodes: ['EQR_CONFIGURATIONS'], buildRiteOnly: true,
         route: { flow: 'insights', page: 'projects' }, built: true,
         keywords: 'setup organization project vb studio visual builder studio git repository branches build jobs sign in connect' },
+      // Run console (Build.Rite only): run your workspace's app and watch what happens — the build, the requests its app
+      // makes, its own console — with commands typed like an editor's terminal (flows/insights run-console; lib/runConsole.js)
+      { id: 'run-console', label: 'Run console', icon: 'oj-ux-ico-play', pageCodes: ['EQR_CONFIGURATIONS'], buildRiteOnly: true,
+        route: { flow: 'insights', page: 'run-console' }, built: true,
+        keywords: 'run console terminal build log output devtools developer tools vs code vscode git status changes sign in login test' },
       // Issues (Build.Rite's first screen): an issue logged against a page, written up and analyzed by the AI against the
       // page's code and the FDD, approved, then applied by the agent on a branch of its own with a pull request; Jira kept
       // up to date (flows/insights issues; desktop/lib/issues.js, the desktop app). Gated like Jira stories.

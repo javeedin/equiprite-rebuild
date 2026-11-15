@@ -17,7 +17,8 @@
  * emptied before each build (the build tool will not delete outside its own folder) — only a folder named PREVIEW_DIR.
  * Each build has a version folder of its own, so the server is started again after one.
  *
- *   open({ buildTool, build?(src, target), serve({ dir, buildDir, webApp }) → { url, close }, log?, now? })
+ *   open({ buildTool, build?(src, target), serve({ dir, buildDir, webApp }) → { url, close }, log?, onLine?, now? })
+ *     onLine(text): the build tool's output, line by line, as it builds (the Run console shows it)
  *     .ensure({ folder, out, app })  → { ok, url, built, ms, builtAt } | { ok: false, error }
  *     .status(folder)               → { built, builtAt, fresh, building }
  *     .stop(folder?)                  its servers closed (all, without a folder)
@@ -100,11 +101,28 @@ function open(opts) {
     return new Promise((resolve) => {
       const t0 = Date.now();
       const env = Object.assign({}, process.env, process.versions.electron ? { ELECTRON_RUN_AS_NODE: '1' } : {});
-      require('child_process').execFile(process.execPath, [grunt, 'vb-clean', 'vb-process-local', '--git-sources=' + src, '--target=' + target],
-        { cwd: tool, env: env, timeout: 600000, maxBuffer: 32 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) => {
-          const out = (str(stdout) + str(stderr)).replace(/\x1b\[[0-9;]*m/g, '');
-          resolve({ ok: !err, ms: Date.now() - t0, error: err ? (out.split('\n').filter((l) => /error|fatal|warning:/i.test(l)).slice(-6).join(' ').trim() || str(err.message)).slice(0, 600) : '' });
-        });
+      // its output line by line as it comes (onLine: the Run console), the whole kept for the error
+      const p = require('child_process').spawn(process.execPath, [grunt, 'vb-clean', 'vb-process-local', '--git-sources=' + src, '--target=' + target], { cwd: tool, env: env, windowsHide: true });
+      let out = '', part = '';
+      const line = (l) => { if (typeof o.onLine === 'function') { try { o.onLine(l); } catch (e) { /* no console */ } } };
+      const feed = (chunk) => {
+        const t = String(chunk).replace(/\x1b\[[0-9;]*m/g, '');
+        out = (out + t).slice(-200000);
+        part += t;
+        const ls = part.split(/\r?\n/);
+        part = ls.pop();
+        ls.forEach(line);
+      };
+      p.stdout.on('data', feed);
+      p.stderr.on('data', feed);
+      const timer = setTimeout(() => { try { p.kill(); } catch (e) { /* gone */ } }, 600000);
+      p.on('error', (e) => { clearTimeout(timer); resolve({ ok: false, ms: Date.now() - t0, error: 'The build tool did not start: ' + str(e && e.message) }); });
+      p.on('close', (code) => {
+        clearTimeout(timer);
+        if (part) line(part);
+        const ok = code === 0;
+        resolve({ ok: ok, ms: Date.now() - t0, error: ok ? '' : (out.split('\n').filter((l) => /error|fatal|warning:/i.test(l)).slice(-6).join(' ').trim() || 'the build tool stopped (' + code + ')').slice(0, 600) });
+      });
     });
   }
   function closeServers(folder) {
@@ -148,12 +166,16 @@ function open(opts) {
     return job.catch((e) => ({ ok: false, error: str(e && e.message) }));
   }
 
-  function status(folder) {
+  /** quick: without reading the code's fingerprint (fresh: null) — for a screen that asks often. */
+  function status(folder, quick) {
     const f = path.resolve(str(folder)), st = state[f];
-    return { built: !!st, builtAt: st ? st.builtAt : '', fresh: !!st && st.fp === fingerprint(f), building: building === f };
+    return { built: !!st, builtAt: st ? st.builtAt : '', fresh: quick ? null : !!st && st.fp === fingerprint(f), building: building === f };
   }
 
-  return { ensure: ensure, status: status, stop: closeServers, fingerprint: fingerprint };
+  /** Built again from scratch next time (Rebuild): what was built is forgotten, its servers closed. */
+  function forget(folder) { const f = path.resolve(str(folder)); delete state[f]; closeServers(f); }
+
+  return { ensure: ensure, status: status, stop: closeServers, forget: forget, fingerprint: fingerprint };
 }
 
 module.exports = { open, outOf, fingerprint, PREVIEW_DIR, SRC, BUILD };

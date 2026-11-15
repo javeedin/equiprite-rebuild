@@ -11,6 +11,7 @@
     "projects": { "path": "pages/projects-page" },
     "vbs-project": { "path": "pages/vbs-project-page" },
     "vbs-setup": { "path": "pages/vbs-setup-page" },
+    "run-console": { "path": "pages/run-console-page" },
     "jira-analysis": { "path": "pages/jira-analysis-page" },
     "jira-analysis-set": { "path": "pages/jira-analysis-set-page" },
     "app-pages": { "path": "pages/app-pages-page" },

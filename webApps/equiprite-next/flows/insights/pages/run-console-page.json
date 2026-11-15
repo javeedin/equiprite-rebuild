@@ -1,0 +1,25 @@
+{
+  "description": "Run console (Build.Rite): run your workspace's app and see what happens as it happens — the build tool's output, the requests the app makes of its local server, the app window's own console, where it went — with commands typed like an editor's terminal (help, run, run <page>, build, rebuild, reload, devtools, stop, status, changes, git status/log/diff/branch, signin, code, folder, clear). Nothing typed is run as a program: each command is done by the desktop app (desktop/lib/runConsole.js, /__vbs/console*).",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "status": { "type": "any", "defaultValue": null, "description": "Who the app runs as (signedInAs: '' = anonymous), the workspace, its build, its window (consoleStatus)." },
+    "filter": { "type": "string", "defaultValue": "", "description": "Which lines show: '' all, build, server, app, errors." },
+    "hist": { "type": "any[]", "defaultValue": [], "description": "The commands typed (newest last), for ↑ and ↓." },
+    "histAt": { "type": "number", "defaultValue": -1 },
+    "busy": { "type": "boolean", "defaultValue": false },
+    "busyText": { "type": "string", "defaultValue": "", "description": "The command running." }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
+    "vbExit": { "chains": [ { "chain": "exitChain" } ] },
+    "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
+    "onCmdKey": { "chains": [ { "chain": "cmdChain", "parameters": { "key": "{{ $event.key }}", "value": "{{ $event.currentTarget.value }}" } } ] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

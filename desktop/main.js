@@ -293,6 +293,8 @@ async function appServerOptions(v) {
     vbsFind: v === 'build' ? openVbsFinder : undefined,
     vbsOpenPath: v === 'build' ? (p) => shell.openPath(p) : undefined,
     vbsRun: v === 'build' ? runWorkspaceApp : undefined, // ▶ Run: your workspace's app, in a window of its own
+    // the Run console (Build.Rite → Run console): its lines, its commands, who the app runs as
+    vbsConsole: v === 'build' ? { lines: (after) => runConsoleInst.lines(after), command: (t) => runConsoleInst.command(t, consoleDoes), status: () => consoleStatus(false), clear: () => runConsoleInst.clear() } : undefined,
     vbsPickFolder: v === 'build' ? async (start) => {
       const w = BrowserWindow.getFocusedWindow();
       const r = await dialog.showOpenDialog(w && !w.isDestroyed() ? w : undefined, { title: 'Where your workspace goes (Build.Rite makes its folder inside)', defaultPath: start || undefined, properties: ['openDirectory', 'createDirectory'] });
@@ -311,12 +313,27 @@ async function serveSandbox(s) {
   pushLog(`${new Date().toTimeString().slice(0, 8)} sandbox ${path.basename(s.dir)}: ${VERSIONS[v].label} served at ${srv.url}`);
   return srv;
 }
+// The Run console (lib/runConsole.js; Build.Rite → Run console): the build tool's output, the requests the workspace's app
+// makes of its local server, the app window's own console, where it went — and commands (run, build, reload, devtools,
+// git status…), each done here: nothing typed is run as a program
+const runConsoleInst = require('./lib/runConsole').open();
+const cpush = (kind, text) => { try { runConsoleInst.push(kind, text); } catch (e) { /* no console */ } };
 // Your workspace running in Build.Rite (lib/workPreview.js): its working folder built beside it (never inside it) with
 // this project's build tool, and served like the app — what Capture screenshot and Run it open in your workspace
 let workPreviewInst = null;
 function workPreview() {
-  if (!workPreviewInst) workPreviewInst = require('./lib/workPreview').open({ buildTool: REPO_ROOT, serve: serveSandbox, log: (l) => { try { pushLog(`${new Date().toTimeString().slice(0, 8)} ${l}`); } catch (e) { console.log(l); } } });
+  if (!workPreviewInst) workPreviewInst = require('./lib/workPreview').open({ buildTool: REPO_ROOT, serve: serveWorkspace,
+    log: (l) => { try { pushLog(`${new Date().toTimeString().slice(0, 8)} ${l}`); } catch (e) { console.log(l); } cpush('info', l); },
+    onLine: (l) => cpush('build', l) });
   return workPreviewInst;
+}
+// The workspace's app served like the app itself (as a sandbox is), its requests shown in the Run console too
+async function serveWorkspace(s) {
+  const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === s.webApp && !VERSIONS[k].product)[0] || 'old';
+  const srv = await createDevServer(Object.assign(await appServerOptions(v), { buildDir: s.buildDir, repoRoot: s.dir, webApp: s.webApp, port: 0, product: undefined,
+    onLog: (l) => { pushLog(l); cpush(/FAILED|-> (4|5)\d\d/.test(String(l)) ? 'warn' : 'server', String(l).replace(/^\d\d:\d\d:\d\d /, '')); } }));
+  cpush('info', 'the app\'s local server: ' + srv.url + ' (' + s.webApp + ')');
+  return srv;
 }
 // ▶ Run (Build.Rite's top bar): your workspace's whole app, built from its working folder when its code changed, in a
 // window of its own; Run again (after more changes) builds again and reloads that same window
@@ -330,8 +347,91 @@ function openRunWindow(url, title) {
     return runWin;
   }
   runWin = openAppWindow(url, title);
+  watchRunWindow(runWin);
   return runWin;
 }
+/** The Run window, into the Run console: the app's own console messages, where it went, a page that did not load. */
+function watchRunWindow(w) {
+  if (!w || w.isDestroyed() || w.__buildRiteWatched) return;
+  w.__buildRiteWatched = true;
+  const wc = w.webContents;
+  wc.on('console-message', (e, level, message, line, sourceId) => {
+    // (Electron: level 0–3 and the rest as arguments; newer: on the event, the level as a word)
+    const lv = e && e.level != null ? e.level : level;
+    const msg = e && typeof e.message === 'string' ? e.message : message;
+    const src = String((e && e.sourceId) || sourceId || ''), ln = (e && e.lineNumber) || line || 0;
+    cpush(lv === 3 || lv === 'error' ? 'error' : (lv === 2 || lv === 'warning' ? 'warn' : 'app'), String(msg) + (src ? '   (' + src.split('/').slice(-2).join('/') + (ln ? ':' + ln : '') + ')' : ''));
+  });
+  wc.on('did-navigate', (e, url) => cpush('nav', 'opened ' + url));
+  wc.on('did-navigate-in-page', (e, url) => cpush('nav', '→ ' + String(url).replace(/^https?:\/\/[^/]+/, '')));
+  wc.on('did-fail-load', (e, code, desc, url) => { if (code !== -3) cpush('error', 'could not load ' + url + ': ' + desc + ' (' + code + ')'); });
+  wc.on('render-process-gone', (e, d) => cpush('error', 'the app\'s window stopped: ' + ((d && d.reason) || 'gone')));
+  w.on('closed', () => { cpush('info', 'the app\'s window was closed'); if (runWin === w) runWin = null; });
+}
+function currentWork() { try { const x = vbsStoreInst && vbsStoreInst.work().current; return x && x.exists ? x : null; } catch (e) { return null; } }
+function runAppOf(c) { const apps = appsIn(c.working); return apps.indexOf('vbredwoodapp') !== -1 ? 'vbredwoodapp' : apps[0]; }
+const runTitle = (c, app) => 'Working copy — ' + c.projectName + ' ▸ ' + c.workspace + ' (' + app + ')';
+/** Who the app runs as, the workspace, its build, its window: the Run console's head. */
+function consoleStatus(full) {
+  const c = currentWork();
+  const st = c ? workPreview().status(c.working, !full) : null;
+  return { ok: true, signedInAs: identity ? String(identity.username || '') : '', workspace: c ? c.projectName + ' ▸ ' + c.workspace : '', working: c ? c.working : '', branch: c ? c.branch : '',
+    built: !!(st && st.built), builtAt: st ? st.builtAt : '', fresh: st ? st.fresh : null, building: !!(st && st.building), window: runWin && !runWin.isDestroyed() ? runWin.webContents.getURL() : '' };
+}
+const noWorkspace = () => ({ ok: false, text: 'No workspace is set up: set one up first (Workspace, in the top bar).' });
+// what each Run console command does (lib/runConsole.js parses them; nothing typed is run as a program)
+const consoleDoes = {
+  run: async (route) => {
+    if (!route) { const r = await runWorkspaceApp({}); return r.ok ? { ok: true, text: '▶ ' + r.app + ' running in its window at ' + r.url + (r.built ? ' (built just now, ' + (Math.round(r.ms / 100) / 10) + ' s)' : '') } : { ok: false, text: r.error }; }
+    const c = currentWork();
+    if (!c) return noWorkspace();
+    const app = runAppOf(c);
+    const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: app });
+    if (!p.ok) return { ok: false, text: p.error };
+    openRunWindow(p.url + route, runTitle(c, app));
+    return { ok: true, text: '▶ opened ' + p.url + route };
+  },
+  build: async (force) => {
+    const c = currentWork();
+    if (!c) return noWorkspace();
+    if (force) workPreview().forget(c.working);
+    cpush('info', (force ? 'rebuilding from scratch: ' : 'building (when its code changed): ') + c.working);
+    const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: runAppOf(c) });
+    return p.ok ? { ok: true, text: p.built ? 'built in ' + (Math.round(p.ms / 100) / 10) + ' s' + (runWin && !runWin.isDestroyed() ? ' — reload (or run) to see it' : '') : 'up to date: no change since its last build' } : { ok: false, text: p.error };
+  },
+  reload: async () => { if (!runWin || runWin.isDestroyed()) return { ok: false, text: 'No app window: type run first.' }; runWin.webContents.reloadIgnoringCache(); return { ok: true, text: 'reloaded' }; },
+  devtools: async () => { if (!runWin || runWin.isDestroyed()) return { ok: false, text: 'No app window: type run first.' }; runWin.webContents.openDevTools({ mode: 'detach' }); return { ok: true, text: 'the app window\'s developer tools are open (console, network, elements)' }; },
+  stop: async () => { const c = currentWork(); if (runWin && !runWin.isDestroyed()) runWin.close(); runWin = null; if (c) workPreview().stop(path.resolve(c.working)); return { ok: true, text: 'stopped: the app\'s window closed, its local server stopped' }; },
+  git: async (sub, args) => {
+    const c = currentWork();
+    if (!c) return noWorkspace();
+    const a = args || ['diff', '--stat', 'origin/' + c.branch];
+    let out = null;
+    try { out = require('child_process').execFileSync(commandPath('git') || 'git', ['-C', c.working].concat(a), { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000, windowsHide: true, maxBuffer: 8 * 1024 * 1024 }); } catch (e) { return { ok: false, text: 'git ' + sub + ' failed: ' + String((e && (e.stderr || e.message)) || '').trim().slice(0, 300) }; }
+    const ls = String(out).replace(/\s+$/, '').split('\n');
+    return { ok: true, lines: ls.length && ls[0] ? ls.slice(0, 400) : ['(nothing)'] };
+  },
+  changes: async () => {
+    const c = currentWork();
+    if (!c) return noWorkspace();
+    const ch = changedSinceVbs(c);
+    if (ch == null) return { ok: false, text: 'git could not tell (is VB Studio\'s branch fetched? Get latest, in the project\'s tab)' };
+    return { ok: true, lines: ch.length ? [ch.length + ' file' + (ch.length === 1 ? '' : 's') + ' changed since VB Studio (' + c.branch + '), in the working copy:'].concat(ch.map((f) => '  ' + f)) : ['no change since VB Studio (' + c.branch + ')'] };
+  },
+  signin: async () => { openSignIn(); return { ok: true, text: 'The sign-in window is open: the app runs as whoever signs in there — then run (or reload) again.' }; },
+  code: async () => { const c = currentWork(); if (!c) return noWorkspace(); await shell.openExternal('vscode://file/' + String(c.working).replace(/\\/g, '/')); return { ok: true, text: 'opening ' + c.working + ' in VS Code (if it is installed)' }; },
+  folder: async () => { const c = currentWork(); if (!c) return noWorkspace(); await shell.openPath(c.working); return { ok: true, text: 'opened ' + c.working }; },
+  status: async () => {
+    const s = consoleStatus(true);
+    return { ok: true, lines: [
+      'signed in as:  ' + (s.signedInAs || 'nobody — the app runs anonymous: pages that need access stay hidden (type signin, or File → Sign in as…)'),
+      'workspace:     ' + (s.workspace || 'none set up'),
+      'working copy:  ' + (s.working || '—') + (s.branch ? '  (VB Studio branch ' + s.branch + ')' : ''),
+      'build:         ' + (s.building ? 'building…' : s.built ? 'built ' + s.builtAt + (s.fresh === false ? ' — the code changed since: build or run to see it' : ' — up to date') : 'not built yet (run builds it)'),
+      'app window:    ' + (s.window || 'closed (type run)'),
+    ] };
+  },
+};
 /** The apps in a working folder (webApps/<app>/app-flow.json). */
 function appsIn(folder) {
   try { return fs.readdirSync(path.join(folder, 'webApps')).filter((a) => fs.existsSync(path.join(folder, 'webApps', a, 'app-flow.json'))).sort(); } catch (e) { return []; }
@@ -345,16 +445,18 @@ async function runWorkspaceApp(b) {
   const appName = apps.indexOf(want) !== -1 ? want : (apps.length === 1 ? apps[0] : (apps.indexOf('vbredwoodapp') !== -1 ? 'vbredwoodapp' : apps[0]));
   if (!appName) return { ok: false, error: 'Your working folder has no app in it (webApps/<app>/app-flow.json): ' + c.working };
   const t0 = Date.now();
+  cpush('info', '▶ Run: ' + appName + ' of ' + c.projectName + ' ▸ ' + c.workspace + ' — building its working copy when its code changed…');
   const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: appName });
-  if (!p.ok) return { ok: false, error: p.error, app: appName, apps: apps };
+  if (!p.ok) { cpush('error', p.error); return { ok: false, error: p.error, app: appName, apps: apps }; }
   const url = p.url + '/';
   // what is in it: the working copy's files changed since VB Studio (its branch as last fetched), saved or not, committed
   // or not — so you know what you are looking at (and what you are not)
   const changed = changedSinceVbs(c);
   openRunWindow(url, 'Working copy — ' + c.projectName + ' ▸ ' + c.workspace + ' (' + appName + ')' + (changed ? ' · ' + changed.length + ' change' + (changed.length === 1 ? '' : 's') + ' since VB Studio' : ''));
   pushLog(`${new Date().toTimeString().slice(0, 8)} ▶ Run: ${appName} of ${c.workspace} at ${url}${p.built ? ' (built ' + Math.round((Date.now() - t0) / 100) / 10 + ' s)' : ''}`);
+  if (!identity) cpush('warn', 'not signed in to EquipRite: the app runs anonymous — pages that need access stay hidden (File → Sign in as…, or type signin)');
   return { ok: true, url: url, app: appName, apps: apps, built: p.built, ms: Date.now() - t0, workspace: c.workspace, builtAt: p.builtAt,
-    folder: c.working, branch: c.workBranch || 'buildrite-working', base: 'VB Studio (' + c.branch + ')', changed: changed };
+    folder: c.working, branch: c.workBranch || 'buildrite-working', base: 'VB Studio (' + c.branch + ')', changed: changed, signedInAs: identity ? String(identity.username || '') : '' };
 }
 /** The working copy's files changed since VB Studio (origin/<its branch>), new ones too; null when git cannot tell. */
 function changedSinceVbs(c) {

@@ -52,6 +52,11 @@ define([], function () {
     /** Stop using the current workspace (its folders kept). */
     workStop: function () { return post('work/stop', {}); },
     workRun: function (app) { return post('work/run', { app: app || '' }); },
+    // the Run console (desktop/lib/runConsole.js): its new lines, who the app runs as, a command, clear
+    consoleLines: function (after) { return call('console?after=' + encodeURIComponent(String(after || 0))); },
+    consoleStatus: function () { return call('console/status'); },
+    consoleCmd: function (text) { return post('console/cmd', { text: String(text || '') }); },
+    consoleClear: function () { return post('console/clear', {}); },
     /** What ▶ Run says once it answered (the top bar and Application pages say the same): { ok, text, tone }. */
     runText: function (r) {
       var b = (r && r.body) || {};
@@ -61,7 +66,9 @@ define([], function () {
       var base = b.base || 'VB Studio';
       var what = ch == null ? '' : (ch.length ? ' Your ' + ch.length + ' change' + (ch.length === 1 ? '' : 's') + ' since ' + base + ' are in it: ' + names + '.' : ' It has no change since ' + base + ': it is the same as VB Studio has.');
       return { ok: true, tone: 'success', text: '▶ ' + b.app + ' is running in its own window — your working copy (' + (b.branch || 'buildrite-working') + '), '
-        + (b.built ? 'built just now (' + (Math.round((b.ms || 0) / 100) / 10) + ' s)' : 'no change since its last build') + '.' + what + ' Run again after more changes.' };
+        + (b.built ? 'built just now (' + (Math.round((b.ms || 0) / 100) / 10) + ' s)' : 'no change since its last build') + '.' + what
+        + (b.signedInAs === '' ? ' Not signed in to EquipRite: the app runs anonymous, so pages that need access stay hidden — File → Sign in as… (Ctrl+Shift+S).' : '')
+        + ' Run again after more changes.' };
     },
     /**
      * Remove the current workspace from this PC, asked first — what would be lost said (changes not saved, not applied, not

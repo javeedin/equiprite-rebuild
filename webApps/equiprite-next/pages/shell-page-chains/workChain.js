@@ -49,6 +49,7 @@ define(['vb/action/actionChain', 'resources/js/shellBus', 'resources/js/vbsClien
         } finally { v.workRunning = false; }
         return;
       }
+      if (act === 'console') { bus.open({ navId: 'run-console' }); return; }
       if (act === 'switch') { bus.open({ record: 'vbs-setup', params: {} }); bus.emit('vbs-setup', { reset: true }); return; }
       if (act === 'stop') {
         const r = await VC.workStop();
