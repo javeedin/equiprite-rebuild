@@ -14,7 +14,7 @@ define([], function () {
   var guards = {};
   var focusFns = {};
   var focusWaiting = {};
-  // Build.Rite: the build in scope (an app: vbredwoodapp, equiprite, equiprite-next, equiprite-mobile, equiprite-future;
+  // An app in scope (an app: vbredwoodapp, equiprite, equiprite-next, equiprite-mobile, equiprite-future;
   // '' for all), chosen in the top bar; Issues and Application pages follow it. Kept on this PC.
   var SCOPE_KEY = 'eqr.build.scope';
   var scope = (function () { try { return (typeof localStorage !== 'undefined' && localStorage.getItem(SCOPE_KEY)) || ''; } catch (e) { return ''; } }());

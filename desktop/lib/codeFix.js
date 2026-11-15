@@ -88,7 +88,7 @@ const SYSTEM = [
   'Several edits to one file: several blocks. A new file: an empty SEARCH. Paths are relative to the project (they start with webApps/) and must be files of this app.',
 ].join('\n');
 
-/** For an issue (Build.Rite's Issues, desktop/lib/issues.js): where it belongs first, and its number in the code. */
+/** For an issue (the Issues screen, desktop/lib/issues.js): where it belongs first, and its number in the code. */
 function issueRules(key, title) {
   return [
     '',
@@ -392,8 +392,8 @@ function open(opts) {
   function load() { if (!file) return mem; try { const j = JSON.parse(fs.readFileSync(file, 'utf8')); return { folder: str(j.folder), fixes: Array.isArray(j.fixes) ? j.fixes : [] }; } catch (e) { return { folder: '', fixes: [] }; } }
   function save(d) { mem = d; if (!file) return; fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(d, null, 1)); }
   const data = () => (file ? load() : mem);
-  // Your workspace (Build.Rite's top bar: a VB Studio workspace set up on this PC): the code is its working folder —
-  // read, changed, tested and committed there only (branch buildrite-working), never pushed from here; it reaches VB
+  // A workspace (o.workFn: a VB Studio workspace set up on this PC, when a caller gives one): the code is its working folder —
+  // read, changed, tested and committed there only (its own branch), never pushed from here; it reaches VB
   // Studio by Apply to main, then Push (the project's tab). o.workFn() → { folder, label, branch } | null.
   const ws = () => { try { const w = typeof o.workFn === 'function' ? o.workFn() : null; return w && w.folder && isDir(w.folder) ? { folder: path.resolve(w.folder), label: str(w.label), branch: str(w.branch), key: str(w.key), name: str(w.name), ws: str(w.ws) } : null; } catch (e) { return null; } };
   const folder = () => { const w = ws(); if (w) return w.folder; const f = data().folder; return f && isDir(path.join(f, 'webApps')) ? path.resolve(f) : root; };
@@ -597,7 +597,7 @@ function open(opts) {
     user += '\nFACTS\n' + factsText(facts) + '\n\nCODE (complete files; copy SEARCH lines exactly from here)\n' + code.text;
     if (code.skipped.length) user += '\n(Not included, too large: ' + code.skipped.join(', ') + ')\n';
     if (str(b.context).trim()) user += '\n' + str(b.context).trim().slice(0, 40000) + '\n';
-    // an issue (Build.Rite's Issues): its verdict first, its number in the comments of the code it changes
+    // an issue (the Issues screen): its verdict first, its number in the comments of the code it changes
     const issue = b.issue && b.issue.key ? { key: str(b.issue.key).slice(0, 40), title: str(b.issue.title).slice(0, 200), number: str(b.issue.number).slice(0, 40), jira: str(b.issue.jira).slice(0, 40) } : null;
     // the Jira story and the issue number the change is for (asked with the request; asked again: the earlier ones)
     const ref = (v) => str(v).replace(/[^A-Za-z0-9 _#.,\/-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
@@ -846,7 +846,7 @@ function open(opts) {
     const rf = fix.refs || {};
     const msg = str(b.message).trim() || ('Code fix: ' + fix.label + ' — ' + fix.request.split('\n')[0].slice(0, 90) + '\n\n' + fix.request.slice(0, 2000)
       + (rf.jira || rf.issue ? '\n\n' + [rf.jira ? 'Jira story: ' + rf.jira : '', rf.issue ? 'Issue: ' + rf.issue : ''].filter(Boolean).join('\n') : '')
-      + '\n\n(Build.Rite change ' + fix.id + ': asked by ' + (fix.by || 'someone') + ', proposed by ' + (fix.provider || 'AI') + ' in Code fix, approved and applied by ' + (fix.applied.by || 'the user') + '.)');
+      + '\n\n(Code fix change ' + fix.id + ': asked by ' + (fix.by || 'someone') + ', proposed by ' + (fix.provider || 'AI') + ' in Code fix, approved and applied by ' + (fix.applied.by || 'the user') + '.)');
     const add = await git(f, ['add', '--'].concat(fix.files));
     if (add.code !== 0) return no('git add failed: ' + add.stderr.trim());
     const c = await git(f, ['commit', '-m', msg, '--'].concat(fix.files));

@@ -91,7 +91,7 @@ function mergeCatalog(oursText, theirsText, sheetOf) {
 function open(opts) {
   const o = opts || {};
   const root = path.resolve(o.root || path.join(__dirname, '..', '..'));
-  // the code read: root — or, when the desktop app says so (o.rootFn: Build.Rite's workspace on this PC), that folder (its
+  // the code read: root — or, when the desktop app says so (o.rootFn: a workspace on this PC), that folder (its
   // working folder); the data (sheets, screenshots, stories) stay where they are
   const rootNow = () => { let r = ''; try { r = typeof o.rootFn === 'function' ? str(o.rootFn()) : ''; } catch (e) { r = ''; } return r ? path.resolve(r) : root; };
   // whose data: this project's (resources/pages/…), or — reading a VB Studio project (o.spaceFn: '<org>_<project>') — that

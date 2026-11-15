@@ -1,7 +1,7 @@
 define([], function () {
   'use strict';
 
-  // Issues (Build.Rite's Issues screen; desktop/lib/issues.js does the work): log, write up, analyze, approve, apply,
+  // Issues (the Issues screen; desktop/lib/issues.js does the work): log, write up, analyze, approve, apply,
   // close. The local server only (/__issues/*, X-EquipRite-Issues): the desktop app. Each call resolves
   // { ok, status, body } and never throws.
   function call(path, method, body) {

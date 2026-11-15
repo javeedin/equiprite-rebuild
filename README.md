@@ -12,6 +12,8 @@ The visual application holds two web apps that share `services/` and therefore t
 - **New EquipRite** (`webApps/equiprite/`): the Redwood redesign from `docs/redesign/` (FDD summary and
   wireframes). It is built screen by screen; a screen not rebuilt yet opens in the old app.
 
+Build.Rite, the team's tools for VB Studio projects, is now its own app: https://github.com/javeedin/vbsbuild.rite
+
 ## Run it locally
 
 Oracle's build tooling and the Redwood runtime load from Oracle's public CDN, so the machine needs internet
@@ -37,32 +39,6 @@ its stored credential. The desktop window asks who you are on first start, and w
 EquipRite. See [`desktop/README.md`](desktop/README.md) for how it works and what each backend gets.
 
 `npm run serve` serves Old EquipRite. For New EquipRite in a browser use `EQP_WEBAPP=equiprite npm run serve`.
-
-### Run any VB app from its own folder
-
-Your Build.Rite workspace's working copy, or any other VB Studio app on this PC, can run straight from its folder,
-without opening Build.Rite. It is built with this project's build tool from a copy of the folder; in the copy its
-Component Exchange list is emptied, so the components load from Oracle's CDN. The folder itself is never changed.
-It is served at one address with its backends forwarded, and it is built again each time you save a file there:
-reload the page to see the change.
-
-```bash
-# from the app's own folder (VS Code's terminal too):
-node C:\path\to\equiprite-rebuild\tools\run-vb-app.js
-
-# or from this folder, naming the app's folder:
-npm run vb -- C:\path\to\workspace\working
-```
-
-Options: `--app <name>` picks the app when the folder has several; `--port <n>` changes the port (8890 by default);
-`--open` opens it in your browser.
-
-Who the app runs as: `--user <name> --roles RT_EQP_ADMINISTRATOR` (one or more of `RT_EQP_ADMINISTRATOR`,
-`RT_EQP_MANAGER`, `RT_EQP_REQUESTOR`, `RT_EQP_INSPECTION`, `RT_EQP_TIMEKEEPER`, `RT_EQP_TIME_APPROVER`, `RT_EQP_FINANCE`,
-`RT_EQP_EXTERNAL_REQUESTOR`, comma separated). The roles are answered on this PC. `EQP_USER` and `EQP_ROLES` work too,
-as with `npm run serve`; `EQP_FUSION_USER` and `EQP_FUSION_PASSWORD` read the user's own roles from Fusion instead.
-Without a user it runs anonymous, and pages that need access stay hidden. With a user but no roles, the app says
-"You don't have access"; the command warns before that happens.
 
 ## Layout
 

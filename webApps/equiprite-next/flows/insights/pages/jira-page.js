@@ -19,7 +19,7 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/test
       if (Recorder && typeof Recorder.onChange === 'function') Recorder.onChange('jira-page', () => { if (helper) helper.fireCustomEvent('evidenceChanged', {}); });
       // Escape closes the item's drawer (resources/js/jiraStoryPanel.js).
       Panel.closeOnEscape();
-      // Build.Rite's Jira updates bell hands this screen a story (bus.focus('jira', { key })): its drawer opens
+      // another screen hands this screen a story (bus.focus('jira', { key })): its drawer opens
       if (bus && typeof bus.onFocus === 'function') bus.onFocus('jira', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
       // On the desktop app, when Whisper is not set up yet, offer to set it up once (so a test can be transcribed later).
       if (Recorder && typeof Recorder.maybePromptSetup === 'function') { Recorder.maybePromptSetup().catch(() => {}); }

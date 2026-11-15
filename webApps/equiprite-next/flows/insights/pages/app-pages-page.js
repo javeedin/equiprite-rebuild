@@ -45,7 +45,7 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       bus.onFocus('app-pages', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
       fireImages = () => { if (helper) helper.fireCustomEvent('fixImages', {}); };
-      // Build.Rite: the build in scope changed in the top bar: the list shows that build
+      // the app in scope changed (shellBus): the list shows that app
       bus.onScope('app-pages', () => { if (helper) helper.fireCustomEvent('scopeChanged', {}); });
       listenForImages();
       // the maps' lines follow the boxes: drawn again when the window changes size
@@ -95,7 +95,7 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
       if (i.workspace) return 'Your workspace ' + i.workspace.label + ' — its working folder, branch ' + (i.branch || i.workspace.branch) + '. Changes stay on this PC until Apply to main, then Push, in its project\'s tab.';
       return (i.branch ? 'branch ' + i.branch + (i.upstream ? ' → ' + i.upstream : ' (not pushed anywhere)') : '') + (i.isDefault ? ' · the project this app runs from' : '');
     }
-    // a change to your workspace (Build.Rite): written, checked and committed in its working folder only, never pushed from here
+    // a change to a workspace (when the desktop app reads one): written, checked and committed in its working folder only, never pushed from here
     fixInWs(f) { return !!(f && f.workspace); }
     // the Jira story and the issue the change is for; the change notes written into the code with it
     fixRefsText(f) { const r = (f && f.refs) || {}, i = (f && f.issue) || {}; const jira = i.jira || r.jira, iss = i.number || r.issue; return [jira ? 'Jira story ' + jira : '', iss ? 'Issue ' + iss : ''].filter(Boolean).join(' · '); }

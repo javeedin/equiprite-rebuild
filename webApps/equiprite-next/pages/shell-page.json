@@ -18,28 +18,6 @@
       "type": "string",
       "defaultValue": ""
     },
-    "jiraOpen": { "type": "boolean", "defaultValue": false, "description": "Build.Rite: the Jira updates panel is open." },
-    "jiraEvents": { "type": "any[]", "defaultValue": [], "description": "What changed in Jira lately (resources/js/jiraFeed.js): new stories, status changes, assignments, comments…" },
-    "jiraBusy": { "type": "boolean", "defaultValue": false },
-    "jiraError": { "type": "string", "defaultValue": "" },
-    "jiraAt": { "type": "string", "defaultValue": "", "description": "When Jira was last read (HH:MM)." },
-    "jiraDays": { "type": "number", "defaultValue": 2, "description": "How many days back: 1, 2 or 7." },
-    "jiraKind": { "type": "string", "defaultValue": "all", "description": "Which updates: all, mine, new, status, assign, comment, priority, sprint, attach, edit." },
-    "jiraSeen": { "type": "string", "defaultValue": "", "description": "When the panel was last opened (kept on this PC): what came after is new." },
-    "jiraNew": { "type": "number", "defaultValue": 0, "description": "How many updates came since it was last opened (the bell's count)." },
-    "workRunProg": { "type": "boolean", "defaultValue": false, "description": "Build.Rite: what ▶ Run is doing, step by step, shown under it (a few seconds after, too)." },
-    "workRunning": { "type": "boolean", "defaultValue": false, "description": "Build.Rite: ▶ Run is building your workspace's app and opening it in a window of its own." },
-    "workMenu": { "type": "boolean", "defaultValue": false, "description": "Build.Rite: the workspace's menu is open (open its project, set up another, stop using it, remove it)." },
-    "work": {
-      "type": "any",
-      "defaultValue": null,
-      "description": "Build.Rite: the working copy — the VB Studio project ▸ workspace cloned on this PC (desktop/lib/vbs.js work())."
-    },
-    "scope": {
-      "type": "string",
-      "defaultValue": "",
-      "description": "Build.Rite: the build in scope ('' for all; an app id), chosen in the top bar (resources/js/shellBus.js)."
-    },
     "navCollapsed": {
       "type": "boolean",
       "defaultValue": false,
@@ -227,7 +205,7 @@
       "type": "string",
       "defaultValue": "",
       "input": "fromUrl",
-      "description": "Deep link: ?open=<menu id> opens that screen; ?open=request&id=\u2026&number=\u2026 opens a record."
+      "description": "Deep link: ?open=<menu id> opens that screen; ?open=request&id=…&number=… opens a record."
     },
     "id": {
       "type": "string",
@@ -296,14 +274,6 @@
           "chain": "themeChain"
         },
         {
-          "chain": "scopeChain",
-          "parameters": { "app": "{{ '?' }}" }
-        },
-        {
-          "chain": "jiraFeedChain",
-          "parameters": { "act": "{{ 'init' }}", "key": "{{ '' }}" }
-        },
-        {
           "chain": "lookChain"
         },
         {
@@ -325,18 +295,6 @@
       "chains": [
         {
           "chain": "loadAlertsChain"
-        },
-        {
-          "chain": "jiraFeedChain",
-          "parameters": { "act": "{{ 'refresh' }}", "key": "{{ '' }}" }
-        }
-      ]
-    },
-    "onJira": {
-      "chains": [
-        {
-          "chain": "jiraFeedChain",
-          "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" }
         }
       ]
     },
@@ -354,30 +312,6 @@
           "parameters": {
             "navId": "{{ $event.currentTarget.dataset.navId }}"
           }
-        }
-      ]
-    },
-    "onWorkAct": {
-      "chains": [
-        {
-          "chain": "workChain",
-          "parameters": { "act": "{{ $event.currentTarget.dataset.act }}" }
-        }
-      ]
-    },
-    "onWork": {
-      "chains": [
-        {
-          "chain": "workChain",
-          "parameters": { "act": "open" }
-        }
-      ]
-    },
-    "onScope": {
-      "chains": [
-        {
-          "chain": "scopeChain",
-          "parameters": { "app": "{{ $event.currentTarget.dataset.scope }}" }
         }
       ]
     },

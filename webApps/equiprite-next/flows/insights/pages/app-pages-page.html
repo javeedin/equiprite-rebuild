@@ -6,42 +6,16 @@
     <div>
       <div class="nx-kicker">Insights · Code</div>
       <h1 id="pgTitle">Application pages</h1>
-      <div class="nx-sub" id="pgSub"><oj-bind-text value="[[ $variables.noWorkspace ? 'No workspace set up: the pages of your workspace show here.' : $functions.subText($variables.pages) ]]"></oj-bind-text></div>
-      <oj-bind-if test="[[ !!$variables.codeFrom ]]">
-        <div class="nx-pg-codefrom" id="pgCodeFrom"><span class="oj-ux-ico-folder" aria-hidden="true"></span>
-          <span><oj-bind-text value="[[ 'Your workspace: ' + $variables.codeFrom.source ]]"></oj-bind-text></span></div>
-        <div class="nx-pg-codepath" id="pgCodePath"><span class="nx-pg-codepath-l">Working folder</span><code id="pgCodeRoot"><oj-bind-text value="[[ $variables.codeFrom.root ]]"></oj-bind-text></code>
-          <button type="button" class="nx-pg-codecopy" id="pgCodeCopy" data-act="copyPath" on-click="[[ $listeners.onAct ]]" aria-label="Copy the working folder's path"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy</button>
-          <!-- ▶ Run: this working folder's app (built when its code changed) in a window of its own — as the top bar's Run -->
-          <button type="button" :class="[[ 'nx-pg-coderun' + ($variables.runBusy ? ' nx-pg-coderun--busy' : '') ]]" id="pgRunWs" data-act="runWs" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.runBusy ]]"
-            title="Run this working folder's app in a window of its own — built when its code changed: your changes, running">
-            <oj-bind-if test="[[ $variables.runBusy ]]"><span class="nx-spin nx-spin--btn" aria-hidden="true"></span></oj-bind-if><oj-bind-if test="[[ !$variables.runBusy ]]"><span aria-hidden="true">▶</span></oj-bind-if>
-            <oj-bind-text value="[[ $variables.runBusy ? 'Building…' : 'Run' ]]"></oj-bind-text></button></div>
-        <!-- what Build.Rite is doing while it builds and runs your workspace's app (runProgressView.js) -->
-        <oj-bind-if test="[[ $variables.runProgShown ]]">
-          <div class="nx-runprog-wrap"><div class="nx-runprog" id="pgRunProg" aria-live="polite"></div><button type="button" class="nx-runprog-x" id="pgRunProgClose" data-act="runProgClose" on-click="[[ $listeners.onAct ]]" aria-label="Close what it did" title="Close">×</button></div>
-        </oj-bind-if>
-        <div class="nx-pg-codenote" id="pgCodeNote">This project's sheets, screenshots and Jira stories are its own — kept apart from Build.Rite's (Old EquipRite…).</div>
-      </oj-bind-if>
+      <div class="nx-sub" id="pgSub"><oj-bind-text value="[[ $functions.subText($variables.pages) ]]"></oj-bind-text></div>
     </div>
     <div class="nx-actions">
-      <oj-bind-if test="[[ $variables.info.canWrite && !$variables.noWorkspace ]]">
+      <oj-bind-if test="[[ $variables.info.canWrite ]]">
         <button type="button" class="nx-btn nx-btn--plain" id="pgRescan" data-act="rescan" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Read the project's pages again (new pages, current names) and save the list to git"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Rescan the code</button>
       </oj-bind-if>
       <button type="button" class="nx-btn nx-btn--plain" id="pgRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
     </div>
   </div>
 
-  <!-- Build.Rite with no workspace set up: nothing to show (only a workspace's working folder is read) -->
-  <oj-bind-if test="[[ $variables.noWorkspace ]]">
-    <div class="nx-card nx-pg-nows" id="pgNoWorkspace">
-      <span class="nx-pg-nows-ico oj-ux-ico-folder" aria-hidden="true"></span>
-      <h2>No workspace set up</h2>
-      <p>Application pages shows the pages of your workspace — the code in its working folder on this PC. Set one up (a VB Studio workspace and a folder), and its pages show here.</p>
-      <button type="button" class="nx-btn nx-btn--primary" id="pgSetupWs" data-act="setupWs" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-settings" aria-hidden="true"></span>Set up your workspace</button>
-    </div>
-  </oj-bind-if>
-  <oj-bind-if test="[[ !$variables.noWorkspace ]]">
   <div class="nx-flib-git" id="pgGit">
     <span class="oj-ux-ico-branch nx-flib-gitico" aria-hidden="true"></span>
     <div class="nx-flib-gittext">
@@ -264,7 +238,7 @@
                       <span class="nx-note" id="pgCodeAt"><oj-bind-text value="[[ $functions.codeAtText($variables.codeMarks, $variables.codeAt) ]]"></oj-bind-text></span>
                     </oj-bind-if>
                     <span class="nx-min-flex"></span>
-                    <span class="nx-cv-legend" aria-label="The colours"><i class="nx-cv-lg nx-cv-lg--a"></i>added <i class="nx-cv-lg nx-cv-lg--m"></i>changed <i class="nx-cv-lg nx-cv-lg--d"></i>taken away<oj-bind-if test="[[ $functions.codeHasNotes($variables.codeText) ]]"> <i class="nx-cv-lg nx-cv-lg--n"></i>Build.Rite note</oj-bind-if></span>
+                    <span class="nx-cv-legend" aria-label="The colours"><i class="nx-cv-lg nx-cv-lg--a"></i>added <i class="nx-cv-lg nx-cv-lg--m"></i>changed <i class="nx-cv-lg nx-cv-lg--d"></i>taken away<oj-bind-if test="[[ $functions.codeHasNotes($variables.codeText) ]]"> <i class="nx-cv-lg nx-cv-lg--n"></i>Code fix note</oj-bind-if></span>
                   </div>
                 </oj-bind-if>
                 <iframe class="nx-cv-frame" id="pgCodeFrame" title="The file's code, read only" sandbox="allow-same-origin" :srcdoc="[[ $functions.codeDoc($variables.codeText, $variables.codeSel, $variables.codeFind, $variables.codeMarks, $variables.codeAt) ]]"></iframe>
@@ -479,7 +453,7 @@
                           <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="fxPush" data-act="push" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]"><span class="oj-ux-ico-upload" aria-hidden="true"></span>Commit &amp; push</button>
                         </oj-bind-if>
                         <oj-bind-if test="[[ $functions.fixInWs($variables.fix) ]]">
-                          <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="fxSaveWork" data-act="commit" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]" title="A commit in your workspace's working folder (branch buildrite-working), on this PC only"><span class="oj-ux-ico-save" aria-hidden="true"></span>Save in working</button>
+                          <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="fxSaveWork" data-act="commit" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]" title="A commit in your workspace's working folder (its own branch), on this PC only"><span class="oj-ux-ico-save" aria-hidden="true"></span>Save in working</button>
                         </oj-bind-if>
                       </div>
                     </oj-bind-if>
@@ -689,7 +663,7 @@
     </section>
   </div>
 
-  </oj-bind-if>
+  
 
   <!-- A Code fix screenshot, full size (a pasted one, or one sent with a fix) -->
   <dialog class="nx-pg-dialog" id="fxImgDlg" aria-label="Screenshot" on-close="[[ $listeners.onFixImgClosed ]]" on-click="[[ $listeners.onFixImgClick ]]">

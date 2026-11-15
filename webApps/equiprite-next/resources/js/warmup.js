@@ -6,11 +6,9 @@ define(['require'], function (require) {
   // first screen is shown, while nothing else happens (idle time), they are loaded one by one in the background: by the
   // time a tab is opened its components are ready, and it opens at once. Nothing is shown or changed.
   //
-  // The lists: the components the screens of each product import (their page.json imports). tests/next-warmup.test.js
-  // checks that every component a Build.Rite screen imports is here.
+  // The list: the components EquipRite Next's screens import (their page.json imports). tests/next-warmup.test.js
+  // checks it.
   var LISTS = {
-    buildrite: ['ojs/ojtable', 'oj-sp/smart-search/loader', 'oj-sp/collection-container/loader', 'oj-sp/smart-search-page/loader', 'oj-c/button',
-      'oj-sp/general-overview-page/loader', 'ojs/ojinputtext', 'ojs/ojdrawerpopup', 'oj-sp/general-drawer-template/loader', 'oj-sp/messages-banner/loader', 'oj-c/input-text'],
     next: ['oj-sp/general-overview-page/loader', 'ojs/ojtable', 'oj-sp/smart-search/loader', 'oj-sp/collection-container/loader', 'oj-sp/smart-search-page/loader', 'oj-c/button',
       'ojs/ojinputtext', 'ojs/ojdrawerpopup', 'oj-sp/general-drawer-template/loader', 'oj-sp/messages-banner/loader', 'oj-c/input-text']
   };

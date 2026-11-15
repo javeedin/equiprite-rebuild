@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Change notes: a comment Build.Rite writes into the code beside each change it makes (Code fix, an issue's fix), so
+ * Change notes: a comment Code fix writes into the code beside each change it makes (Code fix, an issue's fix), so
  * whoever reads the code later sees why it is so — what was asked, who asked and when, who changed it (approved and
  * applied) and when, the issue and the Jira story, the change's id (its history in Code fix → Change history).
  *
@@ -13,7 +13,7 @@
  *   - CSS: a block comment before the change.
  *   - JSON has no comments: never touched (the page's HTML or JS note names those files instead: meta.also).
  * The first change in a file gets the whole note; each other one, a line pointing to it. After each change, where a comment
- * may stand, a line closes it ("end of Build.Rite change fx…"): the change is bracketed, easy to see in any editor (VB
+ * may stand, a line closes it ("end of Code fix change fx…"): the change is bracketed, easy to see in any editor (VB
  * Studio's too) — for a change inside a tag, after the line the tag ends on. ops(a, b) (lines → [[' '|'-'|'+', line]])
  * finds the changes; without it, one span from the first to the last line that differs.
  *
@@ -37,10 +37,10 @@ const oneLine = (s, max) => { const t = str(s).replace(/\s+/g, ' ').trim(); retu
 /** The note's lines (no comment marks): the whole note, or the line pointing to it. */
 function lines(meta, short) {
   const m = meta || {};
-  if (short) return ['Build.Rite change ' + str(m.id) + ' (continued — see its note above): ' + oneLine(m.request, 90)];
+  if (short) return ['Code fix change ' + str(m.id) + ' (continued — see its note above): ' + oneLine(m.request, 90)];
   const by = (who, at) => (str(who) || 'someone') + (when(at) ? ' on ' + when(at) : '');
   const out = [
-    'Build.Rite change ' + str(m.id) + (m.page ? ' — ' + oneLine(m.page, 60) : ''),
+    'Code fix change ' + str(m.id) + (m.page ? ' — ' + oneLine(m.page, 60) : ''),
     'Request:      ' + oneLine(m.request, 160) + (m.kind ? ' (' + oneLine(m.kind, 20) + ')' : ''),
     'Requested by: ' + by(m.askedBy, m.askedAt),
     'Changed by:   ' + by(m.changedBy, m.changedAt) + (m.how ? ' — ' + oneLine(m.how, 90) : ''),
@@ -202,7 +202,7 @@ function annotate(rel, oldText, newText, meta, ops) {
   places.forEach((pl, k) => {
     ins.push({ line: pl.line, order: 0, lines: comment(lines(meta, k > 0), pl.style, indentOf(pl.line)) });
     const next = places[k + 1];
-    if (pl.end !== -1 && (!next || pl.end <= next.line)) ins.push({ line: pl.end, order: 1, lines: comment(['end of Build.Rite change ' + str(meta && meta.id)], pl.endStyle, indentOf(pl.line)) });
+    if (pl.end !== -1 && (!next || pl.end <= next.line)) ins.push({ line: pl.end, order: 1, lines: comment(['end of Code fix change ' + str(meta && meta.id)], pl.endStyle, indentOf(pl.line)) });
   });
   ins.sort((a, b) => b.line - a.line || a.order - b.order);
   const out = L.slice();

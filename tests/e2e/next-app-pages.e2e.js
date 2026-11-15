@@ -282,8 +282,8 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     const src = (await page.getAttribute('#pgCodeFrame', 'srcdoc')) || '';
     T.check('…the code with line numbers and colours (tags, bindings), read only (the code fix just made is there)', /class="l[^"]*" id="L1"/.test(src) && /class="g"/.test(src) && /class="b"/.test(src) && /Overdue invoices are shown first/.test(src)
       && /Read only/.test(await text(page, '#pgCodeView')) && (await page.getAttribute('#pgCodeFrame', 'sandbox')) === 'allow-same-origin');
-    T.check('…its change note at the top, tinted (a Build.Rite note); pushed, so no change since the remote', /class="l bn" id="L1"><span class="n">1<\/span><span class="t"><span class="c">&lt;!-- Build\.Rite change fx/.test(src)
-      && /end of Build\.Rite change fx/.test(src) && (await text(page, '#pgCodeChg')) === 'No change since origin/pages/test' && !(await page.$('#pgCodeNext')), await text(page, '#pgCodeChg'));
+    T.check('…its change note at the top, tinted (a Code fix note); pushed, so no change since the remote', /class="l bn" id="L1"><span class="n">1<\/span><span class="t"><span class="c">&lt;!-- Code fix change fx/.test(src)
+      && /end of Code fix change fx/.test(src) && (await text(page, '#pgCodeChg')) === 'No change since origin/pages/test' && !(await page.$('#pgCodeNext')), await text(page, '#pgCodeChg'));
     await page.fill('#pgCodeFind', 'oj-bind');
     await settle(page, 300);
     T.check('find: the matches counted and marked', /^\d+ match(es)?$/.test(await text(page, '#pgCodeHits')) && /<mark id="hit" class="first">/.test((await page.getAttribute('#pgCodeFrame', 'srcdoc')) || ''), await text(page, '#pgCodeHits'));

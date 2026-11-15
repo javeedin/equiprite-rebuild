@@ -15,12 +15,10 @@
   },
   "scripts": {
     "test": "node tests/run-all.js",
-    "test:electron": "electron tests/electron/vbs-page.electron.js",
     "build": "node tools/check-tools.js && grunt vb-clean vb-process-local",
     "serve": "npm run build && node desktop/lib/devserver.js",
     "desktop": "node tools/get-electron.js && electron desktop",
     "desktop:fresh": "npm run build && node tools/get-electron.js && electron desktop",
-    "vb": "node tools/run-vb-app.js",
     "fdd": "node tools/fdd.js"
   },
   "dependencies": {

@@ -203,53 +203,20 @@ async function fddStore() {
   if (!fddStoreInst) fddStoreInst = require('./lib/fdd').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git' });
   return fddStoreInst;
 }
-// Which product a call came from. The stores below are shared by every product's server; Build.Rite's server is given
-// them through forProduct, so its calls (and all they start) carry 'build' and follow your workspace — its working
-// folder — while EquipRite Next's calls never do (they read and change this project, as always).
-const productScope = new (require('async_hooks').AsyncLocalStorage)();
-const inBuild = () => productScope.getStore() === 'build';
-function forProduct(store, v) {
-  if (!store || v !== 'build') return store;
-  return new Proxy(store, { get(t, k) { const x = t[k]; return typeof x === 'function' ? function () { const a = arguments; return productScope.run(v, () => x.apply(t, a)); } : x; } });
-}
-// Your workspace set up on this PC (Build.Rite's top bar), for a Build.Rite call; else null
-function buildWorkspace() {
-  if (!inBuild()) return null;
-  try { const c = vbsStoreInst && vbsStoreInst.work().current; return c && c.exists ? c : null; } catch (e) { return null; }
-}
 // The Application pages catalog (lib/pages.js), shared through git (the data branch). Its screenshots: the page opened
 // in a hidden window of this app — the same sign-in and the same live data as you see — and captured once it has settled.
 let pagesStoreInst = null;
 async function pagesStore() {
   if (!pagesStoreInst) {
-    // the code: your workspace's working folder when one is set up (Build.Rite's top bar), else this project
-    const current = buildWorkspace;
     pagesStoreInst = require('./lib/pages').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git',
-      // a screenshot: in your workspace, of its working folder's code (built beside it and served: lib/workPreview.js),
-      // else of this app's own copy
-      capture: async (app, url) => {
-        const c = current();
-        if (!c) return capturePage(app, url);
-        const p = await buildWorkspace(c, app, 'Capture screenshot');
-        if (!p.ok) return { ok: false, error: p.error };
-        return Object.assign(await capturePage(app, url, p.url), { from: 'workspace', built: p.built });
-      },
-      // Run it: the page in a window of its own — your workspace's build, or this app's own copy
+      capture: capturePage,
+      // Run it: the page in a window of its own, from this app's own copy
       run: async (app, url) => {
-        const c = current();
-        if (!c) { const u = appUrlOf(app); if (!u) return { ok: false, error: 'The app is not running in Build.Rite: build it (npm run build), then try again.' }; openAppWindow(u + url, 'EquipRite'); return { ok: true, url: u + url, from: '' }; }
-        const p = await buildWorkspace(c, app, 'Run it');
-        if (!p.ok) return { ok: false, error: p.error };
-        progStep({ key: 'open', state: 'done', text: 'opened ' + p.url + url });
-        openRunWindow(p.url + url, 'Your workspace — ' + c.projectName + ' ▸ ' + c.workspace + ' (' + app + ')');
-        return { ok: true, url: p.url + url, from: 'workspace', built: p.built, builtAt: p.builtAt };
-      },
-      rootFn: () => { const c = current(); return c ? c.working : ''; },
-      rootLabel: () => { const c = current(); return c ? c.projectName + ' ▸ ' + c.workspace + ' (' + c.branch + ')' : ''; },
-      // its sheets, screenshots and stories: that VB Studio project's own (all its workspaces share them), not this project's
-      spaceFn: () => { const c = current(); return c ? String(c.orgKey).split('/').pop() + '_' + c.project : ''; },
-      // Page code marks what changed against what VB Studio has: the workspace's branch, as last fetched from VB Studio
-      baseFn: () => { const c = current(); return c && c.branch ? { ref: 'origin/' + c.branch, label: 'VB Studio (' + c.branch + ')' } : null; } });
+        const u = appUrlOf(app);
+        if (!u) return { ok: false, error: 'That app is not running here: build it (npm run build), then try again.' };
+        openAppWindow(u + url, 'EquipRite');
+        return { ok: true, url: u + url, from: '' };
+      } });
   }
   return pagesStoreInst;
 }
@@ -259,8 +226,7 @@ async function appServerOptions(v) {
   return {
     getIdentity: () => identity,
     getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '', next: servers.next ? urlOf('next') : '',
-      mobile: servers.mobile ? urlOf('mobile') : '', future: servers.future ? urlOf('future') : '', build: servers.build ? urlOf('build') : '' }),
-    product: VERSIONS[v].product,
+      mobile: servers.mobile ? urlOf('mobile') : '', future: servers.future ? urlOf('future') : '' }),
     getPhone: phoneLinks,
     // EquipRite Future keeps its demo story in DuckDB in this app's data folder (survives restarts and rebuilds).
     futureStore: v === 'future' ? await futureStore() : undefined,
@@ -282,27 +248,13 @@ async function appServerOptions(v) {
     // Saved AI analyses: each run kept on this PC, so an analysis opens without asking the AI again
     analysisStore: nextLike(v) ? analysisStore() : undefined,
     // The Application pages catalog: technical sheets of the VB pages and the Jira stories mapped to them, in git
-    pagesStore: nextLike(v) ? forProduct(await pagesStore(), v) : undefined,
+    pagesStore: nextLike(v) ? await pagesStore() : undefined,
     // Code Fix: AI-proposed changes to a page, applied to the code only when approved
-    fixStore: nextLike(v) ? forProduct(await fixStore(), v) : undefined,
-    // Issues (Build.Rite): issue → AI write-up and analysis → approval → the agent's branch and pull request
-    issuesStore: nextLike(v) ? forProduct(await issuesStore(), v) : undefined,
+    fixStore: nextLike(v) ? await fixStore() : undefined,
+    // Issues: issue → AI write-up and analysis → approval → the agent's branch and pull request
+    issuesStore: nextLike(v) ? await issuesStore() : undefined,
     // The API tester: a page's REST calls and reports, tried against the real backend
     apiStore: nextLike(v) ? apiStore() : undefined,
-    // Setup → Organizations & projects (Build.Rite): VB Studio organizations and projects
-    vbsStore: v === 'build' ? vbsStore() : undefined,
-    vbsFind: v === 'build' ? openVbsFinder : undefined,
-    vbsOpenPath: v === 'build' ? (p) => shell.openPath(p) : undefined,
-    vbsRun: v === 'build' ? runWorkspaceApp : undefined, // ▶ Run: your workspace's app, in a window of its own
-    // the Run console (Build.Rite → Run console): its lines, its commands, who the app runs as
-    vbsConsole: v === 'build' ? { lines: (after) => runConsoleInst.lines(after), command: (t) => runConsoleInst.command(t, consoleDoes), status: () => consoleStatus(false), clear: () => runConsoleInst.clear(),
-      progress: () => Object.assign({ ok: true }, runProg),
-      runAs: async (b) => { const r = await consoleDoes.runAs(b && b.user != null ? String(b.user) : '', Array.isArray(b && b.roles) ? b.roles : []); cpush(r.ok ? 'info' : 'error', r.text); return Object.assign(consoleStatus(false), { ok: r.ok, text: r.text }); } } : undefined,
-    vbsPickFolder: v === 'build' ? async (start) => {
-      const w = BrowserWindow.getFocusedWindow();
-      const r = await dialog.showOpenDialog(w && !w.isDestroyed() ? w : undefined, { title: 'Where your workspace goes (Build.Rite makes its folder inside)', defaultPath: start || undefined, properties: ['openDirectory', 'createDirectory'] });
-      return r.canceled ? '' : (r.filePaths[0] || '');
-    } : undefined,
     backendOverrides: backendOverridesFromEnv(process.env),
     onLog: pushLog,
     onProblem: backendProblem,
@@ -312,256 +264,12 @@ async function appServerOptions(v) {
 // and stores — on a free port of this PC, so the fix can be run and the page checked before anyone approves it.
 async function serveSandbox(s) {
   const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === s.webApp && !VERSIONS[k].product)[0] || 'old';
-  const srv = await createDevServer(Object.assign(await appServerOptions(v), { buildDir: s.buildDir, repoRoot: s.dir, webApp: s.webApp, port: 0, product: undefined }));
+  const srv = await createDevServer(Object.assign(await appServerOptions(v), { buildDir: s.buildDir, repoRoot: s.dir, webApp: s.webApp, port: 0 }));
   pushLog(`${new Date().toTimeString().slice(0, 8)} sandbox ${path.basename(s.dir)}: ${VERSIONS[v].label} served at ${srv.url}`);
   return srv;
 }
-// The Run console (lib/runConsole.js; Build.Rite → Run console): the build tool's output, the requests the workspace's app
-// makes of its local server, the app window's own console, where it went — and commands (run, build, reload, devtools,
-// git status…), each done here: nothing typed is run as a program
-const runConsoleInst = require('./lib/runConsole').open();
-const cpush = (kind, text) => { try { runConsoleInst.push(kind, text); } catch (e) { /* no console */ } };
-// Building your workspace's app, step by step, for the screens to show (GET /__vbs/run/progress): what it is doing — check
-// for changes, copy the working folder, prepare the copy, build with Oracle's VB build tool, start the app's server, open
-// its window — each step's state and what it did, the build tool's last lines, how long
-const STEP_LABEL = { check: 'Check for changes', copy: 'Copy the working folder', prepare: 'Prepare the copy', build: 'Build — Oracle\'s VB build tool', serve: 'Start the app\'s server', open: 'Open the app\'s window' };
-let runProg = { running: false, steps: [], tail: [] };
-function progStart(title, withOpen) {
-  runProg = { running: true, title: String(title || 'Build'), at: new Date().toISOString(), end: '', ok: null, text: '', tail: [],
-    steps: ['check', 'copy', 'prepare', 'build', 'serve'].concat(withOpen ? ['open'] : []).map((k) => ({ key: k, label: STEP_LABEL[k], state: 'todo', text: '' })) };
-}
-function progStep(s) {
-  let x = runProg.steps.filter((p) => p.key === s.key)[0];
-  if (!x) { x = { key: s.key, label: STEP_LABEL[s.key] || s.key }; runProg.steps.push(x); }
-  x.state = s.state; x.text = s.text || '';
-  if (s.state === 'running') x.at = new Date().toISOString(); else x.end = new Date().toISOString();
-  if (s.state !== 'running') cpush(s.state === 'failed' ? 'error' : 'info', (STEP_LABEL[s.key] || s.key) + ': ' + (s.text || s.state));
-  if (s.key === 'open' && s.state !== 'running') runProg.running = false; // its window open: the run is over
-}
-function progEnd(ok, text) { runProg.running = false; runProg.ok = !!ok; runProg.end = new Date().toISOString(); runProg.text = String(text || ''); }
-/** Your workspace built (when its code changed) and its app served, its steps shown as they go. */
-async function buildWorkspace(c, app, title) {
-  progStart(title, /Run|run /.test(String(title)));
-  const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: app });
-  progEnd(p.ok, p.ok ? (p.built ? 'built in ' + (Math.round((p.ms || 0) / 100) / 10) + ' s' : 'no change since its last build') : p.error);
-  if (p.ok && runProg.steps.some((x) => x.key === 'open')) runProg.running = true; // until its window opens
-  setTimeout(() => { runProg.running = false; }, 4000);
-  return p;
-}
-// Your workspace running in Build.Rite (lib/workPreview.js): its working folder built beside it (never inside it) with
-// this project's build tool, and served like the app — what Capture screenshot and Run it open in your workspace
-let workPreviewInst = null;
-function workPreview() {
-  if (!workPreviewInst) workPreviewInst = require('./lib/workPreview').open({ buildTool: REPO_ROOT, serve: serveWorkspace,
-    log: (l) => { try { pushLog(`${new Date().toTimeString().slice(0, 8)} ${l}`); } catch (e) { console.log(l); } cpush('info', l); },
-    onLine: (l) => { cpush('build', l); if (String(l).trim()) { runProg.tail.push(String(l).slice(0, 300)); if (runProg.tail.length > 10) runProg.tail.shift(); } },
-    onStep: progStep });
-  return workPreviewInst;
-}
-// Run as (Build.Rite → Run console): who your workspace's app runs as when Build.Rite runs it (▶ Run, Run it, Capture) —
-// a user and roles answered on this PC (RT_EQP_…; no password: run-as.json in this app's data folder). None chosen: the
-// EquipRite sign-in (File → Sign in as…), else anonymous. Read on each request, so a change shows on the next reload.
-let runAsMem = null;
-const runAsFile = () => path.join(app.getPath('userData'), 'run-as.json');
-function runAsNow() {
-  if (!runAsMem) { try { const j = JSON.parse(fs.readFileSync(runAsFile(), 'utf8')); runAsMem = { user: String(j.user || ''), roles: Array.isArray(j.roles) ? j.roles.map(String) : [] }; } catch (e) { runAsMem = { user: '', roles: [] }; } }
-  return runAsMem;
-}
-function setRunAs(user, roles) {
-  const KNOWN = require('./lib/devserver').KNOWN_ROLES;
-  const u = String(user || '').trim().slice(0, 120);
-  const rs = (roles || []).map((r) => String(r).trim().toUpperCase()).filter((r, i, a) => r && a.indexOf(r) === i);
-  const bad = rs.filter((r) => KNOWN.indexOf(r) === -1);
-  if (bad.length) return { ok: false, text: 'Not a role here: ' + bad.join(', ') + ' — the roles: ' + KNOWN.join(', ') };
-  if (u && !rs.length) return { ok: false, text: 'Give ' + u + ' at least one role (the app shows nothing to a user without one): ' + KNOWN.join(', ') };
-  if (!/^[\w.@\-]*$/.test(u)) return { ok: false, text: 'Not a user name: ' + u };
-  runAsMem = { user: u, roles: u ? rs : [] };
-  try { fs.mkdirSync(path.dirname(runAsFile()), { recursive: true }); fs.writeFileSync(runAsFile(), JSON.stringify(runAsMem, null, 1)); } catch (e) { /* this run only */ }
-  noAccessSeen = null;
-  return { ok: true, runAs: runAsMem };
-}
-/** Who the workspace's app runs as: Run as, else the EquipRite sign-in, else nobody (anonymous). */
-function workspaceIdentity() {
-  const r = runAsNow();
-  if (r.user) return { username: r.user, roles: r.roles.length ? r.roles : null, fusion: null };
-  return identity;
-}
-const whoIsIt = () => { const id = workspaceIdentity(); return !id || !id.username ? 'anonymous' : id.username + (id.roles ? ' (' + id.roles.join(', ') + ')' : ' (roles from Fusion)'); };
-// the app's window landed on its "You don't have access" page: noticed, said (console, its head, a notification)
-let noAccessSeen = null;
-function noticeNoAccess(url) {
-  if (!/\/no-access(?:[/?#]|$)/.test(String(url))) return;
-  noAccessSeen = { at: new Date().toISOString(), url: String(url), as: whoIsIt() };
-  cpush('error', 'The app says "You don\'t have access" — it runs as ' + noAccessSeen.as + '. Choose who it runs as: Run as, in the Run console (or type: as <user> RT_EQP_ADMINISTRATOR); the app\'s window reloads.');
-  try {
-    const { Notification } = require('electron');
-    if (Notification.isSupported()) {
-      const n = new Notification({ title: 'The app says you don\'t have access', body: 'It runs as ' + noAccessSeen.as + '. Choose a user and a role in Build.Rite → Run console → Run as.' });
-      n.on('click', () => { if (win && !win.isDestroyed()) { if (win.isMinimized()) win.restore(); win.focus(); } });
-      n.show();
-    }
-  } catch (e) { /* no notifications here */ }
-}
-// The workspace's app served like the app itself (as a sandbox is), its requests shown in the Run console too
-async function serveWorkspace(s) {
-  const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === s.webApp && !VERSIONS[k].product)[0] || 'old';
-  const srv = await createDevServer(Object.assign(await appServerOptions(v), { buildDir: s.buildDir, repoRoot: s.dir, webApp: s.webApp, port: 0, product: undefined,
-    getIdentity: () => workspaceIdentity(), // Run as, else the EquipRite sign-in
-    onLog: (l) => { pushLog(l); cpush(/FAILED|-> (4|5)\d\d/.test(String(l)) ? 'warn' : 'server', String(l).replace(/^\d\d:\d\d:\d\d /, '')); } }));
-  cpush('info', 'the app\'s local server: ' + srv.url + ' (' + s.webApp + ')');
-  return srv;
-}
-// ▶ Run (Build.Rite's top bar): your workspace's whole app, built from its working folder when its code changed, in a
-// window of its own; Run again (after more changes) builds again and reloads that same window
-let runWin = null;
-function openRunWindow(url, title) {
-  if (runWin && !runWin.isDestroyed()) {
-    runWin.setTitle(String(title || 'EquipRite'));
-    runWin.loadURL(url).catch(() => {});
-    if (runWin.isMinimized()) runWin.restore();
-    runWin.focus();
-    return runWin;
-  }
-  runWin = openAppWindow(url, title);
-  watchRunWindow(runWin);
-  return runWin;
-}
-/** The Run window, into the Run console: the app's own console messages, where it went, a page that did not load. */
-function watchRunWindow(w) {
-  if (!w || w.isDestroyed() || w.__buildRiteWatched) return;
-  w.__buildRiteWatched = true;
-  const wc = w.webContents;
-  wc.on('console-message', (e, level, message, line, sourceId) => {
-    // (Electron: level 0–3 and the rest as arguments; newer: on the event, the level as a word)
-    const lv = e && e.level != null ? e.level : level;
-    const msg = e && typeof e.message === 'string' ? e.message : message;
-    const src = String((e && e.sourceId) || sourceId || ''), ln = (e && e.lineNumber) || line || 0;
-    cpush(lv === 3 || lv === 'error' ? 'error' : (lv === 2 || lv === 'warning' ? 'warn' : 'app'), String(msg) + (src ? '   (' + src.split('/').slice(-2).join('/') + (ln ? ':' + ln : '') + ')' : ''));
-  });
-  wc.on('did-navigate', (e, url) => { cpush('nav', 'opened ' + url); noticeNoAccess(url); });
-  wc.on('did-navigate-in-page', (e, url) => { cpush('nav', '→ ' + String(url).replace(/^https?:\/\/[^/]+/, '')); noticeNoAccess(url); });
-  wc.on('did-fail-load', (e, code, desc, url) => { if (code !== -3) cpush('error', 'could not load ' + url + ': ' + desc + ' (' + code + ')'); });
-  wc.on('render-process-gone', (e, d) => cpush('error', 'the app\'s window stopped: ' + ((d && d.reason) || 'gone')));
-  w.on('closed', () => { cpush('info', 'the app\'s window was closed'); if (runWin === w) runWin = null; });
-}
-function currentWork() { try { const x = vbsStoreInst && vbsStoreInst.work().current; return x && x.exists ? x : null; } catch (e) { return null; } }
-function runAppOf(c) { const apps = appsIn(c.working); return apps.indexOf('vbredwoodapp') !== -1 ? 'vbredwoodapp' : apps[0]; }
-const runTitle = (c, app) => 'Working copy — ' + c.projectName + ' ▸ ' + c.workspace + ' (' + app + ')';
-/** Who the app runs as, the workspace, its build, its window: the Run console's head. */
-function consoleStatus(full) {
-  const c = currentWork();
-  const st = c ? workPreview().status(c.working, !full) : null;
-  const id = workspaceIdentity(), ra = runAsNow();
-  return { ok: true, signedInAs: id ? String(id.username || '') : '', roles: id && id.roles ? id.roles : null, by: ra.user ? 'run-as' : (identity ? 'sign-in' : ''),
-    runAs: ra, knownRoles: require('./lib/devserver').KNOWN_ROLES, noAccess: noAccessSeen,
-    workspace: c ? c.projectName + ' ▸ ' + c.workspace : '', working: c ? c.working : '', branch: c ? c.branch : '',
-    built: !!(st && st.built), builtAt: st ? st.builtAt : '', fresh: st ? st.fresh : null, building: !!(st && st.building), window: runWin && !runWin.isDestroyed() ? runWin.webContents.getURL() : '' };
-}
-const noWorkspace = () => ({ ok: false, text: 'No workspace is set up: set one up first (Workspace, in the top bar).' });
-// what each Run console command does (lib/runConsole.js parses them; nothing typed is run as a program)
-const consoleDoes = {
-  run: async (route) => {
-    if (!route) { const r = await runWorkspaceApp({}); return r.ok ? { ok: true, text: '▶ ' + r.app + ' running in its window at ' + r.url + (r.built ? ' (built just now, ' + (Math.round(r.ms / 100) / 10) + ' s)' : '') } : { ok: false, text: r.error }; }
-    const c = currentWork();
-    if (!c) return noWorkspace();
-    const app = runAppOf(c);
-    const p = await buildWorkspace(c, app, 'run ' + route);
-    if (!p.ok) return { ok: false, text: p.error };
-    progStep({ key: 'open', state: 'done', text: 'opened ' + p.url + route });
-    openRunWindow(p.url + route, runTitle(c, app));
-    return { ok: true, text: '▶ opened ' + p.url + route };
-  },
-  build: async (force) => {
-    const c = currentWork();
-    if (!c) return noWorkspace();
-    if (force) workPreview().forget(c.working);
-    cpush('info', (force ? 'rebuilding from scratch: ' : 'building (when its code changed): ') + c.working);
-    const p = await buildWorkspace(c, runAppOf(c), force ? 'Rebuild' : 'Build');
-    return p.ok ? { ok: true, text: p.built ? 'built in ' + (Math.round(p.ms / 100) / 10) + ' s' + (runWin && !runWin.isDestroyed() ? ' — reload (or run) to see it' : '') : 'up to date: no change since its last build' } : { ok: false, text: p.error };
-  },
-  reload: async () => { if (!runWin || runWin.isDestroyed()) return { ok: false, text: 'No app window: type run first.' }; runWin.webContents.reloadIgnoringCache(); return { ok: true, text: 'reloaded' }; },
-  devtools: async () => { if (!runWin || runWin.isDestroyed()) return { ok: false, text: 'No app window: type run first.' }; runWin.webContents.openDevTools({ mode: 'detach' }); return { ok: true, text: 'the app window\'s developer tools are open (console, network, elements)' }; },
-  stop: async () => { const c = currentWork(); if (runWin && !runWin.isDestroyed()) runWin.close(); runWin = null; if (c) workPreview().stop(path.resolve(c.working)); return { ok: true, text: 'stopped: the app\'s window closed, its local server stopped' }; },
-  git: async (sub, args) => {
-    const c = currentWork();
-    if (!c) return noWorkspace();
-    const a = args || ['diff', '--stat', 'origin/' + c.branch];
-    let out = null;
-    try { out = require('child_process').execFileSync(commandPath('git') || 'git', ['-C', c.working].concat(a), { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000, windowsHide: true, maxBuffer: 8 * 1024 * 1024 }); } catch (e) { return { ok: false, text: 'git ' + sub + ' failed: ' + String((e && (e.stderr || e.message)) || '').trim().slice(0, 300) }; }
-    const ls = String(out).replace(/\s+$/, '').split('\n');
-    return { ok: true, lines: ls.length && ls[0] ? ls.slice(0, 400) : ['(nothing)'] };
-  },
-  changes: async () => {
-    const c = currentWork();
-    if (!c) return noWorkspace();
-    const ch = changedSinceVbs(c);
-    if (ch == null) return { ok: false, text: 'git could not tell (is VB Studio\'s branch fetched? Get latest, in the project\'s tab)' };
-    return { ok: true, lines: ch.length ? [ch.length + ' file' + (ch.length === 1 ? '' : 's') + ' changed since VB Studio (' + c.branch + '), in the working copy:'].concat(ch.map((f) => '  ' + f)) : ['no change since VB Studio (' + c.branch + ')'] };
-  },
-  signin: async () => { openSignIn(); return { ok: true, text: 'The sign-in window is open: the app runs as whoever signs in there — then run (or reload) again.' }; },
-  runAs: async (user, roles) => {
-    if (user == null) { const ra = runAsNow(); return { ok: true, text: 'the app runs as ' + whoIsIt() + (ra.user ? ' (Run as)' : identity ? ' (the EquipRite sign-in)' : ' — nobody chosen: type as <user> RT_EQP_ADMINISTRATOR') }; }
-    const r = setRunAs(user, roles);
-    if (!r.ok) return r;
-    const reloaded = !!(runWin && !runWin.isDestroyed());
-    if (reloaded) runWin.webContents.reloadIgnoringCache();
-    return { ok: true, text: 'the app runs as ' + whoIsIt() + (r.runAs.user ? '' : ' (back to the EquipRite sign-in)') + (reloaded ? ' — its window reloaded' : ' — run it to see') };
-  },
-  roles: async () => ({ ok: true, lines: ['the roles the app knows (answered here with Run as):'].concat(require('./lib/devserver').KNOWN_ROLES.map((r) => '  ' + r)) }),
-  code: async () => { const c = currentWork(); if (!c) return noWorkspace(); await shell.openExternal('vscode://file/' + String(c.working).replace(/\\/g, '/')); return { ok: true, text: 'opening ' + c.working + ' in VS Code (if it is installed)' }; },
-  folder: async () => { const c = currentWork(); if (!c) return noWorkspace(); await shell.openPath(c.working); return { ok: true, text: 'opened ' + c.working }; },
-  status: async () => {
-    const s = consoleStatus(true);
-    return { ok: true, lines: [
-      'runs as:       ' + (s.signedInAs ? s.signedInAs + (s.roles ? ' (' + s.roles.join(', ') + ')' : ' (roles from Fusion)') + (s.by === 'run-as' ? ' — Run as' : ' — the EquipRite sign-in') : 'nobody — the app runs anonymous: pages that need access stay hidden (type as <user> RT_EQP_ADMINISTRATOR)'),
-      'workspace:     ' + (s.workspace || 'none set up'),
-      'working copy:  ' + (s.working || '—') + (s.branch ? '  (VB Studio branch ' + s.branch + ')' : ''),
-      'build:         ' + (s.building ? 'building…' : s.built ? 'built ' + s.builtAt + (s.fresh === false ? ' — the code changed since: build or run to see it' : ' — up to date') : 'not built yet (run builds it)'),
-      'app window:    ' + (s.window || 'closed (type run)'),
-    ] };
-  },
-};
-/** The apps in a working folder (webApps/<app>/app-flow.json). */
-function appsIn(folder) {
-  try { return fs.readdirSync(path.join(folder, 'webApps')).filter((a) => fs.existsSync(path.join(folder, 'webApps', a, 'app-flow.json'))).sort(); } catch (e) { return []; }
-}
-async function runWorkspaceApp(b) {
-  let c = null;
-  try { const x = vbsStoreInst && vbsStoreInst.work().current; c = x && x.exists ? x : null; } catch (e) { c = null; }
-  if (!c) return { ok: false, error: 'No workspace is set up: set one up first (Workspace, in the top bar).' };
-  const apps = appsIn(c.working);
-  const want = String((b && b.app) || '');
-  const appName = apps.indexOf(want) !== -1 ? want : (apps.length === 1 ? apps[0] : (apps.indexOf('vbredwoodapp') !== -1 ? 'vbredwoodapp' : apps[0]));
-  if (!appName) return { ok: false, error: 'Your working folder has no app in it (webApps/<app>/app-flow.json): ' + c.working };
-  const t0 = Date.now();
-  cpush('info', '▶ Run: ' + appName + ' of ' + c.projectName + ' ▸ ' + c.workspace + ' as ' + whoIsIt() + ' — building its working copy when its code changed…');
-  noAccessSeen = null;
-  const p = await buildWorkspace(c, appName, '▶ Run');
-  if (!p.ok) { cpush('error', p.error); return { ok: false, error: p.error, app: appName, apps: apps }; }
-  const url = p.url + '/';
-  progStep({ key: 'open', state: 'done', text: 'opened ' + url });
-  // what is in it: the working copy's files changed since VB Studio (its branch as last fetched), saved or not, committed
-  // or not — so you know what you are looking at (and what you are not)
-  const changed = changedSinceVbs(c);
-  openRunWindow(url, 'Working copy — ' + c.projectName + ' ▸ ' + c.workspace + ' (' + appName + ')' + (changed ? ' · ' + changed.length + ' change' + (changed.length === 1 ? '' : 's') + ' since VB Studio' : ''));
-  pushLog(`${new Date().toTimeString().slice(0, 8)} ▶ Run: ${appName} of ${c.workspace} at ${url}${p.built ? ' (built ' + Math.round((Date.now() - t0) / 100) / 10 + ' s)' : ''}`);
-  const wid = workspaceIdentity();
-  if (!wid || !wid.username) cpush('warn', 'the app runs anonymous: pages that need access stay hidden — choose who it runs as: Run as, in the Run console (or type: as <user> RT_EQP_ADMINISTRATOR)');
-  else if (!wid.roles && !wid.fusion) cpush('warn', 'the app runs as ' + wid.username + ' with no roles: it will say "You don\'t have access" — give them a role: Run as, in the Run console');
-  return { ok: true, url: url, app: appName, apps: apps, built: p.built, ms: Date.now() - t0, workspace: c.workspace, builtAt: p.builtAt,
-    folder: c.working, branch: c.workBranch || 'buildrite-working', base: 'VB Studio (' + c.branch + ')', changed: changed,
-    signedInAs: wid ? String(wid.username || '') : '', roles: wid && wid.roles ? wid.roles : null, noRoles: !!(wid && wid.username && !wid.roles && !wid.fusion) };
-}
-/** The working copy's files changed since VB Studio (origin/<its branch>), new ones too; null when git cannot tell. */
-function changedSinceVbs(c) {
-  const g = (args) => { try { return require('child_process').execFileSync(commandPath('git') || 'git', ['-C', c.working].concat(args), { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 8000, windowsHide: true }); } catch (e) { return null; } };
-  const diff = g(['diff', '--name-only', 'origin/' + c.branch, '--']);
-  if (diff == null) return null;
-  const fresh = g(['ls-files', '--others', '--exclude-standard']) || '';
-  return diff.split('\n').concat(fresh.split('\n')).map((x) => x.trim()).filter((x, i, a) => x && a.indexOf(x) === i);
-}
 // The app as it is now (this PC's own build), for comparing with a sandbox.
-const appUrlOf = (webApp) => { const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === webApp && !VERSIONS[k].product)[0]; return v && servers[v] ? servers[v].url : ''; };
+const appUrlOf = (webApp) => { const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === webApp)[0]; return v && servers[v] ? servers[v].url : ''; };
 // A window of its own for a sandbox (or the app as it is now, beside it): links inside its own address stay in it.
 function openAppWindow(url, title) {
   const origin = new URL(url).origin;
@@ -628,7 +336,7 @@ function analysisStore() {
   if (!analysisStoreInst) analysisStoreInst = require('./lib/analyses').open({ file: path.join(app.getPath('userData'), 'ai-analyses.json') });
   return analysisStoreInst;
 }
-// Issues (Build.Rite): logged against a page, written up and analyzed by the AI (with the FDD), approved (in the app, and
+// Issues: logged against a page, written up and analyzed by the AI (with the FDD), approved (in the app, and
 // an approval email from Microsoft 365), then applied by the agent on a branch of its own with a pull request; Jira kept
 // up to date (lib/issues.js). Shared with everyone on the data branch.
 let issuesStoreInst = null;
@@ -643,157 +351,6 @@ async function issuesStore() {
   }
   return issuesStoreInst;
 }
-// Setup → Organizations & projects (Build.Rite): VB Studio organizations and their projects, the password encrypted by the
-// OS keychain in this app's data folder; git and VB Studio's API reached from this PC (electron's net: the system's proxy).
-let vbsStoreInst = null;
-function vbsStore() {
-  if (!vbsStoreInst) {
-    vbsStoreInst = require('./lib/vbs').open({
-      file: path.join(app.getPath('userData'), 'vbs-connections.json'),
-      encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
-      decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
-      fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
-      // Sync from VB Studio: when VB Studio refuses the saved sign-in for a call, the VB Studio window's own session (its
-      // cookies, kept between runs) — the same calls, no window
-      sessionFetch: (url, init) => session.fromPartition('persist:vbstudio').fetch(url, init),
-      // …and VB Studio's internal calls (api2), which take only VB Studio's own page: made from inside it (a hidden window)
-      pageFetch: (url, init) => vbsPageFetch(url, init),
-      onSyncStep: (text) => pushLog(`${new Date().toTimeString().slice(0, 8)} Sync from VB Studio: ${String(text).slice(0, 300)}`),
-      gitPath: commandPath('git') || 'git',
-    });
-  }
-  return vbsStoreInst;
-}
-// Sync from VB Studio: VB Studio's internal calls (api2) answer only VB Studio's own page, so they are made from inside it —
-// a hidden window signed in with the session kept from Open VB Studio (lib/vbsPage.js)
-let vbsPageInst = null;
-function vbsPageFetch(url, init) {
-  if (!vbsPageInst) {
-    vbsPageInst = require('./lib/vbsPage').create({ BrowserWindow: BrowserWindow, partition: 'persist:vbstudio', isHost: require('./lib/vbsLearn').isVbsHost,
-      log: (t) => pushLog(`${new Date().toTimeString().slice(0, 8)} Sync from VB Studio: ${t}`) });
-  }
-  return vbsPageInst.fetch(url, init);
-}
-// Find in VB Studio (Setup → Organizations & projects): VB Studio in a window of its own — signed in there as usual (its
-// own session, kept between runs) — and what its pages load read as they load (the window's DevTools network events):
-// its organizations, projects (their Git addresses) and workspaces (lib/vbsLearn.js). Only VB Studio's own host, never a
-// sign-in call; read, never changed. VB Studio has no documented API that lists them.
-let vbsFinderWin = null;
-async function openVbsFinder(url) {
-  const store = vbsStore();
-  let target = String(url || '').trim();
-  if (!target) { const o = store.state().orgs[0]; target = o ? o.url : ''; }
-  if (!/^https:\/\/[^/]+\.oraclecloud\.com\/[^/]+/i.test(target)) return { ok: false, error: 'Give the VB Studio address first (https://<host>/<organization>/): add the organization, or paste it here.' };
-  // its log: live on the Setup screen and in this app's log — each address without its query (never a sign-in code)
-  const bare = (u) => { try { const x = new URL(u); return x.origin + x.pathname + (x.hash ? x.hash.split('?')[0].slice(0, 80) : ''); } catch (e) { return String(u || '').split('?')[0].slice(0, 160); } };
-  const say = (text) => { const line = String(text).slice(0, 400); try { store.finderLog(line); } catch (e) { /* no store */ } pushLog(`${new Date().toTimeString().slice(0, 8)} VB Studio window: ${line}`); };
-  if (vbsFinderWin && !vbsFinderWin.isDestroyed()) {
-    say('already open: going to ' + bare(target));
-    vbsFinderWin.loadURL(target).catch((e) => say('could not load: ' + e.message));
-    vbsFinderWin.show(); vbsFinderWin.focus();
-    store.setFinder(true, target);
-    return { ok: true, url: target, again: true };
-  }
-  store.setFinder(true, target, true);
-  say('opening ' + bare(target));
-  const L = require('./lib/vbsLearn');
-  const learner = L.learner();
-  const w = new BrowserWindow({ width: 1320, height: 900, show: true, backgroundColor: '#ffffff', title: 'VB Studio · opening…',
-    webPreferences: { partition: 'persist:vbstudio', contextIsolation: true, sandbox: true, nodeIntegration: false } });
-  vbsFinderWin = w;
-  const wc = w.webContents;
-  // a browser's own name: VB Studio and Oracle's sign-in may turn away one they do not know (Electron's, this app's)
-  try { wc.setUserAgent(wc.getUserAgent().replace(/\s(Electron|build-?rite|equiprite[\w-]*)\/\S+/gi, '')); } catch (e) { /* kept */ }
-  const title = (t) => { try { if (!w.isDestroyed()) w.setTitle('VB Studio · ' + t + ' — Build.Rite reads its organizations, projects and workspaces as you browse'); } catch (e) { /* closed */ } };
-  w.on('page-title-updated', (e, t) => { e.preventDefault(); title(t || 'VB Studio'); });
-  // Oracle's sign-in may open a window of its own: allowed for Oracle's hosts only (same session); anything else in the browser
-  wc.setWindowOpenHandler(({ url: next }) => {
-    if (/^https:\/\/[^/]+\.(oraclecloud|oracle)\.com\//i.test(next)) { say('the page opened a window: ' + bare(next)); return { action: 'allow', overrideBrowserWindowOptions: { webPreferences: { partition: 'persist:vbstudio', contextIsolation: true, sandbox: true, nodeIntegration: false } } }; }
-    if (/^https?:/i.test(next)) { say('opened in your browser: ' + bare(next)); shell.openExternal(next); }
-    return { action: 'deny' };
-  });
-  // each step of the window, said: going to, redirected (Oracle's sign-in), the page and its HTTP status, loaded, failed
-  const SIGNIN_HOST = /identity\.oraclecloud\.com|\/sso\/|signin|login\.|\/oauth2\//i;
-  wc.on('did-start-loading', () => title('loading…'));
-  // (newer Electron gives the details on the event, older as arguments: both read)
-  const nav = (e, u, inPage, isMain) => ({ url: (e && e.url) || u || '', same: e && e.isSameDocument !== undefined ? e.isSameDocument : !!inPage, main: e && e.isMainFrame !== undefined ? e.isMainFrame : isMain !== false });
-  wc.on('did-start-navigation', (e, u, inPage, isMain) => { const n = nav(e, u, inPage, isMain); if (n.main && !n.same && !/^data:/.test(n.url)) say('going to ' + bare(n.url)); });
-  wc.on('did-redirect-navigation', (e, u, inPage, isMain) => { const n = nav(e, u, inPage, isMain); if (n.main) say('redirected to ' + bare(n.url) + (SIGNIN_HOST.test(n.url) ? '   (Oracle\'s sign-in: sign in here)' : '')); });
-  wc.on('did-navigate', (e, u, code, status) => { if (!/^data:/.test(u)) say('page ' + bare(u) + ' — HTTP ' + code + (status ? ' ' + status : '')); });
-  wc.on('did-finish-load', () => { const u = wc.getURL(); if (!/^data:/.test(u)) say('loaded: "' + (wc.getTitle() || 'no title') + '" — ' + bare(u)); });
-  wc.on('did-fail-load', (e, code, desc, u, isMain) => {
-    if (!isMain || code === -3) return; // -3: replaced by another navigation (a redirect), not a failure
-    say('could not load ' + bare(u) + ': ' + desc + ' (' + code + ')');
-    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-    const html = '<!doctype html><meta charset="utf-8"><title>VB Studio did not open</title><body style="font:15px system-ui,Segoe UI,sans-serif;margin:48px;color:#16212c">'
-      + '<h2 style="margin:0 0 12px">VB Studio did not open</h2><p><b>' + esc(desc) + '</b> (' + code + ')<br><code>' + esc(bare(u)) + '</code></p>'
-      + '<p>Check that this PC can open that address in a browser (the network, a VPN or a proxy). Build.Rite\'s log (Setup → Organizations &amp; projects) shows each step.</p>'
-      + '<p><a href="' + esc(target) + '" style="display:inline-block;padding:8px 14px;border-radius:8px;background:#0a66c9;color:#fff;text-decoration:none">Try again</a></p></body>';
-    wc.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html)).catch(() => {});
-  });
-  wc.on('certificate-error', (e, u, err) => say('its certificate was refused: ' + bare(u) + ' — ' + err));
-  wc.on('render-process-gone', (e, d) => say('the page stopped: ' + ((d && d.reason) || 'crashed')));
-  wc.on('unresponsive', () => say('the page stopped responding'));
-  let pageErrors = 0;
-  wc.on('console-message', (e, level, message) => {
-    const lvl = e && e.level !== undefined ? e.level : level;
-    const msg = e && e.message !== undefined ? e.message : message;
-    if ((lvl === 3 || lvl === 'error') && pageErrors < 12) { pageErrors++; say('page error: ' + String(msg || '').slice(0, 200)); }
-  });
-  // what its pages load: VB Studio's own JSON answers read (never a sign-in call, never another site); each one said
-  const keepNow = () => { try { store.learn(Object.assign(learner.found(), { calls: learner.calls() })); } catch (e) { /* closed */ } };
-  let flush = null;
-  const keep = () => { if (flush) return; flush = setTimeout(() => { flush = null; keepNow(); }, 800); };
-  const counts = () => { const f = learner.found(); return f.orgs.length + ' org · ' + f.projects.length + ' projects · ' + f.projects.reduce((n, p) => n + p.repos.length, 0) + ' repos · ' + f.workspaces.length + ' workspaces'; };
-  const pending = {};
-  const authOf = {}; // each call's way in (bearer, basic, or the session's cookies): its kind only, for Sync
-  let skipped = 0, read = 0;
-  const dbg = wc.debugger;
-  try { dbg.attach('1.3'); say('watching its network: on'); } catch (e) { say('could not watch its network (' + e.message + '): it opens, but nothing can be read from it'); }
-  dbg.on('detach', (e, reason) => say('stopped watching its network: ' + reason));
-  dbg.on('message', async (event, method, params) => {
-    if (method === 'Network.requestWillBeSent') {
-      // the sign-in VB Studio's own pages send with their calls (a bearer token): kept in memory for Sync this run only —
-      // never saved, logged or shown; VB Studio's own host only, never a sign-in call
-      const q = params.request || {};
-      let h = '';
-      Object.keys(q.headers || {}).forEach((k) => { if (/^authorization$/i.test(k)) h = String(q.headers[k] || ''); });
-      authOf[params.requestId] = /^Bearer\s/i.test(h) ? 'bearer' : /^Basic\s/i.test(h) ? 'basic' : 'session';
-      try { const u = new URL(q.url); if (h && L.isVbsHost(u.hostname) && !L.SIGNIN.test(u.pathname + u.search)) store.windowSignIn(u.hostname, h); } catch (e) { /* not an address */ }
-      return;
-    }
-    if (method === 'Network.responseReceived') {
-      const r = params.response || {};
-      if (params.type === 'Document') { if (learner.see({ url: r.url, status: r.status })) keep(); return; }
-      if (/json/i.test(r.mimeType || '') || /\/rest\//.test(r.url || '')) pending[params.requestId] = { url: r.url, status: r.status };
-    } else if (method === 'Network.loadingFinished' && pending[params.requestId]) {
-      const p = pending[params.requestId];
-      delete pending[params.requestId];
-      let u;
-      try { u = new URL(p.url); } catch (e) { return; }
-      if (!L.isVbsHost(u.hostname) || L.SIGNIN.test(u.pathname + u.search)) { skipped++; return; } // never a sign-in call, never another site
-      try {
-        const b = await dbg.sendCommand('Network.getResponseBody', { requestId: params.requestId });
-        const text = b.base64Encoded ? Buffer.from(b.body, 'base64').toString('utf8') : b.body;
-        let json = null;
-        try { json = JSON.parse(text); } catch (e) { json = null; }
-        const auth = authOf[params.requestId] || '';
-        delete authOf[params.requestId];
-        if (json !== null && learner.see({ url: p.url, status: p.status, json: json, auth: auth })) { read++; say('read ' + u.pathname.replace(/^\/[^/]+/, '/<org>') + ' (HTTP ' + p.status + ') — found so far: ' + counts()); keep(); }
-      } catch (e) { say('could not read ' + u.pathname + ': ' + e.message); }
-    } else if (method === 'Network.loadingFailed' && pending[params.requestId]) {
-      const p = pending[params.requestId];
-      delete pending[params.requestId];
-      say('a call failed: ' + bare(p.url) + ' — ' + (params.errorText || 'failed'));
-    }
-  });
-  // the page loads at once; its network watched as soon as it is ready (never waited for longer than a moment)
-  w.loadURL(target).catch((e) => say('could not load: ' + e.message));
-  const on = await Promise.race([dbg.sendCommand('Network.enable').then(() => 'on', (e) => 'not on: ' + e.message), new Promise((r) => setTimeout(() => r('slow'), 2000))]).catch((e) => 'not on: ' + e.message);
-  if (on !== 'on') say('reading its pages: ' + (on === 'slow' ? 'switching on (slowly)' : on));
-  w.on('closed', () => { keepNow(); say('closed — read ' + read + ' answer(s) from VB Studio, skipped ' + skipped + ' (sign-in, other sites); found ' + counts()); store.setFinder(false, target); if (vbsFinderWin === w) vbsFinderWin = null; });
-  return { ok: true, url: target };
-}
 // Code Fix (Application pages → a page → Code fix): the AI chosen in AI settings proposes a change to a page; it is
 // written into the project's code only once approved (after git pull), then tested, committed or undone. The fixes are
 // kept in this app's data folder; its screenshots before/after are taken in a hidden window, like the pages' own.
@@ -802,9 +359,6 @@ async function fixStore() {
   if (!fixStoreInst) {
     fixStoreInst = require('./lib/codeFix').open({
       root: REPO_ROOT, file: path.join(app.getPath('userData'), 'code-fixes.json'), ai: await aiStore(), capture: capturePage, buildDir: BUILD_DIR,
-      // your workspace set up (Build.Rite's top bar): the code to fix is its working folder — changed and committed
-      // there only (never pushed from Code fix); Apply to main, then Push, in its project's tab send it to VB Studio
-      workFn: () => { const c = buildWorkspace(); return c ? { folder: c.working, label: c.projectName + ' ▸ ' + c.workspace, branch: c.workBranch || 'buildrite-working', key: c.orgKey + '/' + c.project, name: c.projectName, ws: c.workspace } : null; },
       // sandboxes (Issues → Try it in a sandbox): built with this project's own build tool, served like the app itself
       buildTool: REPO_ROOT, serveSandbox: serveSandbox, appUrl: appUrlOf,
       data: await dataBranch(), log: (l) => { try { pushLog(l); } catch (e) { console.log(l); } }, // the change history, shared on the data branch
@@ -888,13 +442,10 @@ const VERSIONS = {
   mobile: { webApp: 'equiprite-mobile', label: 'EquipRite Mobile', port: PORT + 3 },
   // Served like Next (only when built); its data is simulated in the browser, so it calls no backend.
   future: { webApp: 'equiprite-future', label: 'EquipRite Future', port: PORT + 4 },
-  // Build.Rite: EquipRite Next's build shown as the team's own tools (the Insights screens only: Jira, standups,
-  // follow-ups, the FDD, application pages, code fix), a product apart from the business one, on a port of its own.
-  build: { webApp: 'equiprite-next', label: 'Build.Rite', port: PORT + 5, product: 'buildrite' },
 };
 const originOf = (v) => `http://localhost:${VERSIONS[v].port}`;
-/** Next, or Build.Rite (Next's build shown as the team's tools): the same screens, given the same stores. */
-const nextLike = (v) => v === 'next' || v === 'build';
+/** EquipRite Next: the team's screens (Jira, issues, pages…) are given the stores they use. */
+const nextLike = (v) => v === 'next';
 const urlOf = (v) => `${originOf(v)}/`;
 
 process.env.EQP_DESKTOP_VERSION = app.getVersion();
@@ -1676,7 +1227,6 @@ function appMenu() {
         { label: 'Open EquipRite Next', accelerator: 'CmdOrCtrl+Shift+3', click: () => openVersion('next') },
         { label: 'Open EquipRite Mobile (phone size)', accelerator: 'CmdOrCtrl+Shift+4', click: () => openVersion('mobile') },
         { label: 'Open EquipRite Future', accelerator: 'CmdOrCtrl+Shift+5', click: () => openVersion('future') },
-        { label: 'Open Build.Rite (the team\'s tools)', accelerator: 'CmdOrCtrl+Shift+7', click: () => openVersion('build') },
         { label: 'EquipRite on your phone (QR code)…', accelerator: 'CmdOrCtrl+Shift+6', click: () => openPhoneWindow() },
         { label: 'Switch this window to Old EquipRite', click: () => openVersion('old') },
         { type: 'separator' },

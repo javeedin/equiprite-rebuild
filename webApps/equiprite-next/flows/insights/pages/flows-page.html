@@ -1,9 +1,9 @@
-<!-- How it works (Build.Rite): every flow of the team's tools, step by step. The words are in resources/js/flowsGuide.js. -->
+<!-- How it works: every flow of the team's tools, step by step. The words are in resources/js/flowsGuide.js. -->
 <div class="nx-page nx-hw">
   <div class="nx-pagehead">
     <div>
-      <div class="nx-kicker">Build.Rite · How it works</div>
-      <h1 id="hwTitle">How Build.Rite works</h1>
+      <div class="nx-kicker">Insights · How it works</div>
+      <h1 id="hwTitle">How the team's tools work</h1>
       <div class="nx-sub">Every flow of the team's tools: who does each step, what happens when it goes another way, and where what it makes is kept.</div>
     </div>
   </div>
@@ -28,9 +28,9 @@
     </oj-bind-for-each>
   </div>
 
-  <!-- what Build.Rite works with -->
+  <!-- what the team's tools work with -->
   <div class="nx-card nx-hw-links" id="hwLinks">
-    <h2 class="nx-pg-h3">What Build.Rite works with</h2>
+    <h2 class="nx-pg-h3">What the team's tools work with</h2>
     <div class="nx-hw-linkgrid">
       <oj-bind-for-each data="[[ $functions.links() ]]">
         <template data-oj-as="k"><div class="nx-hw-link"><b><oj-bind-text value="[[ k.data.name ]]"></oj-bind-text></b><span><oj-bind-text value="[[ k.data.what ]]"></oj-bind-text></span></div></template>

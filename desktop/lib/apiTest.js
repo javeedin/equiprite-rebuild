@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * The API tester (Build.Rite → Application pages → a page → Integrations → Test): calls one of the page's REST
+ * The API tester (Application pages → a page → Integrations → Test): calls one of the page's REST
  * endpoints, or runs one of its BI Publisher reports, against the real backend — through this server's own
  * /__backend proxy (desktop/lib/devserver.js), so it goes exactly where the app's own calls go, with the same login.
  *

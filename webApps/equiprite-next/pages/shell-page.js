@@ -1,4 +1,4 @@
-define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/requestData', 'resources/js/theme', 'resources/js/look', 'resources/js/warmup', 'resources/js/nav', 'resources/js/jiraFeed'], (bus, cartDrafts, requestData, theme, look, warmup, nav, jiraFeed) => {
+define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/requestData', 'resources/js/theme', 'resources/js/look', 'resources/js/warmup'], (bus, cartDrafts, requestData, theme, look, warmup) => {
   'use strict';
 
   // The shell's page module: the line from the screens in the tabs (shellBus) to the shell's chains, the keyboard
@@ -6,44 +6,15 @@ define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/reques
   // check.
   const ALERT_EVERY_MS = 5 * 60 * 1000;
 
-  // Build.Rite's builds (the top bar's chooser): all, or one app
-  const SCOPES = [['', 'All', 'all', 'Every build'], ['vbredwoodapp', 'Old', 'old', 'Old EquipRite'], ['equiprite', 'New', 'new', 'New EquipRite'],
-    ['equiprite-next', 'Next', 'next', 'EquipRite Next'], ['equiprite-mobile', 'Mobile', 'mob', 'EquipRite Mobile'], ['equiprite-future', 'Future', 'fut', 'EquipRite Future']];
 
-  const JICON = { new: 'oj-ux-ico-plus-circle', status: 'oj-ux-ico-arrow-right', assign: 'oj-ux-ico-contact', comment: 'oj-ux-ico-chat', priority: 'oj-ux-ico-flag', sprint: 'oj-ux-ico-calendar', attach: 'oj-ux-ico-attach', edit: 'oj-ux-ico-edit' };
-  let jiraKept = { k: '', v: [] };
 
   class PageModule {
-    // ── Build.Rite's Jira updates bell (resources/js/jiraFeed.js) ──
-    jiraGroups(events, kind) {
-      const k = (events || []).length + '|' + ((events || [])[0] || {}).id + '|' + kind;
-      if (jiraKept.k !== k) jiraKept = { k: k, v: jiraFeed.grouped(events, kind) };
-      return jiraKept.v;
-    }
-    jiraChips(events) { return jiraFeed.chips(events); }
-    jiraIcon(kind) { return JICON[kind] || 'oj-ux-ico-notification'; }
-    jiraItemClass(e, seen) { return 'nx-jfeed-item nx-jfeed-item--' + e.kind + (Date.parse(e.at) > (Date.parse(seen) || 0) ? ' nx-jfeed-item--unseen' : ''); }
-    // ── Build.Rite's working copy (top bar) ──
-    workText(work) { const c = work && work.current; return c ? c.projectName + ' ▸ ' + c.workspace : 'Set up your workspace'; }
-    workTitle(work) { const c = work && work.current; return c ? c.repo + '.git at ' + c.branch + ' — working: ' + c.working + ' · main: ' + c.main + ' (open its project)' : 'Set up your workspace: choose a VB Studio workspace and a folder on this PC'; }
-    workBadge(work) {
-      const s = work && work.current && work.current.summary;
-      if (!s) return work && work.current ? work.current.branch : '';
-      const parts = [work.current.branch];
-      if (s.changed) parts.push(s.changed + ' changed');
-      if (s.toApply) parts.push(s.toApply + ' to apply');
-      if (s.toPush) parts.push(s.toPush + ' to push');
-      if (s.toGet) parts.push(s.toGet + ' to get');
-      return parts.join(' · ');
-    }
-    workClass(work) { const c = work && work.current; const s = c && c.summary; return 'nx-work' + (!c ? ' nx-work--none' : s && (s.changed || s.toApply || s.toPush || s.toGet) ? ' nx-work--todo' : ''); }
-    scopes() { return SCOPES.map((s) => ({ id: s[0], label: s[1], short: s[2], title: s[3] === 'Every build' ? 'Every build: issues and pages of all the apps' : 'Only ' + s[3] + ': its issues and pages' })); }
     constructor(context) {
       // The colours chosen on this computer, before anything is drawn (theme.js; your menu, Colours).
       theme.apply(theme.load());
       // Once the first screen is up, the components the other screens use are loaded while nothing else happens, so a tab
       // opened later shows at once (resources/js/warmup.js).
-      warmup.start(nav.product && nav.product.isBuild ? 'buildrite' : 'next');
+      warmup.start('next');
       // The look (Redwood or Current) last chosen on this computer, until the shell knows whose it is (lookChain).
       look.apply(look.load(''));
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;

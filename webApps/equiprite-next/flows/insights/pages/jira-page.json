@@ -725,7 +725,7 @@
   },
   "events": {
     "focusRequest": {
-      "description": "Build.Rite's Jira updates bell handed this screen a story to open (shellBus.focus('jira', { key })).",
+      "description": "Another screen handed this screen a story to open (shellBus.focus('jira', { key })).",
       "payloadType": "object"
     },
     "evidenceChanged": {

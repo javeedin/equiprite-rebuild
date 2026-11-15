@@ -5,9 +5,7 @@ define([
   'resources/js/pageSheet',
   'resources/js/minutesClient',
   'resources/js/shellBus',
-  'resources/js/vbsClient',
-  'resources/js/runProgressView',
-], (ActionChain, Actions, PC, PS, M, bus, VC, RP) => {
+], (ActionChain, Actions, PC, PS, M, bus) => {
   'use strict';
 
   // The sheet's actions: build/refresh it, capture or upload screenshots (a page keeps several; the viewer shows one at a
@@ -31,22 +29,6 @@ define([
       if (act === 'view') {
         v.viewer = Math.max(0, Math.min(shots.length - 1, Number(key) || 0));
         setTimeout(() => { const d = dlg(); try { if (d && !d.open) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); } } catch (e) { /* already open */ } }, 0);
-        return;
-      }
-      if (act === 'setupWs') { bus.open({ record: 'vbs-setup', params: {} }); bus.emit('vbs-setup', { reset: true }); return; }
-      // ▶ Run beside the working folder: its app, built when its code changed, in a window of its own (as the top bar's)
-      if (act === 'runProgClose') { RP.stop('pgRunProg', true); v.runProgShown = false; return; }
-      if (act === 'runWs') {
-        if (v.runBusy) return;
-        v.runBusy = true;
-        v.runProgShown = true;
-        RP.start('pgRunProg', VC.runProgress); // its steps as they go
-        try {
-          bus.toast('▶ Building your working folder\'s app (when its code changed) and opening it…', 'info');
-          const t = VC.runText(await VC.workRun(''));
-          bus.toast(t.text, t.tone);
-          v.result = { ok: t.ok, text: t.text };
-        } finally { v.runBusy = false; await RP.stop('pgRunProg'); }
         return;
       }
       if (act === 'copyPath') {
@@ -130,14 +112,12 @@ define([
         }
         if (act === 'capture') {
           const ws = !!v.codeFrom;
-          if (ws) { v.runProgShown = true; RP.start('pgRunProg', VC.runProgress); }
           v.progress = ws ? 'Building your workspace\'s working folder (when its code changed), then opening the page there and capturing it…' : 'Opening the page in a hidden window and capturing it (up to 30 s)…';
           const r = await PC.capture(id, v.commit);
           const b = r.body || {};
           // what the screenshot is of: your working folder's code (built just now?), and where the page went
           const from = b.from === 'workspace' ? ' From your workspace\'s working folder' + (b.built ? ' (built just now, with your changes).' : ' (your changes included).') : '';
           const went = b.landed ? ' Note: the page did not show itself — it sent you to ' + b.landed + ' (a guard: a module turned off, or a role it is not for), so the screenshot shows that page.' : '';
-          if (ws) await RP.stop('pgRunProg');
           await done(r, 'Screenshot captured.' + from + went);
           if (b.ok && b.shot) {
             const n = ((v.sheet && v.sheet.screenshots) || []).findIndex((x) => x.id === b.shot.id) + 1;
@@ -147,11 +127,9 @@ define([
           return;
         }
         if (act === 'run') {
-          if (v.codeFrom) { v.runProgShown = true; RP.start('pgRunProg', VC.runProgress); }
           v.progress = v.codeFrom ? 'Building your workspace\'s working folder (when its code changed) and opening the page in a window…' : 'Opening the page in a window…';
           const r = await PC.run(id);
           const b = r.body || {};
-          if (v.codeFrom) await RP.stop('pgRunProg');
           v.result = r.ok && b.ok ? { ok: true, text: 'Opened in a window: ' + b.url + (b.from === 'workspace' ? ' — your workspace\'s working folder' + (b.built ? ', built just now' : '') + '.' : '.') } : { ok: false, text: b.error || 'It could not be opened.' };
           return;
         }

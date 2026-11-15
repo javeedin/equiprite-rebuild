@@ -260,11 +260,6 @@ function time() {
  *                                        header; voice→text reuses o.transcribe, "Format by AI" reuses o.aiStore (/__sql/ai/chat)
  * @param {object}   [o.analysisStore]    Saved AI analyses (lib/analyses.js), for EquipRite Next's Analyze with AI: kept on this PC so
  *                                        an analysis opens without asking the AI again: /__ai/* to this PC only, behind X-EquipRite-AI
- * @param {string}   [o.product]          The product this build is shown as (Build.Rite: 'buildrite' on EquipRite Next's build), told
- *                                        to the app's page (window.EQP_PRODUCT)
- * @param {object}   [o.vbsStore]         Setup → Organizations & projects (lib/vbs.js, Build.Rite): VB Studio organizations and projects,
- *                                        their sign-in kept on this PC: /__vbs/* to this PC only, behind the X-EquipRite-Vbs header
- * @param {Function} [o.vbsFind]          (url) => opens VB Studio in a window of the desktop app, read as its pages load (Find in VB Studio)
  * @param {object}   [o.fixStore]         Code Fix (lib/codeFix.js): AI-proposed changes to a page, written to the code only when approved (/__fix/*)
  * @param {object}   [o.pagesStore]       The Application pages catalog (lib/pages.js): every VB page's technical sheet and the Jira stories
  *                                        mapped to it, saved into the project (git): /__pages/* to this PC only, behind X-EquipRite-Pages
@@ -455,12 +450,6 @@ function createDevServer(o) {
         return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
       }
       const type = TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream';
-      // A product shown by this server (o.product, e.g. Build.Rite on EquipRite Next's build): the app's page says so
-      // before anything loads (window.EQP_PRODUCT, read by resources/js/nav.js)
-      if (o.product && path.basename(file) === 'index.html' && path.dirname(file) === webRoot) {
-        const html = fs.readFileSync(file, 'utf8').replace(/<head([^>]*)>/i, (m) => m + '<script>window.EQP_PRODUCT=' + JSON.stringify(String(o.product)) + ';</script>');
-        return send(res, 200, 'text/html; charset=utf-8', html, { 'Cache-Control': 'no-store' });
-      }
       if (/[\\/]version_[^\\/]+[\\/]app-flow\.json$/.test(file)) {
         return send(res, 200, type, fillAppFlow(fs.readFileSync(file, 'utf8')));
       }
@@ -974,74 +963,6 @@ function createDevServer(o) {
         })().catch((e) => jsonF(200, { ok: false, error: e.message }));
         return undefined;
       }
-      if (pathname.startsWith('/__vbs/')) {
-        // Setup → Organizations & projects (lib/vbs.js), Build.Rite: the VB Studio organizations and their projects, the
-        // sign-in kept encrypted on this PC (never sent back). This PC only, by its own name, and only the app's own page
-        // (X-EquipRite-Vbs).
-        const host = String(req.headers.host || '').replace(/:\d+$/, '');
-        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
-          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
-        }
-        const jsonV = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
-        if (!o.vbsStore) return jsonV(200, { ok: false, error: 'Organizations and projects need the desktop app.' });
-        const origin = req.headers.origin;
-        if (req.headers['x-equiprite-vbs'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
-          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite on this PC.' }));
-        }
-        const vs = o.vbsStore;
-        const post = req.method === 'POST';
-        const who = () => { try { const id = o.getIdentity && o.getIdentity(); return (id && (id.displayName || id.username)) || ''; } catch (e) { return ''; } };
-        (async () => {
-          const b = post ? JSON.parse(((await readBody(req)) || '').toString('utf8') || '{}') : {};
-          if (pathname === '/__vbs/state' && !post) return jsonV(200, vs.state());
-          if (pathname === '/__vbs/discovered' && !post) return jsonV(200, vs.discovered ? vs.discovered() : { ok: false, error: 'Not here.' });
-          if (pathname === '/__vbs/diagnostic' && !post) return jsonV(200, { ok: true, text: vs.diagnostic ? vs.diagnostic() : '' });
-          if (pathname === '/__vbs/work' && !post) return jsonV(200, vs.work ? vs.work() : { ok: false, error: 'Needs the desktop app.' });
-          if (pathname === '/__vbs/console' && !post) return jsonV(200, o.vbsConsole ? Object.assign({ ok: true }, o.vbsConsole.lines(new URL(req.url, 'http://local').searchParams.get('after'))) : { ok: false, lines: [], error: 'The Run console needs the desktop app.' });
-          if (pathname === '/__vbs/run/progress' && !post) return jsonV(200, o.vbsConsole && o.vbsConsole.progress ? o.vbsConsole.progress() : { ok: false, steps: [] });
-          if (pathname === '/__vbs/console/status' && !post) return jsonV(200, o.vbsConsole ? o.vbsConsole.status() : { ok: false, error: 'The Run console needs the desktop app.' });
-          if (pathname === '/__vbs/work/progress' && !post) return jsonV(200, vs.workProgress ? vs.workProgress() : { ok: true, active: false });
-          if (!post) return jsonV(404, { error: 'Not found' });
-          let r;
-          if (pathname === '/__vbs/org') { try { r = vs.saveOrg(b); } catch (e) { r = { ok: false, error: e.message }; } }
-          else if (pathname === '/__vbs/org/remove') r = vs.removeOrg(b.id);
-          else if (pathname === '/__vbs/project') r = await vs.addProject(b);
-          else if (pathname === '/__vbs/project/check') r = await vs.checkProject(b.id);
-          else if (pathname === '/__vbs/project/remove') r = vs.removeProject(b.id);
-          // Find in VB Studio: VB Studio in a window of the desktop app (its pages read as they load)
-          else if (pathname === '/__vbs/find') r = typeof o.vbsFind === 'function' ? await o.vbsFind(String(b.url || '')) : { ok: false, error: 'Find in VB Studio needs the desktop app.' };
-          else if (pathname === '/__vbs/discovered/clear') r = vs.clearDiscovered();
-          // Sync from VB Studio (API): no window — the calls VB Studio's pages make, made directly
-          else if (pathname === '/__vbs/sync') r = vs.sync ? await vs.sync({ orgId: String(b.orgId || ''), orgKey: String(b.orgKey || ''), project: String(b.project || '') }) : { ok: false, error: 'Sync needs the desktop app.' };
-          // Find its repositories: VB Studio's API, else the names VB Studio usually gives, each checked with git
-          // the working copy: a workspace cloned on this PC — checked, pulled, committed, pushed back to VB Studio (never forced)
-          else if (pathname === '/__vbs/work/plan') r = vs.workPlan(b);
-          else if (pathname === '/__vbs/work/use') r = await vs.workUse(b);
-          else if (pathname === '/__vbs/work/apply') r = await vs.workApply(String(b.id || ''));
-          else if (pathname === '/__vbs/work/cancel') r = vs.workCancel();
-          else if (pathname === '/__vbs/pick-folder') r = typeof o.vbsPickFolder === 'function' ? { ok: true, folder: (await o.vbsPickFolder(String(b.folder || ''))) || '' } : { ok: false, error: 'Choosing a folder needs the desktop app: type its path.' };
-          else if (pathname === '/__vbs/work/status') r = await vs.workStatus(String(b.id || ''), { fetch: !!b.fetch });
-          else if (pathname === '/__vbs/work/pull') r = await vs.workPull(String(b.id || ''), who());
-          else if (pathname === '/__vbs/work/commit') r = await vs.workCommit(String(b.id || ''), String(b.message || ''), who());
-          else if (pathname === '/__vbs/work/push') r = await vs.workPush(String(b.id || ''));
-          else if (pathname === '/__vbs/work/forget') r = vs.workForget(String(b.id || ''), !!b.removeFolder);
-          else if (pathname === '/__vbs/work/stop') r = vs.workStop();
-          // the Run console: its lines (after the last one seen), who the app runs as, a command (no shell: lib/runConsole.js)
-          else if (pathname === '/__vbs/console/cmd') r = o.vbsConsole ? await o.vbsConsole.command(String(b.text || '').slice(0, 500)) : { ok: false, text: 'The Run console needs the desktop app.' };
-          else if (pathname === '/__vbs/console/clear') r = o.vbsConsole ? { ok: true, last: o.vbsConsole.clear() } : { ok: false };
-          else if (pathname === '/__vbs/console/runas') r = o.vbsConsole && o.vbsConsole.runAs ? await o.vbsConsole.runAs({ user: String(b.user || '').slice(0, 120), roles: Array.isArray(b.roles) ? b.roles.slice(0, 12).map(String) : [] }) : { ok: false, text: 'Run as needs the desktop app.' };
-          // ▶ Run: your workspace's whole app, built from its working folder (when its code changed), in a window of its own
-          else if (pathname === '/__vbs/work/run') r = typeof o.vbsRun === 'function' ? await o.vbsRun({ app: String(b.app || '') }) : { ok: false, error: 'Running your workspace needs the desktop app.' };
-          else if (pathname === '/__vbs/work/open') { const c = (vs.work().copies || []).filter((x) => x.id === String(b.id || ''))[0]; const dir = c ? (b.which === 'main' ? c.main : b.which === 'base' ? c.base : c.working) : ''; r = c && typeof o.vbsOpenPath === 'function' ? (await o.vbsOpenPath(dir), { ok: true, path: dir }) : { ok: false, error: c ? 'Opening a folder needs the desktop app.' : 'No such workspace on this PC.' }; }
-          // a workspace's Git: its branch, head commit and last commit (git, the saved sign-in)
-          else if (pathname === '/__vbs/workspace-git') r = vs.workspaceGit ? await vs.workspaceGit({ orgKey: String(b.orgKey || ''), project: String(b.project || ''), repo: String(b.repo || ''), branch: String(b.branch || '') }) : { ok: false, error: 'Needs the desktop app.' };
-          else if (pathname === '/__vbs/repos') r = vs.findRepos ? await vs.findRepos({ orgKey: String(b.orgKey || ''), project: String(b.project || ''), name: String(b.name || '') }) : { ok: false, error: 'Needs the desktop app.' };
-          else return jsonV(404, { error: 'Not found' });
-          log(`Setup: ${pathname.slice(7)} -> ${r && r.ok === false ? r.error : 'done'}`);
-          return jsonV(200, r);
-        })().catch((e) => jsonV(500, { ok: false, error: e.message }));
-        return;
-      }
       if (pathname.startsWith('/__api/')) {
         // The API tester (lib/apiTest.js), Application pages → a page → Integrations → Test: one of the page's REST calls or
         // BI Publisher reports, sent through this server's own /__backend proxy (the app's backend, the same login). This
@@ -1088,7 +1009,7 @@ function createDevServer(o) {
         return undefined;
       }
       if (pathname.startsWith('/__issues/')) {
-        // Issues (lib/issues.js), Build.Rite's Issues screen: log an issue against a page, the AI writes it up and analyzes
+        // Issues (lib/issues.js), the Issues screen: log an issue against a page, the AI writes it up and analyzes
         // it, approval (in the app, and an email), the agent applies it on a branch and makes the pull request, Jira kept up
         // to date. This PC only, by its own name, and only the app's own page (X-EquipRite-Issues).
         const host = String(req.headers.host || '').replace(/:\d+$/, '');

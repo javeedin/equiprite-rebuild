@@ -111,7 +111,7 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
     const s1 = await store.ask(is1.id, { by: 'Asha' });
     const m = mails[0] || {};
     T.check('sent for approval: an email to me, its subject with the key and a code, the change and how to approve in it', s1.ok && s1.issue.status === 'awaiting-approval' && m.to === 'me@example.com'
-      && /^\[Build\.Rite\] Approve EQP-901 · My Billing \(BR-[0-9A-F]{5}\)$/.test(m.subject) && /reply with <b>APPROVE<\/b>/.test(m.html) && /EQP-901: overdue invoices first/.test(m.html) && s1.issue.approval.requested.email.sent, JSON.stringify([s1.error, m.subject]));
+      && /^\[EquipRite\] Approve EQP-901 · My Billing \(BR-[0-9A-F]{5}\)$/.test(m.subject) && /reply with <b>APPROVE<\/b>/.test(m.html) && /EQP-901: overdue invoices first/.test(m.html) && s1.issue.approval.requested.email.sent, JSON.stringify([s1.error, m.subject]));
     T.check('apply is refused before the approval', !(await store.apply(is1.id, { by: 'Asha' })).ok);
     const p1 = await store.approve(is1.id, { by: 'Asha', via: 'app' });
     T.check('approved (self-approval, in the app), in Jira too', p1.ok && p1.issue.status === 'approved' && p1.issue.approval.decision.by === 'Asha' && jiraCalls.some((c) => /Approved by Asha/.test((c.body || {}).body || '')));
@@ -146,7 +146,7 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
     T.check('closed: the last step done, its timeline from logged to closed', cl.ok && cl.issue.status === 'closed' && cl.issue.steps.every((x) => x.state === 'done')
       && ['logged', 'written up', 'created in Jira', 'analyzed', 'sent for approval', 'approved', 'agent started', 'applied on a branch', 'pull request ready', 'verified', 'closed'].every((w) => cl.issue.events.some((e) => e.what === w)), JSON.stringify(cl.issue.events.map((e) => e.what)));
     T.check('…with its resolution: Fixed (a verified bug), fixed in the build it was verified on, its root cause; in Jira', cl.issue.resolution.code === 'fixed' && cl.issue.resolutionLabel === 'Fixed' && cl.issue.resolution.fixedIn === '26C.2'
-      && cl.issue.resolution.rootCause === 'code' && jiraCalls.some((c) => /Closed in Build\.Rite as \*Fixed\* \(fixed in 26C\.2\)[\s\S]*Root cause:\* Code defect — the sort ignored the due date/.test((c.body || {}).body || '')));
+      && cl.issue.resolution.rootCause === 'code' && jiraCalls.some((c) => /Closed in EquipRite as \*Fixed\* \(fixed in 26C\.2\)[\s\S]*Root cause:\* Code defect — the sort ignored the due date/.test((c.body || {}).body || '')));
 
     T.section('not a fix on this page: triaged, with what to do; from Jira; rejected');
     const c2 = (await store.create({ page: ID, jiraKey: 'eqp-50', kind: 'change', by: 'Ben' })).issue;

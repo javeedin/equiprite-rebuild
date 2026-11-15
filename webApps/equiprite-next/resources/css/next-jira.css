@@ -790,7 +790,7 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-fx-check--warn { background: #fff4d6; }
 .nx-fx-check--warn .nx-fx-mark { color: #b86e00; }
 
-/* ── Issues (Build.Rite): the list, a new issue, an issue's flow ── */
+/* ── Issues: the list, a new issue, an issue's flow ── */
 .nx-is-cols { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 980px) { .nx-is-cols { grid-template-columns: 1fr; } }
 .nx-is-list { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
@@ -853,7 +853,7 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-is-applybox { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px; border: 2px solid #5b3fd0; border-radius: 10px; background: #f6f3ff; }
 .nx-is-applybox .nx-fx-approvetext { flex: 1; min-width: 220px; font-size: 13px; }
 
-/* ── How it works (Build.Rite): every flow, step by step ── */
+/* ── How it works: every flow, step by step ── */
 .nx-hw { --hw-you: #1f6fb2; --hw-ai: #6d28d9; --hw-agent: #c2410c; --hw-app: #00688c; --hw-git: #24292f; --hw-jira: #0052cc; }
 .nx-hw-legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
 .nx-hw-key { display: inline-flex; align-items: center; gap: 2px; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; color: #4b5866; background: #fff; border: 1px solid #e2e7ed; }
@@ -1108,7 +1108,7 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 }
 @media (prefers-reduced-motion: reduce) { .nx-api[open], .nx-api-status, .nx-api-emptyico { animation: none; } }
 
-/* ── Issues as a defect record (Build.Rite): table view, details, clickable train, next step, panels, discussion ── */
+/* ── Issues as a defect record: table view, details, clickable train, next step, panels, discussion ── */
 .nx-is-st--verified { background: #e1f5ef; color: #0f6b52; }
 .nx-is-lays { display: inline-flex; border: 1px solid rgba(255, 255, 255, .45); border-radius: 9px; overflow: hidden; margin-right: 4px; }
 .nx-is-lay { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; font-weight: 700; padding: 6px 12px; border: 0; background: transparent; color: #fff; cursor: pointer; }
@@ -1226,16 +1226,7 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-is-mailsubj { grid-column: 1 / -1; }
 .nx-is-composer #isSendEmail { margin-left: 0; }
 
-/* ── Build.Rite: the build in scope (top bar), and each issue's build ── */
-.nx-scope { display: inline-flex; align-items: center; gap: 2px; padding: 3px; margin-left: 14px; border-radius: 999px; background: #eef2f6; border: 1px solid #dde4ea; flex-wrap: nowrap; }
-.nx-scope-lbl { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #6b7886; padding: 0 8px 0 10px; }
-.nx-scope-btn { font: inherit; font-size: 12.5px; font-weight: 700; color: #3b4a58; background: transparent; border: 0; border-radius: 999px; padding: 5px 12px; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s, box-shadow .15s; }
-.nx-scope-btn:hover { background: #fff; }
-.nx-scope-btn--on { color: #fff; background: #2c5266; box-shadow: 0 2px 6px rgba(20, 50, 70, .25); }
-.nx-scope-btn--old.nx-scope-btn--on { background: #8a5a00; } .nx-scope-btn--new.nx-scope-btn--on { background: #0a66c9; } .nx-scope-btn--next.nx-scope-btn--on { background: #2f7d4f; }
-.nx-scope-btn--mob.nx-scope-btn--on { background: #6d28d9; } .nx-scope-btn--fut.nx-scope-btn--on { background: #b42318; }
-@media (max-width: 1180px) { .nx-scope-lbl { display: none; } .nx-scope-btn { padding: 5px 9px; } }
-@media (max-width: 860px) { .nx-scope { display: none; } }
+/* ── Issues: each issue's app ── */
 .nx-is-app { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .04em; padding: 1px 6px; border-radius: 5px; color: #fff; background: #5a6876; }
 .nx-is-app--vbredwoodapp { background: #8a5a00; } .nx-is-app--equiprite { background: #0a66c9; } .nx-is-app--equiprite-next { background: #2f7d4f; }
 .nx-is-app--equiprite-mobile { background: #6d28d9; } .nx-is-app--equiprite-future { background: #b42318; }
@@ -1245,38 +1236,8 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-is-buildchip b { font-size: 10.5px; letter-spacing: .04em; margin-right: 2px; }
 .nx-is-picklist { max-height: 340px; overflow: auto; }
 
-/* ── Build.Rite: the Jira updates bell (resources/js/jiraFeed.js) ── */
-.nx-jfeed { width: min(520px, calc(100vw - 24px)); max-height: min(78vh, 760px); display: flex; flex-direction: column; }
 .nx-jfeed .nx-panel-head { gap: 8px; }
-.nx-jfeed-days { display: inline-flex; margin-left: auto; border: 1px solid #d7dfe6; border-radius: 999px; overflow: hidden; }
-.nx-jfeed-day { font: inherit; font-size: 12px; font-weight: 700; padding: 3px 10px; border: 0; background: #fff; color: #4b5866; cursor: pointer; }
-.nx-jfeed-day + .nx-jfeed-day { border-left: 1px solid #d7dfe6; }
-.nx-jfeed-day--on { background: #2c5266; color: #fff; }
-.nx-jfeed-kinds { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 14px 10px; border-bottom: 1px solid #eef1f4; }
-.nx-jfeed-kind { font: inherit; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 1px solid #d7dfe6; background: #fff; color: #33424f; cursor: pointer; }
-.nx-jfeed-kind--on { background: #1f2d3a; border-color: #1f2d3a; color: #fff; }
-.nx-jfeed-n { font-weight: 600; opacity: .7; margin-left: 2px; }
-.nx-jfeed-list { overflow: auto; flex: 1; min-height: 0; padding: 0 6px 6px; }
-.nx-jfeed-day-h { position: sticky; top: 0; z-index: 1; background: #fff; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #6b7886; padding: 10px 8px 4px; }
-.nx-jfeed-item { display: flex; gap: 10px; width: 100%; text-align: left; font: inherit; color: #16212c; background: none; border: 0; border-radius: 10px; padding: 8px; cursor: pointer; position: relative; }
-.nx-jfeed-item:hover { background: #f2f7fa; }
-/* not seen yet (came after the bell was last opened): a tint and a dot */
-.nx-jfeed-item--unseen { background: #f3f8fd; padding-right: 24px; }
-.nx-jfeed-item--unseen::after { content: ''; position: absolute; right: 10px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: #0a7bb6; }
-.nx-jfeed-ico { flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; color: #fff; background: #5a6876; transition: transform .15s; }
-.nx-jfeed-item:hover .nx-jfeed-ico { transform: scale(1.06); }
-/* each kind its colour */
-.nx-jfeed-item--new .nx-jfeed-ico { background: #2f7d4f; } .nx-jfeed-item--status .nx-jfeed-ico { background: #0a66c9; } .nx-jfeed-item--assign .nx-jfeed-ico { background: #6d28d9; }
-.nx-jfeed-item--comment .nx-jfeed-ico { background: #0f766e; } .nx-jfeed-item--priority .nx-jfeed-ico { background: #c2410c; } .nx-jfeed-item--sprint .nx-jfeed-ico { background: #2c5266; }
-.nx-jfeed-item--attach .nx-jfeed-ico { background: #64748b; } .nx-jfeed-item--edit .nx-jfeed-ico { background: #8a5a00; }
-.nx-jfeed-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
-.nx-jfeed-top { display: flex; gap: 6px; align-items: baseline; min-width: 0; }
-.nx-jfeed-key { font-size: 11.5px; font-weight: 700; color: #0a5c86; flex: 0 0 auto; }
-.nx-jfeed-sum { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nx-jfeed-text { font-size: 13px; color: #1f2d3a; overflow-wrap: anywhere; }
-.nx-jfeed-meta { font-size: 11.5px; color: #6b7886; }
 .nx-jbell .nx-bell-count { background: #0a7bb6; }
-
 /* ── a button at work; the working banner; the agent's steps (Issues) ── */
 .nx-btn--working { pointer-events: none; }
 .nx-btn--working::before { content: ''; display: inline-block; width: 13px; height: 13px; margin-right: 7px; vertical-align: -2px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: nx-is-spin .7s linear infinite; }
@@ -1503,334 +1464,52 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 
 .nx-is-guardmore { margin: 8px 0 0; font-size: 12.5px; color: #6b4a00; font-weight: 600; }
 
-/* ── Setup → Organizations & projects (Build.Rite) ── */
-.nx-vbs-two { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 14px; margin-top: 14px; align-items: start; }
-@media (max-width: 1000px) { .nx-vbs-two { grid-template-columns: minmax(0, 1fr); } }
-.nx-vbs-orglist { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
-.nx-vbs-orglist:empty { display: none; }
-.nx-vbs-org { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--nx-line); border-radius: 12px; background: var(--nx-surface); cursor: pointer; font: inherit; color: inherit; }
-.nx-vbs-org:hover { border-color: var(--nx-line-strong); }
-.nx-vbs-org--on { border-color: var(--nx-accent); box-shadow: inset 0 0 0 1px var(--nx-accent); background: var(--nx-accent-soft); }
-.nx-vbs-ico { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: #2e5468; color: #fff; font-size: 16px; }
-.nx-vbs-ico--proj { background: #1f7a4d; }
-.nx-vbs-orgbody, .nx-vbs-pbody { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.nx-vbs-st { font-size: 12px; color: var(--nx-muted); }
-.nx-vbs-st--ok { color: var(--nx-ok); font-weight: 600; } .nx-vbs-st--bad { color: var(--nx-danger); font-weight: 600; }
-.nx-vbs-form { padding: 12px 16px 16px; border-top: 1px solid var(--nx-line); display: flex; flex-direction: column; gap: 10px; }
-.nx-vbs-field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 700; color: var(--nx-muted); }
-.nx-vbs-field input { font-weight: 400; color: var(--nx-ink); width: 100%; box-sizing: border-box; }
-.nx-vbs-orghead { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.nx-vbs-orghead h2 { margin: 0; }
-.nx-vbs-url { font-size: 11.5px; color: var(--nx-muted); background: var(--nx-surface-2); border-radius: 6px; padding: 2px 8px; overflow-wrap: anywhere; }
-.nx-vbs-orgstatus { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px 0; }
-.nx-vbs-h3 { padding: 0 16px; margin-top: 16px; }
-.nx-vbs-projects { display: flex; flex-direction: column; gap: 10px; padding: 0 16px 8px; }
-.nx-vbs-project { border: 1px solid var(--nx-line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--nx-surface); }
-.nx-vbs-phead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.nx-vbs-row { display: flex; gap: 10px; align-items: baseline; font-size: 12.5px; }
-.nx-vbs-lbl { flex: none; width: 110px; font-weight: 700; color: var(--nx-muted); }
-.nx-vbs-chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.nx-vbs-chip { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--nx-line-strong); background: var(--nx-surface-2); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-.nx-vbs-chip--head { border-color: var(--nx-accent); color: var(--nx-accent); font-weight: 700; }
-.nx-vbs-chip--job { font-family: inherit; }
-.nx-vbs-addproj { margin-top: 6px; }
-
-/* Find in VB Studio */
-.nx-vbs-found { margin-top: 14px; }
-.nx-vbs-foundnote { margin: 0; padding: 12px 16px 0; font-size: 13px; color: var(--nx-muted); }
-.nx-vbs-foundlist { display: flex; flex-direction: column; gap: 8px; padding: 0 16px; }
-.nx-vbs-foundrow { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--nx-line); border-radius: 12px; background: var(--nx-surface); }
-.nx-vbs-repo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-.nx-vbs-wtable { padding: 0 16px; }
-.nx-vbs-wtr { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .8fr) minmax(0, .9fr); gap: 10px; padding: 7px 4px; border-bottom: 1px solid var(--nx-line); font-size: 13px; }
-.nx-vbs-wth { font-size: 11px; font-weight: 700; color: var(--nx-muted); text-transform: uppercase; letter-spacing: .03em; }
-.nx-vbs-foundacts { padding: 12px 16px 16px; }
-
-.nx-vbs-log { margin: 12px 16px 0; }
-.nx-vbs-log > summary { cursor: pointer; font-size: 12.5px; font-weight: 800; color: #3b4a58; }
-.nx-vbs-logtext { margin: 8px 0 0; max-height: 300px; overflow: auto; padding: 10px 12px; border-radius: 8px; background: #0f1d27; color: #d9e8f2; font-size: 11.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
-
-/* Sync from VB Studio (API): the last sync in one line, and what it did (live while it runs) */
-.nx-vbs-sync { margin: 12px 16px 0; padding: 10px 12px; border: 1px solid var(--nx-line); border-left: 4px solid #2a78d6; border-radius: 10px; background: var(--nx-surface); }
-.nx-vbs-sync--ok { border-left-color: #1f8a4c; }
-.nx-vbs-sync--bad { border-left-color: #c2410c; }
-.nx-vbs-sync .nx-vbs-log { margin: 8px 0 0; }
-.nx-vbs-syncline { font-size: 13px; font-weight: 600; color: var(--nx-ink, #16212c); overflow-wrap: anywhere; }
-
-/* Organizations & projects: the filter (an organization's projects; projects by name), the breadcrumb, a project opened */
-.nx-vbs-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; max-width: 980px; }
-.nx-vbs-fchip { display: inline-flex; align-items: center; gap: 8px; max-width: 380px; padding: 6px 8px 6px 13px; border-radius: 999px; border: 1px solid var(--nx-line); background: var(--nx-surface); color: inherit; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-.nx-vbs-fchip:hover { border-color: #2a78d6; }
-.nx-vbs-fchip:focus-visible, .nx-vbs-fsearch:focus-visible, .nx-vbs-crumb:focus-visible, .nx-vbs-plink:focus-visible { outline: 2px solid #2a78d6; outline-offset: 2px; }
-.nx-vbs-flabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nx-vbs-fcount { flex: none; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: rgba(42, 120, 214, .12); color: #1d5fae; font-size: 11.5px; font-weight: 800; text-align: center; }
-.nx-vbs-fchip--on { background: #2a78d6; border-color: #2a78d6; color: #fff; }
-.nx-vbs-fchip--on .nx-vbs-fcount { background: rgba(255, 255, 255, .25); color: #fff; }
-.nx-vbs-fsearch { flex: 1 1 200px; max-width: 280px; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--nx-line); background: var(--nx-surface); color: inherit; font: inherit; font-size: 13px; }
-/* on Build.Rite's dark band */
-html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fchip, html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fchip { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .38); color: #fff; }
-html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fchip:hover, html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fchip:hover { background: rgba(255, 255, 255, .16); }
-html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fcount, html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fcount { background: rgba(255, 255, 255, .18); color: #fff; }
-html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fchip--on, html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fchip--on { background: #fff; border-color: #fff; color: #16212c; }
-html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fchip--on .nx-vbs-fcount, html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fchip--on .nx-vbs-fcount { background: #e3edf8; color: #1d5fae; }
-html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch, html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fsearch { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .38); color: #fff; }
-html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fsearch::placeholder { color: rgba(255, 255, 255, .72); }
-.nx-vbs-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 12px 16px 0; font-size: 13px; }
-.nx-vbs-crumb { padding: 2px 4px; border: 0; background: none; color: #1d5fae; font: inherit; font-weight: 600; cursor: pointer; border-radius: 4px; }
-.nx-vbs-crumb:hover { text-decoration: underline; }
-.nx-vbs-crumb--here { color: inherit; cursor: default; }
-.nx-vbs-crumb--here:hover { text-decoration: none; }
-.nx-vbs-crumbsep { color: var(--nx-muted); }
-.nx-vbs-plink { display: block; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
-.nx-vbs-plink:hover { color: #1d5fae; text-decoration: underline; }
-.nx-vbs-plink--sm { display: inline; font-weight: 600; color: #1d5fae; }
-.nx-vbs-foundrow--proj .nx-vbs-pbody { flex: 1 1 auto; min-width: 0; }
-.nx-vbs-wslink { flex: none; white-space: nowrap; }
-.nx-vbs-pview { padding: 4px 0 8px; }
-.nx-vbs-pvhead { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin: 12px 16px 0; padding: 12px; border: 1px solid var(--nx-line); border-radius: 12px; background: var(--nx-surface); }
-.nx-vbs-pvhead .nx-vbs-pbody { flex: 1 1 260px; min-width: 0; }
-.nx-vbs-pvhead #vbsPvName { font-size: 16px; }
-.nx-vbs-pvrepos { display: flex; flex-direction: column; gap: 6px; padding: 0 16px; }
-.nx-vbs-pvrepos .nx-vbs-url { flex: 1 1 260px; min-width: 0; }
-@media (max-width: 640px) { .nx-vbs-fchip { max-width: 100%; } .nx-vbs-fsearch { max-width: none; } }
-/* the filter wraps inside the title's column; the page's actions stay on the right */
+/* Filter chips, the steps of a long piece of work, ▶ buttons: shared by Application pages and Issues */
+html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fchip { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .38); color: #fff; }
+html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fchip:hover { background: rgba(255, 255, 255, .16); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fcount { background: rgba(255, 255, 255, .18); color: #fff; }
+html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fchip--on { background: #fff; border-color: #fff; color: #16212c; }
+html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fchip--on .nx-vbs-fcount { background: #e3edf8; color: #1d5fae; }
+html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fsearch { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .38); color: #fff; }
+html[data-nx-look="redwood"] .nx-pagehead .nx-vbs-fsearch::placeholder { color: rgba(255, 255, 255, .72); }
 .nx-vbs .nx-pagehead > div:first-child { flex: 1 1 480px; min-width: 0; }
 .nx-vbs .nx-pagehead > .nx-actions { flex: none; }
-/* the workspaces: every one (its project), or a project's own — as VB Studio lists them (repository, environment, last opened) */
-.nx-vbs-wtr--all { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, 1fr); }
-.nx-vbs-wtr--p { grid-template-columns: minmax(0, 1.3fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, 1fr); }
-.nx-vbs-wtr > span { overflow-wrap: anywhere; }
-.nx-vbs-wowner { display: block; font-size: 12px; }
-@media (max-width: 760px) { .nx-vbs-wtr--all, .nx-vbs-wtr--p { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .nx-vbs-wth { display: none; } }
-/* the projects: a row each (its name opens its tab) */
-.nx-vbs-ptable { padding: 4px 16px 16px; }
-.nx-vbs-ptr { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.3fr) minmax(0, .8fr) minmax(0, .8fr) auto; gap: 12px; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--nx-line); font-size: 13px; }
-.nx-vbs-ptr > span { min-width: 0; overflow-wrap: anywhere; }
-.nx-vbs-ptr:not(.nx-vbs-wth):hover { background: rgba(42, 120, 214, .05); }
-.nx-vbs-ptr .nx-vbs-plink { font-size: 14px; }
-.nx-vbs-others { padding: 4px 16px 8px; display: flex; flex-direction: column; gap: 6px; }
-.nx-vbs-conn { margin-top: 14px; }
 .nx-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .nx-vbsp .nx-card { margin-top: 14px; }
 .nx-vbsp .nx-card-head { gap: 12px; flex-wrap: wrap; }
-.nx-vbsp-q { max-width: 260px; }
-.nx-vbsp-steps { margin: 14px 0 0; }
 .nx-vbsp-steps .nx-btn { margin-top: 8px; }
-@media (max-width: 760px) { .nx-vbs-ptr { grid-template-columns: minmax(0, 1fr) auto; } .nx-vbs-ptr > span:nth-child(2), .nx-vbs-ptr > span:nth-child(3) { display: none; } }
-/* a project's tab: the workspace chosen — open it in VB Studio; its Git (repository, branch, clone, head, last commit) */
-.nx-vbsp-wsel { background: rgba(42, 120, 214, .07); box-shadow: inset 3px 0 0 #2a78d6; }
-.nx-vbsp-lastcell { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.nx-vbsp-ws { margin: 14px 16px 16px; padding: 14px; border: 1px solid var(--nx-line); border-left: 4px solid #2a78d6; border-radius: 12px; background: var(--nx-surface); }
-.nx-vbsp-wshead { display: flex; align-items: flex-start; gap: 10px; }
-.nx-vbsp-wshead .nx-vbs-pbody { flex: 1 1 auto; min-width: 0; }
-.nx-vbsp-wshead #vbspWsName { font-size: 16px; }
-.nx-vbsp-wsacts { margin-top: 12px; flex-wrap: wrap; }
 .nx-vbsp-wsacts a.nx-btn { text-decoration: none; }
-.nx-vbsp-wsnote { margin: 8px 0 0; }
-.nx-vbsp-git { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 13px; }
-.nx-vbsp-git dt { color: var(--nx-muted); font-weight: 600; }
-.nx-vbsp-git dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-.nx-vbsp-clone code { word-break: break-all; }
-.nx-vbsp-by { display: block; }
-.nx-vbsp-files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
-.nx-vbsp-files li { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.nx-vbsp-files code { overflow-wrap: anywhere; font-size: 12px; }
-.nx-vbsp-fs { flex: none; width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; background: #e9eef3; color: #3b4a58; }
-.nx-vbsp-fs--A { background: #e3f3e8; color: #1f6d3c; }
-.nx-vbsp-fs--D { background: #fbe6e1; color: #a1381b; }
-.nx-vbsp-fs--M { background: #e3edf8; color: #1d5fae; }
-@media (max-width: 640px) { .nx-vbsp-git { grid-template-columns: minmax(0, 1fr); } }
-/* Build.Rite's top bar: the working copy (project ▸ workspace, its branch and what waits) */
 .nx-work { display: inline-flex; align-items: center; gap: 8px; max-width: 520px; margin-left: 14px; padding: 4px 6px 4px 12px; border-radius: 999px; border: 1px solid #dde4ea; background: #eef2f6; color: #16212c; font: inherit; cursor: pointer; min-width: 0; }
 .nx-work:hover { background: #fff; border-color: #2a78d6; }
 .nx-work:focus-visible { outline: 2px solid #2a78d6; outline-offset: 2px; }
-.nx-work-lbl { flex: none; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #6b7886; }
-.nx-work-val { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 700; }
-.nx-work-badge { flex: none; padding: 2px 9px; border-radius: 999px; background: #2c5266; color: #fff; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
-.nx-work--todo .nx-work-badge { background: #b35a00; }
-.nx-work--none .nx-work-val { color: #6b7886; font-weight: 600; }
 @media (max-width: 1100px) { .nx-work-lbl { display: none; } .nx-work { max-width: 300px; } }
-/* a project's tab: the workspace's working copy */
-.nx-vbsp-work { margin-top: 4px; }
-.nx-vbsp-work--on { padding: 12px; border: 1px solid var(--nx-line); border-radius: 10px; background: rgba(42, 120, 214, .03); }
-.nx-vbsp-wstate { font-size: 13.5px; font-weight: 700; margin-bottom: 10px; }
-.nx-vbsp-wstate--ok { color: #1f6d3c; }
-.nx-vbsp-wstate--todo { color: #8a4b00; }
-.nx-vbsp-wstate--bad { color: #a1381b; }
-.nx-vbsp-wfiles { margin: 10px 0; max-height: 220px; overflow: auto; }
-.nx-vbsp-commit { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-.nx-vbsp-commit input { flex: 1 1 280px; min-width: 0; }
-.nx-vbsp-workacts { flex-wrap: wrap; }
-.nx-vbsp-fs--\? { background: #e3f3e8; color: #1f6d3c; }
-/* Set up your workspace: the wizard's steps; picking a project and a workspace; the folders made */
-.nx-vbsu-steps { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 16px 0 0; padding: 0; }
-.nx-vbsu-step { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border-radius: 999px; border: 1px solid var(--nx-line); background: var(--nx-surface); font-size: 13px; font-weight: 600; color: var(--nx-muted); }
-.nx-vbsu-n { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #e9eef3; color: #3b4a58; font-size: 12px; font-weight: 800; }
-.nx-vbsu-step--on { border-color: #2a78d6; color: #16212c; }
-.nx-vbsu-step--on .nx-vbsu-n { background: #2a78d6; color: #fff; }
-.nx-vbsu-step--done .nx-vbsu-n { background: #1f8a4c; color: #fff; }
-.nx-vbsu-card { margin-top: 14px; }
-.nx-vbsu-body { padding: 4px 16px 8px; }
-.nx-vbsu-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 4px 16px 8px; }
-.nx-vbsu-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.nx-vbsu-list { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow: auto; padding: 2px; }
-.nx-vbsu-pick, .nx-vbsu-ws { display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left; padding: 9px 12px; border: 1px solid var(--nx-line); border-radius: 10px; background: var(--nx-surface); color: inherit; font: inherit; cursor: pointer; }
-.nx-vbsu-pick { flex-direction: column; gap: 2px; }
-.nx-vbsu-pick:hover, .nx-vbsu-ws:hover { border-color: #2a78d6; }
-.nx-vbsu-pick:focus-visible, .nx-vbsu-ws:focus-visible { outline: 2px solid #2a78d6; outline-offset: 2px; }
-.nx-vbsu-pick--on, .nx-vbsu-ws--on { border-color: #2a78d6; background: rgba(42, 120, 214, .07); box-shadow: inset 3px 0 0 #2a78d6; }
-.nx-vbsu-radio { flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 50%; border: 2px solid #9aa8b5; }
-.nx-vbsu-ws--on .nx-vbsu-radio { border-color: #2a78d6; background: radial-gradient(#2a78d6 45%, transparent 50%); }
-.nx-vbsu-wsbody { display: flex; flex-direction: column; min-width: 0; }
-.nx-vbsu-nav { justify-content: space-between; padding: 12px 16px 16px; }
-.nx-vbsu-folder { display: flex; gap: 8px; }
-.nx-vbsu-folder input { flex: 1 1 auto; min-width: 0; }
-.nx-vbsu-url { display: block; margin-top: 2px; word-break: break-all; font-size: 12px; }
-.nx-vbsu-folders { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
-.nx-vbsu-fold { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 2px 12px; align-items: baseline; padding: 10px 12px; border: 1px solid var(--nx-line); border-radius: 10px; background: var(--nx-surface); }
-.nx-vbsu-fold code { word-break: break-all; }
 .nx-vbsu-fold .nx-note { grid-column: 2; }
-.nx-vbsu-ftag { display: inline-flex; justify-content: center; padding: 2px 8px; border-radius: 6px; background: #2c5266; color: #fff; font-size: 11.5px; font-weight: 800; }
-.nx-vbsu-ftag--work { background: #2a78d6; }
-.nx-vbsu-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; list-style: none; margin: 0; padding: 0; font-size: 13px; }
-.nx-vbsu-flow li { padding: 4px 10px; border-radius: 999px; background: #eef2f6; }
-.nx-vbsu-flow li + li::before { content: '›'; margin-right: 8px; color: var(--nx-muted); }
-.nx-vbsu-done { padding: 4px 0; }
-.nx-vbsu-doneh { margin: 0 0 4px; font-size: 16px; font-weight: 800; color: #1f6d3c; }
-/* a project's tab: your workspace on this PC — working and main */
-.nx-vbsp-folds { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
-.nx-vbsp-fold { padding: 10px 12px; border: 1px solid var(--nx-line); border-radius: 10px; background: var(--nx-surface); min-width: 0; }
-.nx-vbsp-foldh { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.nx-vbsp-foldh code { min-width: 0; overflow-wrap: anywhere; font-size: 12px; }
 .nx-vbsp-fold > .nx-note { margin: 6px 0; }
-.nx-vbsp-foldrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-@media (max-width: 900px) { .nx-vbsu-two, .nx-vbsp-folds { grid-template-columns: minmax(0, 1fr); } }
-/* Set up your workspace: the progress while git copies (its phase, percentage, size, speed; each step) */
-.nx-vbsu-prog { max-width: 720px; padding: 6px 0 4px; }
 .nx-vbsu-progh { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 14px; }
 .nx-vbsu-pct { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; color: #1d5fae; }
 .nx-vbsu-bar { display: block; width: 100%; height: 10px; margin: 8px 0 6px; border: 0; border-radius: 999px; overflow: hidden; background: #e3e9ef; appearance: none; -webkit-appearance: none; }
 .nx-vbsu-bar::-webkit-progress-bar { background: #e3e9ef; border-radius: 999px; }
 .nx-vbsu-bar::-webkit-progress-value { background: #2a78d6; border-radius: 999px; transition: width .4s ease; }
 .nx-vbsu-bar::-moz-progress-bar { background: #2a78d6; border-radius: 999px; }
-#vbsuProgDetail { font-variant-numeric: tabular-nums; margin: 0 0 10px; }
+@keyframes nx-vbsu-pulse { 50% { box-shadow: 0 0 0 5px rgba(42, 120, 214, .18); } }
 .nx-vbsu-psteps { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
 .nx-vbsu-ps { display: flex; align-items: center; gap: 10px; color: var(--nx-muted); }
 .nx-vbsu-psi { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; background: #e9eef3; color: #6b7886; }
-.nx-vbsu-ps--done { color: inherit; }
 .nx-vbsu-ps--done .nx-vbsu-psi { background: #1f8a4c; color: #fff; }
-.nx-vbsu-ps--active { color: inherit; font-weight: 700; }
 .nx-vbsu-ps--active .nx-vbsu-psi { background: #2a78d6; color: #fff; animation: nx-vbsu-pulse 1.2s ease-in-out infinite; }
 .nx-vbsu-ps--failed .nx-vbsu-psi { background: #c2410c; color: #fff; }
-@keyframes nx-vbsu-pulse { 50% { box-shadow: 0 0 0 5px rgba(42, 120, 214, .18); } }
 @media (prefers-reduced-motion: reduce) { .nx-vbsu-ps--active .nx-vbsu-psi { animation: none; } .nx-vbsu-bar::-webkit-progress-value { transition: none; } }
-/* Application pages: whose code is read (your workspace's working folder) */
-.nx-pg-codefrom { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, .14); font-size: 13px; font-weight: 600; max-width: 100%; }
-.nx-pg-codefrom span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nx-pg-appmark--ws { background: #2a78d6; }
-/* Build.Rite's top bar: the workspace's menu */
-.nx-work-wrap { position: relative; display: inline-flex; align-items: center; gap: 4px; margin-left: 14px; min-width: 0; }
 .nx-work-wrap .nx-work { margin-left: 0; }
-.nx-work-caret { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid #dde4ea; background: #eef2f6; color: #3b4a58; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
-.nx-work-caret:hover, .nx-work-caret[aria-expanded="true"] { background: #fff; border-color: #2a78d6; }
-/* ▶ Try it on this page (Code fix, applied in your workspace) */
 .nx-fx-try { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; }
 .nx-fx-try .nx-pg-coderun { margin-left: 0; }
-/* What Build.Rite is doing building and running your workspace's app (runProgressView.js) */
-.nx-runprog-wrap { position: relative; margin-top: 10px; max-width: 820px; }
-.nx-runprog { padding: 10px 12px; border-radius: 10px; background: #fff; color: #16212c; box-shadow: 0 6px 22px rgba(0, 0, 0, .18); font-size: 12.5px; }
-.nx-runprog:empty { display: none; }
-.nx-runprog-x { position: absolute; top: 6px; right: 8px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: #5a6876; font-size: 16px; cursor: pointer; }
-.nx-runprog-x:hover { background: #eef2f6; }
-.nx-runprog--pop { position: absolute; top: 40px; right: 0; z-index: 80; width: min(600px, 90vw); }
-.rp-head { margin-bottom: 6px; padding-right: 26px; }
-.rp-took { color: #5a6876; }
-.rp-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
-.rp-s { display: grid; grid-template-columns: 20px 200px 1fr; align-items: baseline; gap: 6px; }
-.rp-i { text-align: center; font-weight: 700; }
-.rp-l { font-weight: 600; }
-.rp-t { color: #4a5865; overflow-wrap: anywhere; }
-.rp-s--done .rp-i { color: #1f9d55; } .rp-s--failed .rp-i, .rp-s--failed .rp-t { color: #b42318; }
-.rp-s--skipped, .rp-s--todo { color: #8a97a5; } .rp-s--skipped .rp-l, .rp-s--todo .rp-l { font-weight: 400; }
-.rp-s--running .rp-l { color: #0b5a7a; }
-.rp-spin { display: inline-block; width: 12px; height: 12px; border-width: 2px; vertical-align: -2px; }
-.rp-tail { margin: 8px 0 0; max-height: 9.5em; overflow: auto; padding: 6px 8px; border-radius: 6px; background: #1e1e1e; color: #c5c5c5; font: 11.5px/1.45 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; }
-@media (max-width: 720px) { .rp-s { grid-template-columns: 20px 1fr; } .rp-t { grid-column: 2; } }
-/* Console (>_) beside ▶ Run in the top bar */
-.nx-work-console { flex: none; height: 30px; padding: 0 10px; border: 1px solid #c9d3dc; border-radius: 999px; background: #1e1e1e; color: #9cdcfe; font: 700 12px/1 ui-monospace, Menlo, Consolas, monospace; cursor: pointer; }
-.nx-work-console:hover { background: #2d2d2d; color: #fff; }
-/* The Run console (flows/insights run-console): like an editor's terminal */
-.nx-rc-card { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
-.nx-rc-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border-bottom: 1px solid #e2e7ed; background: #f7f9fb; font-size: 13px; }
-.nx-rc-who { font-weight: 700; color: #146c2e; }
-.nx-rc-who--anon { color: #a15c00; }
-.nx-rc-fact { color: #4a5865; padding-left: 10px; border-left: 1px solid #d6dde4; }
-.nx-rc-noaccess { padding: 10px 14px; background: #fdecec; color: #8a1c1c; border-bottom: 1px solid #f3c2c2; font-weight: 600; font-size: 13px; }
-.nx-rc-as { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid #e2e7ed; background: #fbfcfd; }
-.nx-rc-aslbl { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #5a6876; }
-.nx-rc-as input { width: 200px; height: 30px; padding: 0 8px; border: 1px solid #c3d0da; border-radius: 6px; font: inherit; font-size: 13px; }
-.nx-rc-roles { display: inline-flex; gap: 4px; flex-wrap: wrap; }
-.nx-rc-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid #e2e7ed; }
 .nx-rc-bar .nx-pg-coderun { margin-left: 0; }
-.nx-rc-filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 14px; background: #fafbfc; border-bottom: 1px solid #e2e7ed; }
-.nx-rc-log { height: 56vh; min-height: 260px; overflow: auto; background: #1e1e1e; color: #d4d4d4; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 8px 0; }
-.rc-l { display: flex; gap: 10px; padding: 0 14px; white-space: pre-wrap; word-break: break-word; }
-.rc-l:hover { background: #2a2d2e; }
-.rc-t { flex: none; color: #6a737d; }
-.rc-kind { flex: none; width: 46px; color: #808080; text-transform: lowercase; }
-.rc-x { flex: 1; min-width: 0; }
-.rc-k-build .rc-x { color: #c5c5c5; } .rc-k-build .rc-kind { color: #b5cea8; }
-.rc-k-server .rc-x { color: #9cdcfe; } .rc-k-server .rc-kind { color: #4fc1ff; }
-.rc-k-app .rc-x { color: #dcdcaa; } .rc-k-app .rc-kind { color: #dcdcaa; }
-.rc-k-nav .rc-x { color: #c586c0; } .rc-k-nav .rc-kind { color: #c586c0; }
-.rc-k-warn { background: #3a3000; } .rc-k-warn .rc-x, .rc-k-warn .rc-kind { color: #ffd479; }
-.rc-k-error { background: #4b1818; } .rc-k-error .rc-x, .rc-k-error .rc-kind { color: #ff9b9b; }
-.rc-k-info .rc-x { color: #e0e0e0; }
-.rc-k-cmd .rc-x { color: #fff; font-weight: 700; } .rc-k-cmd { margin-top: 6px; }
-/* the filters: only that kind shows (and what you typed) */
-.rc-f-build .rc-l:not(.rc-k-build):not(.rc-k-cmd) { display: none; }
-.rc-f-server .rc-l:not(.rc-k-server):not(.rc-k-cmd) { display: none; }
-.rc-f-app .rc-l:not(.rc-k-app):not(.rc-k-nav):not(.rc-k-cmd) { display: none; }
-.rc-f-errors .rc-l:not(.rc-k-error):not(.rc-k-warn):not(.rc-k-cmd) { display: none; }
-.nx-rc-cmd { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: #252526; }
-.nx-rc-prompt { color: #4fc1ff; font: 700 14px ui-monospace, Menlo, Consolas, monospace; }
-.nx-rc-cmd input { flex: 1; min-width: 0; height: 32px; border: 1px solid #3c3c3c; border-radius: 4px; background: #1e1e1e; color: #fff; font: 13px ui-monospace, Menlo, Consolas, monospace; padding: 0 10px; }
-.nx-rc-cmd input:focus { outline: 1px solid #007fd4; border-color: #007fd4; }
-/* ▶ Run beside the working folder (Application pages) */
 .nx-pg-coderun { display: inline-flex; align-items: center; gap: 6px; height: 28px; margin-left: 6px; padding: 0 12px 0 10px; border: 0; border-radius: 999px; background: #1f7a3d; color: #fff; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
 .nx-pg-coderun:hover { background: #17652f; }
 .nx-pg-coderun:focus-visible { outline: 2px solid #9fd3ff; outline-offset: 2px; }
 .nx-pg-coderun--busy, .nx-pg-coderun:disabled { background: #5d8f6c; cursor: progress; }
-/* ▶ Run: your workspace's app, in a window of its own */
-.nx-work-run { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 10px; border: 0; border-radius: 999px; background: #1f7a3d; color: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, .15); }
-.nx-work-run:hover { background: #17652f; }
-.nx-work-run:focus-visible { outline: 2px solid #2a78d6; outline-offset: 2px; }
-.nx-work-run--busy, .nx-work-run:disabled { background: #5d8f6c; cursor: progress; }
-.nx-work-runico { font-size: 10px; line-height: 1; }
-.nx-work-caret:focus-visible { outline: 2px solid #2a78d6; outline-offset: 2px; }
-.nx-work-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; min-width: 280px; padding: 6px; border-radius: 12px; border: 1px solid #dde4ea; background: #fff; box-shadow: 0 12px 32px rgba(20, 40, 60, .18); display: flex; flex-direction: column; }
-.nx-work-menu button { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: none; color: #16212c; font: inherit; font-size: 13.5px; font-weight: 600; text-align: left; cursor: pointer; }
-.nx-work-menu button:hover, .nx-work-menu button:focus-visible { background: #eef2f6; outline: none; }
-.nx-work-menu button > span:first-child { margin-top: 2px; }
-.nx-work-mnote { display: block; font-size: 12px; font-weight: 500; color: #6b7886; }
-.nx-work-menu .nx-work-danger { color: #a1381b; }
-.nx-vbsp-workend { justify-content: flex-end; margin-top: 8px; }
 /* Application pages: Build the sheet, step by step (its bar, each step and what it found) */
 .nx-pg-steps { margin: 12px 0 4px; padding: 12px 14px; border: 1px solid var(--nx-line); border-left: 4px solid #2a78d6; border-radius: 10px; background: var(--nx-surface); max-width: 760px; }
 .nx-pg-steps .nx-vbsu-psteps { margin: 0; }
 .nx-pg-steps .nx-vbsu-ps { align-items: flex-start; }
 .nx-pg-stepdetail { display: block; font-size: 12px; font-weight: 500; color: var(--nx-muted); }
 .nx-spin--btn { display: inline-block; vertical-align: -2px; width: 14px; height: 14px; border-width: 2px; border-color: rgba(255, 255, 255, .45); border-top-color: #fff; margin-right: 6px; }
-/* Application pages: your workspace's working folder, its full path */
-.nx-pg-codepath { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 6px; font-size: 13px; max-width: 100%; }
-.nx-pg-codepath-l { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; opacity: .8; }
-.nx-pg-codepath code { padding: 3px 8px; border-radius: 6px; background: rgba(0, 0, 0, .22); color: inherit; font-size: 12.5px; overflow-wrap: anywhere; user-select: all; }
-.nx-pg-codecopy { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .45); background: transparent; color: inherit; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-.nx-pg-codecopy:hover { background: rgba(255, 255, 255, .14); }
-.nx-pg-codecopy:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-.nx-pg-codenote { margin-top: 6px; font-size: 12.5px; opacity: .85; }
-/* Application pages in Build.Rite with no workspace set up */
-.nx-pg-nows { margin-top: 16px; padding: 40px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.nx-pg-nows h2 { margin: 0; font-size: 20px; }
-.nx-pg-nows p { margin: 0 0 6px; max-width: 560px; color: var(--nx-muted); font-size: 14px; line-height: 1.5; }
-.nx-pg-nows-ico { font-size: 36px; color: #2a78d6; }

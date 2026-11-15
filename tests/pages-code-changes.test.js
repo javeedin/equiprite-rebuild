@@ -8,7 +8,7 @@
  *     in the list (+n −n); committed but not pushed: still shown (it is not in what the remote has)
  *   - your workspace (o.baseFn: VB Studio's branch, named): compared with that; a base that is not there → the remote
  *   - not in git: nothing said
- *   - the viewer: added / changed / taken-away lines and Build.Rite's change notes marked, the change gone to outlined
+ *   - the viewer: added / changed / taken-away lines and Code fix's change notes marked, the change gone to outlined
  */
 const fs = require('fs');
 const os = require('os');
@@ -84,15 +84,15 @@ new Function('define', fs.readFileSync(path.join(ROOT, 'webApps/equiprite-next/r
     T.check('nothing said (no changes to show)', sp.codeFile(ID, HTML).ok && sp.codeFile(ID, HTML).changes === null && !sp.code(ID).files.some((f) => f.changed) && sp.code(ID).base === '');
 
     T.section('the viewer marks them');
-    const text = ['<div>', '<!-- Build.Rite change fx1abc — My Billing', '     Request:      a note', '     Jira story:   EQP-1 -->', '<p>new</p>', '<!-- end of Build.Rite change fx1abc -->', '<span>x</span>', '</div>', ''].join('\n');
+    const text = ['<div>', '<!-- Code fix change fx1abc — My Billing', '     Request:      a note', '     Jira story:   EQP-1 -->', '<p>new</p>', '<!-- end of Code fix change fx1abc -->', '<span>x</span>', '</div>', ''].join('\n');
     const marks = { base: 'VB Studio (dev-one)', regions: [{ from: 2, to: 6, kind: 'added' }, { from: 7, to: 7, kind: 'changed' }, { from: 8, to: 8, kind: 'removed', was: 2 }] };
     const html = CV.doc(text, 'p.html', '', marks, 1);
     const cls = (n) => (new RegExp('<div class="l([^"]*)" id="L' + n + '"').exec(html) || [])[1] || '';
     T.check('added lines (+, green), the changed one (~, amber), a red line where lines were taken away', / ca/.test(cls(5)) && /<i class="sg">\+<\/i>5/.test(html) && / cm/.test(cls(7)) && /<i class="sg">~<\/i>7/.test(html)
       && / cd/.test(cls(8)) && !/ c[amd]/.test(cls(1)), [1, 5, 7, 8].map(cls).join(' | '));
-    T.check('…Build.Rite\'s change note (its lines and its end) tinted; the change gone to outlined', / bn/.test(cls(2)) && / bn/.test(cls(3)) && / bn/.test(cls(4)) && / bn/.test(cls(6)) && !/ bn/.test(cls(5))
+    T.check('…Code fix\'s change note (its lines and its end) tinted; the change gone to outlined', / bn/.test(cls(2)) && / bn/.test(cls(3)) && / bn/.test(cls(4)) && / bn/.test(cls(6)) && !/ bn/.test(cls(5))
       && / cur/.test(cls(7)) && !/ cur/.test(cls(5)), [2, 3, 4, 5, 6, 7].map(cls).join(' | '));
-    const js = ['x();', '// Build.Rite change fx2 — Page', '// Request:      r', '// Issue:        —', 'y();', '// a comment of its own', ''].join('\n');
+    const js = ['x();', '// Code fix change fx2 — Page', '// Request:      r', '// Issue:        —', 'y();', '// a comment of its own', ''].join('\n');
     const nl = CV.noteLines(js);
     T.check('…in JavaScript too (its // lines), not a comment of its own after it; the line of a change to go to', nl[2] && nl[3] && nl[4] && !nl[5] && !nl[6] && CV.changeLine(marks, 2) === 8 && CV.changeLine({ regions: [{ from: 0, kind: 'removed' }] }, 0) === 1);
     T.check('…no marks: as before', CV.doc('a\nb', 'x.js', '') === CV.doc('a\nb', 'x.js', '', null, -1) && !/ ca| cm/.test(CV.doc('a\nb', 'x.js', '')));

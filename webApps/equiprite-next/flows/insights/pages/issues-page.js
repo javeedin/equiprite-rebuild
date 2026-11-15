@@ -189,7 +189,7 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
     sbNone(x, run) { return !!x && !(x.sandbox && x.sandbox.exists) && !(run && run.running); }
     sbIntro(x) {
       const app = (APPS.filter((a) => a[0] === appOf(x))[0] || [])[1] || 'the app';
-      return 'Try the fix before anyone approves it. Build.Rite copies ' + app + '\'s code (the latest on its branch) into a folder of its own on this PC, writes this fix there and builds the app — '
+      return 'Try the fix before anyone approves it. EquipRite copies ' + app + '\'s code (the latest on its branch) into a folder of its own on this PC, writes this fix there and builds the app — '
         + 'then you run it and check the page. Your own code folder is not touched; nothing is committed or pushed until it is approved.';
     }
     sbGoneText(x) { return x && x.sandbox && x.sandbox.branch && !x.sandbox.exists ? 'Its sandbox (' + x.sandbox.branch + ') is not on this PC — made on another one, or its folder deleted. Make it here.' : ''; }

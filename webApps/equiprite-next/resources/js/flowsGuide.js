@@ -1,7 +1,7 @@
 define([], function () {
   'use strict';
 
-  // "How it works" (Build.Rite, flows/insights flows page): every flow of the team's tools, step by step — who does each
+  // "How it works" (flows/insights flows page): every flow of the team's tools, step by step — who does each
   // step (you, the AI, the agent, the app, git, Jira), its side paths, and where what it makes is kept. Data only; keep it
   // true to the code (desktop/lib/issues.js, codeFix.js, pages.js, fdd.js, dataBranch.js; the Jira, minutes and
   // follow-ups screens).
@@ -12,7 +12,7 @@ define([], function () {
     { id: 'you', label: 'You', about: 'a person clicks or types' },
     { id: 'ai', label: 'AI', about: 'the AI chosen in AI settings' },
     { id: 'agent', label: 'Agent', about: 'works on its own, after approval' },
-    { id: 'app', label: 'The app', about: 'Build.Rite does it' },
+    { id: 'app', label: 'The app', about: 'EquipRite does it' },
     { id: 'git', label: 'Git', about: 'branches, commits, pull requests' },
     { id: 'jira', label: 'Jira', about: 'the record of the work' }
   ];

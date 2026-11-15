@@ -3,8 +3,7 @@
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "checked": { "type": "boolean", "defaultValue": false },
-    "noWorkspace": { "type": "boolean", "defaultValue": false, "description": "Build.Rite with no workspace set up: Application pages shows nothing (only a workspace's working folder is read)." },
-    "codeFrom": { "type": "any", "defaultValue": null, "description": "Whose code is read: your workspace's working folder (Build.Rite's top bar: { source, root }), or this project (null)." },
+    "codeFrom": { "type": "any", "defaultValue": null, "description": "Whose code is read: another folder the desktop app reads ( { source, root }), or this project (null)." },
     "info": { "type": "object", "defaultValue": { "available": false, "canWrite": false, "canCapture": false, "canRun": false, "data": null }, "description": "The local server: answers, can write into the project, can capture screenshots, can run a page in a window (desktop app); data: the git branch the sheets are kept on ({ separate, branch, reason }, lib/dataBranch.js)." },
     "busy": { "type": "boolean", "defaultValue": false },
     "progress": { "type": "string", "defaultValue": "" },
@@ -51,7 +50,6 @@
     "codeSel": { "type": "string", "defaultValue": "", "description": "The file shown (its path)." },
     "codeText": { "type": "string", "defaultValue": "", "description": "Its text, read only." },
     "codeFind": { "type": "string", "defaultValue": "", "description": "What is searched for in it." },
-    "runProgShown": { "type": "boolean", "defaultValue": false, "description": "What Build.Rite is doing (or did) building and running your workspace's app: shown under the working folder." },
     "runBusy": { "type": "boolean", "defaultValue": false, "description": "▶ Run (beside the working folder) is building the workspace's app and opening it." },
     "shotNew": { "type": "string", "defaultValue": "", "description": "The screenshot just captured or added (its id): its thumbnail flies in, for a moment." },
     "codeReadAt": { "type": "string", "defaultValue": "", "description": "When the page's code was last read (Page code: read again each time the tab opens, and on Refresh)." },
@@ -74,7 +72,7 @@
   },
   "events": {
     "focusRequest": { "description": "From resources/js/shellBus.js focus(): another screen (a Jira story) handed this one a page to open.", "payloadType": "object" },
-    "scopeChanged": { "description": "The build in scope was changed in Build.Rite's top bar (shellBus.onScope): the list shows that build.", "payloadType": "object" },
+    "scopeChanged": { "description": "The app in scope was changed (shellBus.onScope): the list shows that app.", "payloadType": "object" },
     "fixImages": { "description": "The page module read screenshots pasted, dropped or attached in the Code fix request (codeFixClient.queueImages): the chain takes them.", "payloadType": "object" }
   },
   "eventListeners": {

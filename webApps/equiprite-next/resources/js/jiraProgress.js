@@ -1,7 +1,7 @@
 define([], function () {
   'use strict';
 
-  // Jira · Daily progress (Build.Rite and Next: Jira stories → Daily progress): what moved in Jira day by day — stories
+  // Jira · Daily progress (Jira stories → Daily progress): what moved in Jira day by day — stories
   // closed, new, reopened, moved between statuses, touched (any change, a comment), by whom — over the last days, read
   // with one search (services/jira searchJiraIssues: the issues updated in the window, with their changelog and comments)
   // and worked out here; and the stuck ones (open, no change for days: a second, small search). Pure but load().

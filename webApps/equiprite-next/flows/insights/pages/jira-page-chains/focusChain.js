@@ -1,7 +1,7 @@
 define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/shellBus'], (ActionChain, Actions, bus) => {
   'use strict';
 
-  // A story handed to this screen (Build.Rite's Jira updates bell: bus.focus('jira', { key })): its drawer opens once the
+  // A story handed to this screen (by another screen: bus.focus('jira', { key })): its drawer opens once the
   // list is in. Not in the list shown (another search): shown alone (key = …), then opened.
   class focusChain extends ActionChain {
     async run(context) {

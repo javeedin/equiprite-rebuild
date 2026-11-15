@@ -5,7 +5,7 @@ define([], function () {
   // attributes and JET bindings), and what is searched for marked. doc() is the document for a sandboxed iframe (no
   // scripts; the page scrolls it to the first match with scrollTo()). Pure apart from scrollTo().
   // What changed (marks: desktop/lib/pages.js codeFile().changes — against VB Studio, or the branch's remote) is marked
-  // line by line: added (green), changed (amber), lines taken away (a red line where they were); Build.Rite's change
+  // line by line: added (green), changed (amber), lines taken away (a red line where they were); Code fix's change
   // notes in the code (lib/changeNote.js) tinted violet; the change gone to (at: its index) outlined.
   //
   //   doc(text, path, find, marks, at) → '<!doctype html>…'     hits(text, find) → number     scrollTo(frameId, line)
@@ -46,8 +46,8 @@ define([], function () {
   }
   function hits(text, find) { var re = finder(find); return re ? (String(text || '').match(re) || []).length : 0; }
 
-  // Build.Rite's change notes: the line naming the change, the lines of its facts, its end
-  var NOTE = /Build\.Rite change fx[a-z0-9]+/, FACT = /^\s*(?:\/\/|\*)?\s*(?:Request|Requested by|Changed by|Proposed by|Issue|Jira story|Also changed):/;
+  // Code fix's change notes: the line naming the change, the lines of its facts, its end
+  var NOTE = /Code fix change fx[a-z0-9]+/, FACT = /^\s*(?:\/\/|\*)?\s*(?:Request|Requested by|Changed by|Proposed by|Issue|Jira story|Also changed):/;
   function noteLines(text) {
     var out = {}, prev = false;
     String(text || '').replace(/\r\n/g, '\n').split('\n').forEach(function (l, i) {

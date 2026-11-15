@@ -121,9 +121,7 @@ async function start(o) {
   const built = (w) => DS.isBuilt(path.join(ROOT, 'build'), w);
   const versions = () => ({ old: `http://localhost:${ports.old}/`, new: `http://localhost:${ports.new}/`,
     next: built('equiprite-next') ? `http://localhost:${ports.next}/` : '', mobile: built('equiprite-mobile') ? `http://localhost:${ports.mobile}/` : '',
-    future: built('equiprite-future') ? `http://localhost:${ports.future}/` : '',
-    // Build.Rite: Next's build shown as the team's tools, here on Next's own address (?product=buildrite)
-    build: built('equiprite-next') ? `http://localhost:${ports.next}/?product=buildrite` : '' });
+    future: built('equiprite-future') ? `http://localhost:${ports.future}/` : '' });
   const serverLog = [];
   const common = { buildDir: path.join(ROOT, 'build'), getIdentity: () => identity, getVersions: versions, backendOverrides: overrides, onLog: (l) => serverLog.push(l),
     getPhone: () => (o.desktop && o.desktop.phone) || {} };
@@ -137,7 +135,7 @@ async function start(o) {
     // o.jiraStore: Connect Jira's store (desktop/lib/jiraAuth.js), as the desktop app gives Old and Next.
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common, o.sqlStore ? { sqlStore: o.sqlStore } : {}, o.aiStore ? { aiStore: o.aiStore } : {},
       o.jiraStore ? { jiraStore: o.jiraStore } : {}, o.recStore ? { recStore: o.recStore } : {}, o.transcribe ? { transcribe: o.transcribe } : {}, o.minutesStore ? { minutesStore: o.minutesStore } : {},
-      o.followupsStore ? { followupsStore: o.followupsStore } : {}, o.fddStore ? { fddStore: o.fddStore } : {}, o.analysisStore ? { analysisStore: o.analysisStore } : {}, o.pagesStore ? { pagesStore: o.pagesStore } : {}, o.fixStore ? { fixStore: o.fixStore } : {}, o.issuesStore ? { issuesStore: o.issuesStore } : {}, o.apiStore ? { apiStore: o.apiStore } : {}, o.vbsStore ? { vbsStore: o.vbsStore } : {}, o.vbsFind ? { vbsFind: o.vbsFind } : {}, o.vbsRun ? { vbsRun: o.vbsRun } : {}, o.vbsConsole ? { vbsConsole: o.vbsConsole } : {}, o.product ? { product: o.product } : {})));
+      o.followupsStore ? { followupsStore: o.followupsStore } : {}, o.fddStore ? { fddStore: o.fddStore } : {}, o.analysisStore ? { analysisStore: o.analysisStore } : {}, o.pagesStore ? { pagesStore: o.pagesStore } : {}, o.fixStore ? { fixStore: o.fixStore } : {}, o.issuesStore ? { issuesStore: o.issuesStore } : {}, o.apiStore ? { apiStore: o.apiStore } : {})));
   }
   let futureStore = null;
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-future')) {

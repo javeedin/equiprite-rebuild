@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Issues (Build.Rite): an issue logged against a page goes from what someone wrote to a reviewed fix on a branch.
+ * Issues: an issue logged against a page goes from what someone wrote to a reviewed fix on a branch.
  *
  *   logged → written up (the AI) → analyzed (against the page's code and the FDD: a verdict, and for a fix on this page
  *   the exact change, checked) → awaiting approval (in the app, and an approval email from Microsoft 365) → approved →
@@ -117,7 +117,7 @@ function jiraWiki(x) {
   const rows = [['Type', x.kind], ['Severity', SEVERITY[d.severity]], ['Priority', PRIORITY[d.priority]], ['Environment', d.environment], ['Found in', d.foundIn], ['Fix version', d.fixVersion],
     ['Customer', d.customer], ['Customer ticket', d.customerRef], ['Raised by', d.reportedBy], ['Raised on', d.raisedOn], ['Assignee', d.assignee], ['Due date', d.dueDate]].filter((r) => r[1]);
   if (rows.length) L.push('', rows.map((r) => '||' + r[0] + '|' + str(r[1]).replace(/\|/g, '/') + '|').join('\n'));
-  L.push('', '*Page:* ' + x.label + ' ({{' + x.page + '}})', '_Logged in Build.Rite by ' + (x.by || 'someone') + '._');
+  L.push('', '*Page:* ' + x.label + ' ({{' + x.page + '}})', '_Logged in EquipRite by ' + (x.by || 'someone') + '._');
   if (x.text) L.push('', '{quote}' + x.text.slice(0, 4000) + '{quote}');
   return L.join('\n');
 }
@@ -221,7 +221,7 @@ function open(opts) {
       + '<div style="border:1px solid #d4dce4;border-top:0;padding:14px 16px;border-radius:0 0 8px 8px"><table style="border-collapse:collapse;font-size:13px">'
       + rows.map((r) => '<tr><td style="padding:3px 14px 3px 0;color:#5a6876;font-weight:600">' + esc(r[0]) + '</td><td style="padding:3px 0">' + esc(r[1]) + '</td></tr>').join('') + '</table>'
       + (last && last.detail ? '<p style="margin:12px 0 0">' + esc(last.what) + (last.by ? ' by ' + esc(last.by) : '') + ': ' + esc(last.detail) + '</p>' : '')
-      + '<p style="color:#6b7886;font-size:12px;margin-top:16px">You are on the Notify list of ' + esc(keyOf(x)) + ' in Build.Rite. Reply to answer.</p></div></div>';
+      + '<p style="color:#6b7886;font-size:12px;margin-top:16px">You are on the Notify list of ' + esc(keyOf(x)) + ' in EquipRite. Reply to answer.</p></div></div>';
   }
   function notifyStatus(snap, was) {
     const to = snap.details && Array.isArray(snap.details.notify) ? snap.details.notify : [];
@@ -235,7 +235,7 @@ function open(opts) {
       }
       const x = byId(snap.id);
       if (!x) return;
-      ev(x, 'status sent to the Notify list', 'Build.Rite', (STATUS_LABEL[snap.status] || snap.status) + ' · ' + what);
+      ev(x, 'status sent to the Notify list', 'EquipRite', (STATUS_LABEL[snap.status] || snap.status) + ' · ' + what);
       put(x, true);
     }).catch((e) => log('issues: notify: ' + e.message));
     return notes;
@@ -297,8 +297,8 @@ function open(opts) {
   }
   async function jiraComment(x, text) {
     if (!x.jira || !x.jira.key) return;
-    const r = await jira('POST', '/rest/api/2/issue/' + encodeURIComponent(x.jira.key) + '/comment', { body: text + '\n\n_— Build.Rite_' });
-    if (!r.ok) ev(x, 'Jira comment failed', 'Build.Rite', r.error);
+    const r = await jira('POST', '/rest/api/2/issue/' + encodeURIComponent(x.jira.key) + '/comment', { body: text + '\n\n_— EquipRite_' });
+    if (!r.ok) ev(x, 'Jira comment failed', 'EquipRite', r.error);
   }
 
   // ── the FDD sections that match the issue (for "works as designed") ──
@@ -469,7 +469,7 @@ function open(opts) {
     if (!x.verdict.code && fx.files.length) x.verdict.code = 'fix-here';
     x.status = x.verdict.code === 'needs-info' || fx.status === 'questions' ? 'needs-info' : (x.verdict.code && x.verdict.code !== 'fix-here' ? 'triaged' : 'analyzed');
     ev(x, b.refine ? 'analyzed again' : 'analyzed', fx.provider || 'AI', (VERDICT_LABEL[x.verdict.code] || 'no verdict') + (fx.files.length ? ' · ' + fx.files.length + ' file(s) to change' : ''));
-    await jiraComment(x, 'h4. Build.Rite analysis\n*Verdict:* ' + (VERDICT_LABEL[x.verdict.code] || '—') + '\n' + str(x.verdict.text).split('\n').slice(1).join('\n').trim()
+    await jiraComment(x, 'h4. EquipRite analysis\n*Verdict:* ' + (VERDICT_LABEL[x.verdict.code] || '—') + '\n' + str(x.verdict.text).split('\n').slice(1).join('\n').trim()
       + (fx.files.length ? '\n*Change proposed:* ' + fx.files.map((f) => '{{' + f + '}}').join(', ') : ''));
     put(x);
     return ok(x);
@@ -485,10 +485,10 @@ function open(opts) {
       + '</pre>').join('');
     const checks = (fx.checks || []).map((c) => '<li>' + (c.ok ? '✓' : (c.warn ? '⚠' : '✗')) + ' ' + esc(c.name) + '</li>').join('');
     return '<div style="font:14px/1.5 Segoe UI,Arial,sans-serif;color:#16212c;max-width:880px">'
-      + '<div style="background:#2c5266;color:#fff;padding:14px 18px;border-radius:8px 8px 0 0"><div style="font-size:12px;opacity:.8">BUILD.RITE · APPROVAL</div><div style="font-size:20px;font-weight:700">' + esc(keyOf(x)) + ' · ' + esc(f.title || x.title) + '</div>'
+      + '<div style="background:#2c5266;color:#fff;padding:14px 18px;border-radius:8px 8px 0 0"><div style="font-size:12px;opacity:.8">EQUIPRITE · APPROVAL</div><div style="font-size:20px;font-weight:700">' + esc(keyOf(x)) + ' · ' + esc(f.title || x.title) + '</div>'
       + '<div style="font-size:13px;opacity:.85">' + esc(x.label) + ' (' + esc(x.page) + ')</div></div>'
       + '<div style="border:1px solid #d4dce4;border-top:0;padding:14px 18px;border-radius:0 0 8px 8px">'
-      + '<p style="margin:0 0 10px;padding:10px 12px;background:#fff4d6;border-radius:6px"><b>To approve:</b> reply with <b>APPROVE</b> on the first line (or <b>REJECT</b> and why), or approve it in Build.Rite → Issues → ' + esc(keyOf(x)) + '. Code: ' + esc(code) + '</p>'
+      + '<p style="margin:0 0 10px;padding:10px 12px;background:#fff4d6;border-radius:6px"><b>To approve:</b> reply with <b>APPROVE</b> on the first line (or <b>REJECT</b> and why), or approve it in EquipRite → Issues → ' + esc(keyOf(x)) + '. Code: ' + esc(code) + '</p>'
       + (f.summary ? '<p>' + esc(f.summary) + '</p>' : '')
       + '<p><b>Verdict:</b> ' + esc(VERDICT_LABEL[x.verdict && x.verdict.code] || '') + '</p>'
       + (sec('Summary') ? '<p><b>The fix:</b> ' + esc(sec('Summary')) + '</p>' : '')
@@ -497,7 +497,7 @@ function open(opts) {
       + '<h3 style="font-size:15px;margin:16px 0 4px">The change</h3>' + diff
       + (checks ? '<h3 style="font-size:15px;margin:16px 0 4px">Checks</h3><ul style="margin:0;padding-left:18px">' + checks + '</ul>' : '')
       + (sec('How to test') ? '<h3 style="font-size:15px;margin:16px 0 4px">How to test</h3><p>' + esc(sec('How to test')).replace(/\n/g, '<br>') + '</p>' : '')
-      + '<p style="color:#6b7886;font-size:12px;margin-top:18px">Proposed by ' + esc(fx.provider || 'AI') + ' in Build.Rite for ' + esc(x.by || 'the team') + '. Once approved, the change is applied on its own branch (fix/' + esc(keyOf(x)) + '), tested, and a pull request is made.</p>'
+      + '<p style="color:#6b7886;font-size:12px;margin-top:18px">Proposed by ' + esc(fx.provider || 'AI') + ' in EquipRite for ' + esc(x.by || 'the team') + '. Once approved, the change is applied on its own branch (fix/' + esc(keyOf(x)) + '), tested, and a pull request is made.</p>'
       + '</div></div>';
   }
   async function ask(id, b) {
@@ -515,7 +515,7 @@ function open(opts) {
       if (!o.mail || !st.signedIn) x.approval.requested.email.error = 'Not signed in to Microsoft 365 (Standup minutes → email settings): no email sent.';
       else if (!to) x.approval.requested.email.error = 'No address to send it to.';
       else {
-        const r = await o.mail.sendMail({ to: to, subject: '[Build.Rite] Approve ' + keyOf(x) + ' · ' + x.label + ' (' + code + ')', html: emailHtml(x, fx, code) });
+        const r = await o.mail.sendMail({ to: to, subject: '[EquipRite] Approve ' + keyOf(x) + ' · ' + x.label + ' (' + code + ')', html: emailHtml(x, fx, code) });
         x.approval.requested.email = { wanted: true, sent: !!(r && r.ok), to: to, error: r && r.ok ? '' : (r && r.error) || 'Not sent.' };
       }
     }
@@ -533,7 +533,7 @@ function open(opts) {
     if (!fx || fingerprint(fx) !== x.approval.requested.fingerprint) return no('The change is not the one sent for approval any more: analyze and send it again.');
     x.approval.decision = { approved: true, by: str(b.by), at: now().toISOString(), via: b.via === 'email' ? 'email' : 'app' };
     x.status = 'approved';
-    ev(x, 'approved', b.by, 'in ' + (x.approval.decision.via === 'email' ? 'an email reply' : 'Build.Rite'));
+    ev(x, 'approved', b.by, 'in ' + (x.approval.decision.via === 'email' ? 'an email reply' : 'EquipRite'));
     await jiraComment(x, 'Approved by ' + (b.by || 'someone') + ' (' + x.approval.decision.via + ').');
     put(x);
     return ok(x);
@@ -582,9 +582,9 @@ function open(opts) {
     if (!fx || fingerprint(fx) !== x.approval.requested.fingerprint) return no('The change is not the one approved any more: analyze and send it again.');
     const k = keyOf(x), f = x.formatted || {};
     const message = k + ': ' + (f.title || x.title) + '\n\n' + (f.summary || '') + '\n\nPage: ' + x.label + ' (' + x.page + ')\nApproved by ' + (x.approval.decision.by || 'someone') + ' (' + x.approval.decision.via + ') '
-      + x.approval.decision.at + '.\nProposed by ' + (fx.provider || 'AI') + ' in Build.Rite.' + (x.jira && x.jira.url ? '\nJira: ' + x.jira.url : '');
+      + x.approval.decision.at + '.\nProposed by ' + (fx.provider || 'AI') + ' in EquipRite.' + (x.jira && x.jira.url ? '\nJira: ' + x.jira.url : '');
     const prBody = '**' + k + '** · ' + (f.title || x.title) + '\n\n' + (f.summary || '') + '\n\n**Page:** ' + x.label + ' (`' + x.page + '`)\n\n' + str(fx.markdown).slice(0, 2500)
-      + '\n\n---\nApproved by ' + (x.approval.decision.by || 'someone') + ' · proposed by ' + (fx.provider || 'AI') + ' in Build.Rite' + (x.jira && x.jira.url ? ' · ' + x.jira.url : '');
+      + '\n\n---\nApproved by ' + (x.approval.decision.by || 'someone') + ' · proposed by ' + (fx.provider || 'AI') + ' in EquipRite' + (x.jira && x.jira.url ? ' · ' + x.jira.url : '');
     ev(x, 'agent started', b.by, 'branch fix/' + k);
     const run = agentRuns[x.id] = { at: Date.now(), steps: {}, done: false, ok: false, error: '', log: [] };
     const onStep = (s) => {
@@ -801,7 +801,7 @@ function open(opts) {
       if (gone.ok) { sbPut(x.id, null); ev(x, 'sandbox removed', b.by, 'closed: its folder deleted' + (x.branch && x.branch.pushed ? ' (the branch kept for its pull request)' : '')); }
     }
     ev(x, 'closed', b.by, RESOLUTION[code] + (x.resolution.fixedIn ? ' · fixed in ' + x.resolution.fixedIn : '') + (cause ? ' · root cause: ' + ROOT_CAUSE[cause] : '') + (x.resolution.note ? ' · ' + x.resolution.note : ''));
-    await jiraComment(x, 'Closed in Build.Rite as *' + RESOLUTION[code] + '*' + (x.resolution.fixedIn ? ' (fixed in ' + x.resolution.fixedIn + ')' : '') + '.'
+    await jiraComment(x, 'Closed in EquipRite as *' + RESOLUTION[code] + '*' + (x.resolution.fixedIn ? ' (fixed in ' + x.resolution.fixedIn + ')' : '') + '.'
       + (cause ? '\n*Root cause:* ' + ROOT_CAUSE[cause] + (x.resolution.rootNotes ? ' — ' + x.resolution.rootNotes : '') : '') + (x.resolution.note ? '\n' + x.resolution.note : ''));
     put(x);
     return ok(x);

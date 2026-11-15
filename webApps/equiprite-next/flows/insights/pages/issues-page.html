@@ -1,4 +1,4 @@
-<!-- Issues (Build.Rite), like a software company's defect record: log (its page, its details: type, severity, priority,
+<!-- Issues, like a software company's defect record: log (its page, its details: type, severity, priority,
      environment, found in, customer, who and when) → the AI writes it up → analysis against the page's code and the FDD (a
      verdict, the exact change) → approval (in the app, and an email) → the agent applies it on a branch of its own and makes
      the pull request → verified in SIT/UAT → closed with its resolution and root cause. A discussion by anyone at any step.
@@ -6,7 +6,7 @@
 <div class="nx-page nx-is">
   <div class="nx-pagehead">
     <div>
-      <div class="nx-kicker">Build.Rite · Issues</div>
+      <div class="nx-kicker">Insights · Issues</div>
       <h1 id="isTitle">Issues</h1>
       <div class="nx-sub" id="isSub"><oj-bind-text value="[[ $functions.subText($functions.countsIn($variables.issues, $variables.scope), $variables.info, $variables.scope) ]]"></oj-bind-text></div>
     </div>
@@ -489,7 +489,7 @@
               </oj-bind-if>
               <oj-bind-if test="[[ !!($variables.issue.approval && $variables.issue.approval.decision) ]]">
                 <div :class="[[ 'nx-is-decision nx-is-decision--' + ($variables.issue.approval.decision.approved ? 'yes' : 'no') ]]" id="isDecision">
-                  <oj-bind-text value="[[ ($variables.issue.approval.decision.approved ? '✓ Approved by ' : '✗ Rejected by ') + ($variables.issue.approval.decision.by || 'someone') + ' · ' + $functions.when($variables.issue.approval.decision.at) + ' · in ' + ($variables.issue.approval.decision.via === 'email' ? 'an email reply' : 'Build.Rite') + ($variables.issue.approval.decision.reason ? ': ' + $variables.issue.approval.decision.reason : '') ]]"></oj-bind-text>
+                  <oj-bind-text value="[[ ($variables.issue.approval.decision.approved ? '✓ Approved by ' : '✗ Rejected by ') + ($variables.issue.approval.decision.by || 'someone') + ' · ' + $functions.when($variables.issue.approval.decision.at) + ' · in ' + ($variables.issue.approval.decision.via === 'email' ? 'an email reply' : 'EquipRite') + ($variables.issue.approval.decision.reason ? ': ' + $variables.issue.approval.decision.reason : '') ]]"></oj-bind-text>
                 </div>
               </oj-bind-if>
               <!-- the exact change the approver approves, and the agent applies -->

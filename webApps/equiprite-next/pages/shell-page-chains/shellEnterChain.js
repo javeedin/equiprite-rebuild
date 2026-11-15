@@ -5,8 +5,7 @@ define([
   'resources/js/shellTabs',
   'resources/js/nav',
   'resources/js/alerts',
-  'resources/js/shellBus',
-], (ActionChain, Actions, tabs, shellTabs, nav, alerts, bus) => {
+], (ActionChain, Actions, tabs, shellTabs, nav, alerts) => {
   'use strict';
 
   // Opening EquipRite Next: the tabs kept from last time (or My work), plus a deep link (?open=…), and the menu as it
@@ -21,11 +20,6 @@ define([
     async run(context) {
       const { $page, $application } = context;
       try { $page.variables.navCollapsed = localStorage.getItem('eqr.next.nav') === 'rail'; } catch (e) { /* private mode */ }
-      // Build.Rite: the top bar shows the working copy (a VB Studio project ▸ workspace) — no build in scope any more
-      if (nav.product && nav.product.isBuild) {
-        try { if (bus.scope()) bus.setScope(''); } catch (e) { /* no scope kept */ }
-        Actions.callChain(context, { chain: 'workChain', params: { act: 'load' } }).catch(() => {});
-      }
       let saved = null;
       try { saved = localStorage.getItem(tabs.STORE_KEY); } catch (e) { saved = null; }
       let state = tabs.restore(saved);

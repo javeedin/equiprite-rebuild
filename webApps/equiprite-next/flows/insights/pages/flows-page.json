@@ -1,5 +1,5 @@
 {
-  "description": "How it works (Build.Rite): every flow of the team's tools — Issues, Code fix, Application pages, Jira stories and AI analysis, the FDD library, standup minutes, follow-ups, the data branch, the AI — step by step: who does each step (you, the AI, the agent, the app, git, Jira), its side paths, where what it makes is kept, and a button to open it. Watch the flow plays it as an animation: the steps on a path, a dot travelling along it, the step shown large, what it makes collecting as it goes, then its other ways and where it is kept. Its words are in resources/js/flowsGuide.js.",
+  "description": "How it works: every flow of the team's tools — Issues, Code fix, Application pages, Jira stories and AI analysis, the FDD library, standup minutes, follow-ups, the data branch, the AI — step by step: who does each step (you, the AI, the agent, the app, git, Jira), its side paths, where what it makes is kept, and a button to open it. Watch the flow plays it as an animation: the steps on a path, a dot travelling along it, the step shown large, what it makes collecting as it goes, then its other ways and where it is kept. Its words are in resources/js/flowsGuide.js.",
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "playId": { "type": "string", "defaultValue": "", "description": "The flow being watched ('' when none)." },

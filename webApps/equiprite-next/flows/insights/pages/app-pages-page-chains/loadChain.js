@@ -4,8 +4,7 @@ define([
   'resources/js/pagesClient',
   'resources/js/minutesClient',
   'resources/js/shellBus',
-  'resources/js/nav',
-], (ActionChain, Actions, PC, M, bus, N) => {
+], (ActionChain, Actions, PC, M, bus) => {
   'use strict';
 
   // Opening Application pages (and Refresh): whether this app can write into the project and capture screenshots, the
@@ -21,7 +20,7 @@ define([
         const go = (n) => { if (v.busy && n < 40) { setTimeout(() => go(n + 1), 500); return; } Actions.callChain(context, { chain: 'loadChain', params: { refresh: true } }).catch(() => {}); };
         go(0);
       });
-      // the build in scope (Build.Rite's top bar): its pages first; All builds: every app
+      // an app in scope (shellBus): its pages first; none: every app
       if (!refresh && bus.scope()) v.appF = bus.scope();
       v.busy = true;
       try {
@@ -29,11 +28,8 @@ define([
         if (refresh && v.info.canWrite) { try { await PC.gitPull(); } catch (e) { /* the catalog as it is */ } }
         const [info, cat] = await Promise.all([PC.info(), PC.catalog(context.$application.path)]);
         v.info = info;
-        // Build.Rite: only your workspace's pages (its working folder) — none set up, none shown (never this project's)
-        v.noWorkspace = !!(N.product && N.product.isBuild) && !(cat.body && cat.body.source);
-        v.pages = v.noWorkspace ? [] : cat.body.pages;
-        if (v.noWorkspace) { v.selId = ''; v.sheet = null; }
-        // whose code: your workspace's working folder (Build.Rite's top bar), or this project
+        v.pages = cat.body.pages;
+        // whose code: another folder when the desktop app reads one (its catalog says so: source), else this project
         v.codeFrom = cat.body && cat.body.source ? { source: cat.body.source, root: cat.body.root, space: cat.body.space || '' } : null;
         v.git = info.canWrite ? ((await PC.gitStatus()).body || null) : null;
         try { const a = await M.aiSettings(); v.aiReady = !!(a.ok && a.body && a.body.active); } catch (e) { v.aiReady = false; }

@@ -14,35 +14,6 @@ define(['resources/js/rules'], function (rules) {
   //   built       false: the screen is being built for Next; the tab says so and links to New and Old EquipRite
   //   newNav      the same screen's menu id in New EquipRite (for that link)
   //   keywords    extra words the command bar matches
-  // Which product this build is shown as. EquipRite Next is the business app. Build.Rite is the same build shown as the
-  // team's own tools, apart from the business product: the Insights screens only (Jira stories, analytics, standup
-  // minutes, follow-ups, the FDD, application pages with code fix, the FDD library), Issues first. The desktop
-  // app serves it on a port of its own and says so (window.EQP_PRODUCT); elsewhere ?product=buildrite (kept for the
-  // session; ?product=next goes back).
-  var BUILD_GROUPS = ['insights'];
-  function detectProduct() {
-    try {
-      var w = typeof window !== 'undefined' ? window : {};
-      var q = w.location && w.location.search && typeof URLSearchParams !== 'undefined' ? new URLSearchParams(w.location.search).get('product') : '';
-      if (q && w.sessionStorage) w.sessionStorage.setItem('eqp.product', q);
-      var s = w.EQP_PRODUCT || q || (w.sessionStorage ? w.sessionStorage.getItem('eqp.product') : '') || '';
-      return /^build/i.test(String(s)) ? 'buildrite' : 'next';
-    } catch (e) { return 'next'; }
-  }
-  var PRODUCT_ID = detectProduct();
-  var PRODUCT = { id: PRODUCT_ID, isBuild: PRODUCT_ID === 'buildrite', name: PRODUCT_ID === 'buildrite' ? 'Build.Rite' : 'EquipRite',
-    home: PRODUCT_ID === 'buildrite' ? 'issues' : 'home', groups: BUILD_GROUPS };
-  var inProduct = function (groupKey) { return !PRODUCT.isBuild || BUILD_GROUPS.indexOf(groupKey) !== -1; };
-  // an item of another group that is also one of the team's tools (buildRite: true, e.g. SQL): in Build.Rite too, listed
-  // with them (after Flows explained); in EquipRite it stays where it is
-  // and an item of EquipRite's own in the Insights group (buildRite: false, e.g. Analytics) is left out of Build.Rite
-  var itemInProduct = function (it) {
-    if (!it) return false;
-    if (PRODUCT.isBuild && it.buildRite === false) return false;
-    // one of Build.Rite's own (buildRiteOnly, e.g. Setup → Organizations & projects): not in EquipRite
-    if (!PRODUCT.isBuild && it.buildRiteOnly) return false;
-    return inProduct(it.group) || (PRODUCT.isBuild && !!it.buildRite);
-  };
 
   var GROUPS = [
     { key: 'work', label: '', items: [
@@ -95,17 +66,7 @@ define(['resources/js/rules'], function (rules) {
         route: { flow: 'commercial', page: 'agreements' }, built: true, newNav: 'agreements', keywords: 'rental agreements contracts' }
     ] },
     { key: 'insights', label: 'Insights', items: [
-      // Setup → Organizations & projects (Build.Rite only): the VB Studio organizations the team works in (their sign-in kept
-      // encrypted on this PC) and their projects, each added by its Git address (flows/insights projects; desktop/lib/vbs.js).
-      { id: 'projects', label: 'Organizations & projects', icon: 'oj-ux-ico-building', pageCodes: ['EQR_CONFIGURATIONS'], buildRiteOnly: true,
-        route: { flow: 'insights', page: 'projects' }, built: true,
-        keywords: 'setup organization project vb studio visual builder studio git repository branches build jobs sign in connect' },
-      // Run console (Build.Rite only): run your workspace's app and watch what happens — the build, the requests its app
-      // makes, its own console — with commands typed like an editor's terminal (flows/insights run-console; lib/runConsole.js)
-      { id: 'run-console', label: 'Run console', icon: 'oj-ux-ico-play', pageCodes: ['EQR_CONFIGURATIONS'], buildRiteOnly: true,
-        route: { flow: 'insights', page: 'run-console' }, built: true,
-        keywords: 'run console terminal build log output devtools developer tools vs code vscode git status changes sign in login test' },
-      // Issues (Build.Rite's first screen): an issue logged against a page, written up and analyzed by the AI against the
+      // Issues: an issue logged against a page, written up and analyzed by the AI against the
       // page's code and the FDD, approved, then applied by the agent on a branch of its own with a pull request; Jira kept
       // up to date (flows/insights issues; desktop/lib/issues.js, the desktop app). Gated like Jira stories.
       { id: 'issues', label: 'Issues', icon: 'oj-ux-ico-clipboard-list', pageCodes: ['EQR_CONFIGURATIONS'],
@@ -115,8 +76,7 @@ define(['resources/js/rules'], function (rules) {
       // Settings for now: an existing page code, so it shows without a new COMMONRITE.RBAC_PAGES row.
       { id: 'jira', label: 'Jira stories', icon: 'oj-ux-ico-list', pageCodes: ['EQR_CONFIGURATIONS'],
         route: { flow: 'insights', page: 'jira' }, built: true, keywords: 'jira stories backlog epics sprint release analysis acceptance criteria tester gaps' },
-      // EquipRite's own (the business's reports), not one of the team's tools: not in Build.Rite (buildRite: false)
-      { id: 'analytics', label: 'Analytics', icon: 'oj-ux-ico-chart-bar', pageCodes: ['EQR_ANALYTICS', 'EQR_REPORTS'], buildRite: false,
+      { id: 'analytics', label: 'Analytics', icon: 'oj-ux-ico-chart-bar', pageCodes: ['EQR_ANALYTICS', 'EQR_REPORTS'],
         route: { flow: 'insights', page: 'analytics' }, built: true, newNav: 'analytics', keywords: 'reports utilization kpi' },
       // The daily standup on the Jira backlog, written down and kept in DuckDB on this PC (flows/insights minutes page):
       // a meeting's header and lines (tied to a story or generic) with a next action, voice→text and Format by AI, tracked
@@ -142,7 +102,7 @@ define(['resources/js/rules'], function (rules) {
       { id: 'fdd-library', label: 'FDD library', icon: 'oj-ux-ico-upload', pageCodes: ['EQR_CONFIGURATIONS'],
         route: { flow: 'fdd', page: 'library' }, built: true,
         keywords: 'fdd library upload document word pdf version latest git analyze ai sections outline functional design' },
-      // Flows explained (Build.Rite): every flow of the team's tools, step by step (flows/insights flows; resources/js/flowsGuide.js).
+      // Flows explained: every flow of the team's tools, step by step (flows/insights flows; resources/js/flowsGuide.js).
       // Gated like Jira stories: the team's, not a business user's.
       { id: 'flows', label: 'Flows explained', icon: 'oj-ux-ico-network-flow-diagram', pageCodes: ['EQR_CONFIGURATIONS'],
         route: { flow: 'insights', page: 'flows' }, built: true,
@@ -157,8 +117,7 @@ define(['resources/js/rules'], function (rules) {
         route: { flow: 'admin', page: 'integrations' }, built: true, newNav: 'integration-health', keywords: 'fusion sync health errors' },
       // SQL against an Oracle database from this PC, as in SQL Developer (flows/admin sql page): the desktop app connects
       // for it (desktop/lib/oracleSql.js), so it works in the desktop app only. For admins (the Settings page code).
-      // Also one of the team's tools: in Build.Rite's menu too (buildRite), after Flows explained.
-      { id: 'sql', label: 'SQL', icon: 'oj-ux-ico-database', pageCodes: ['EQR_CONFIGURATIONS'], buildRite: true,
+      { id: 'sql', label: 'SQL', icon: 'oj-ux-ico-database', pageCodes: ['EQR_CONFIGURATIONS'],
         route: { flow: 'admin', page: 'sql' }, built: true, keywords: 'query database oracle developer tns select statement worksheet' }
     ] },
     // Help is for everyone, once their access has loaded. It sits at the foot of the menu and in the top bar, not in a
@@ -225,16 +184,6 @@ define(['resources/js/rules'], function (rules) {
     'jira-sprint': { flow: 'insights', page: 'jira-sprint', icon: 'oj-ux-ico-list', navId: 'jira',
       key: function (p) { return p ? String(p.id || p.name || '') : ''; },
       title: function (p) { return 'Sprint ' + ((p && (p.name || p.id)) || ''); } },
-    // A VB Studio project ({ key: '<host>/<org>/<project>', name }), from Build.Rite's Organizations & projects: its
-    // workspaces (Refresh workspaces), its repositories, in a tab of its own (flows/insights vbs-project).
-    'vbs-project': { flow: 'insights', page: 'vbs-project', icon: 'oj-ux-ico-folder', navId: 'projects',
-      key: function (p) { return p ? String(p.key || '') : ''; },
-      title: function (p) { return (p && (p.name || String(p.key || '').split('/').pop())) || 'Project'; } },
-    // Set up your workspace (Build.Rite's top bar): a wizard — the VB Studio workspace, the folder on this PC, a preview,
-    // then main and working made (flows/insights vbs-setup). One tab.
-    'vbs-setup': { flow: 'insights', page: 'vbs-setup', icon: 'oj-ux-ico-settings', navId: 'projects',
-      key: function () { return 'setup'; },
-      title: function () { return 'Set up your workspace'; } },
     // Jira · Daily progress (Jira stories → Daily progress, the Jira updates bell): what moved in Jira day by day — closed,
     // new, reopened, moved, touched, by whom — in a tab of its own (flows/insights jira-progress). One tab.
     'jira-progress': { flow: 'insights', page: 'jira-progress', icon: 'oj-ux-ico-chart-bar', navId: 'jira',
@@ -282,18 +231,11 @@ define(['resources/js/rules'], function (rules) {
   function visibleGroups(map, loaded, flags, flagsLoaded, buRateSources) {
     var out = [];
     GROUPS.forEach(function (g) {
-      if (g.foot || !inProduct(g.key)) return;
+      if (g.foot) return;
       if (!(g.flags || []).every(function (f) { return rules.isFeatureEnabled(flags, flagsLoaded, f); })) return;
       var items = g.items.filter(function (it) { return itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources); });
       if (items.length) out.push({ key: g.key, label: g.label, items: items });
     });
-    // Build.Rite: the team's tools kept in other groups (SQL) join its own list, after Flows explained
-    if (PRODUCT.isBuild && out.length) {
-      GROUPS.forEach(function (g) {
-        if (g.foot || inProduct(g.key)) return;
-        g.items.forEach(function (it) { if (it.buildRite && itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources)) out[out.length - 1].items.push(it); });
-      });
-    }
     return out;
   }
 
@@ -327,7 +269,6 @@ define(['resources/js/rules'], function (rules) {
   }
 
   function itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources) {
-    if (it && !itemInProduct(it)) return false;
     if (!it) return false;
     if (it.everyone) return !!loaded && (!it.staff || staffScreens(map, loaded));
     if (it.id === 'home' && customerOnly(map, loaded)) return false;
@@ -345,7 +286,7 @@ define(['resources/js/rules'], function (rules) {
     if (!q) return [];
     var out = [];
     // Help (the menu's foot) is found too, for anyone with a menu.
-    var all = (groups || []).length ? groups.concat(GROUPS.filter(function (g) { return g.foot && inProduct(g.key); })) : [];
+    var all = (groups || []).length ? groups.concat(GROUPS.filter(function (g) { return g.foot; })) : [];
     all.forEach(function (g) {
       g.items.forEach(function (it) {
         var label = it.label.toLowerCase();
@@ -362,7 +303,6 @@ define(['resources/js/rules'], function (rules) {
     ITEMS: ITEMS,
     RECORDS: RECORDS,
     item: function (id) { return ITEMS[id] || null; },
-    product: PRODUCT,
     routeOf: routeOf,
     newUrl: newUrl,
     visibleGroups: visibleGroups,

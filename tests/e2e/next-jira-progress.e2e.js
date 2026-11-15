@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 /**
- * Jira · Daily progress, end to end in the browser (Build.Rite, Jira stories → Daily progress), on a fake Jira with a
+ * Jira · Daily progress, end to end in the browser (EquipRite Next, Jira stories → Daily progress), on a fake Jira with a
  * fortnight of work (stories closed, created, moved, commented, by four people) and three stuck stories:
  *   opened from Jira stories (a tab of its own) → the headline numbers → closed and new, a column a day (today marked,
  *   the latest busy day chosen; a column's tooltip; a column clicked shows its day) → the day in detail (each story, what
@@ -54,7 +54,7 @@ const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     { key: 'EQP-63', fields: { summary: 'Invoice PDF footer', issuetype: { name: 'Bug' }, status: prog, assignee: PEOPLE[1], updated: on(6, 9) } },
   ];
   const searches = [];
-  const env = await E.start({ port: 19940, app: 'next', product: 'buildrite', handle: (r, res) => {
+  const env = await E.start({ port: 19940, app: 'next', handle: (r, res) => {
     if (r.path === '/rest/api/2/myself') return res.json(PEOPLE[0]);
     if (r.path === '/rest/api/2/search/jql') {
       const jql = r.query.get('jql') || '';
@@ -177,7 +177,7 @@ const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       && (await page.inputValue('#jpFrom')) === iso(13) && (await page.inputValue('#jpTo')) === iso(0),
       JSON.stringify([(await page.$$('#jpCols .nx-jp-col')).length, await text(page, '#jpRanges .nx-jp-range--on'), await page.inputValue('#jpFrom'), await page.inputValue('#jpTo'), iso(13), iso(0)]));
 
-    T.section('copied as text; a story opened; from the bell');
+    T.section('copied as text; a story opened');
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
     await page.click('#jpCopy');
     await page.waitForSelector('#jpCopied', { timeout: 5000 }).catch(() => {});
@@ -187,12 +187,6 @@ const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     await page.click('#jpSecs .nx-jp-row');
     await page.waitForFunction(() => /Jira stories/.test((document.querySelector('.nx-tab--on .nx-tab-title') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
     T.check('a story clicked: Jira stories comes forward to open it', /Jira stories/.test(await text(page, '.nx-tab--on .nx-tab-title')), await text(page, '.nx-tab--on .nx-tab-title'));
-    await page.click('#nxJiraBell');
-    await page.waitForSelector('#nxJiraProgress', { timeout: 10000 });
-    await page.click('#nxJiraProgress');
-    await page.waitForTimeout(400);
-    T.check('the Jira updates bell: Daily progress — the panel closes, its tab comes forward (one tab)', !(await page.isVisible('#nxJiraPanel').catch(() => false)) && /Jira · Daily progress/.test(await text(page, '.nx-tab--on .nx-tab-title'))
-      && (await page.$$eval('.nx-tab-title', (l) => l.filter((x) => /Daily progress/.test(x.textContent)).length)) === 1);
     T.check('no errors in the browser console', errs().length === 0, errs().join(' | '));
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);

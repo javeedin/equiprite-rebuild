@@ -13,7 +13,6 @@ define(['vb/action/actionChain', 'vb/action/actions'], (ActionChain, Actions) =>
       v.tabMenuOpen = false;
       v.showResults = false;
       v.navOpen = false;
-      if (v.jiraOpen) await Actions.callChain(context, { chain: 'jiraFeedChain', params: { act: 'close', key: '' } });
     }
   }
 

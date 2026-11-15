@@ -47,7 +47,7 @@ const README = [
   '- `docs/fdd` and `webApps/equiprite-next/resources/fdd`: the FDD library: the documents and their outlines.',
   '- `code-history`: Code fix: every change made to a page\'s code from the app — what was asked, the AI\'s analysis, the',
   '  diff, who approved and applied it, the tests, the commit (or the undo).',
-  '- `issues`: Issues: each issue logged in Build.Rite, its write-up, the AI\'s verdict, the approval, the branch and pull request.',
+  '- `issues`: Issues: each issue logged in EquipRite, its write-up, the AI\'s verdict, the approval, the branch and pull request.',
   '',
   'The app checks this branch out next to the code, in `<project>/.equiprite-data` (a git worktree), and merges what',
   'others pushed before it pushes. Nothing here is code: do not merge this branch into a code branch.',

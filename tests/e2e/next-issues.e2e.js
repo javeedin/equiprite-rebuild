@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 /**
- * Build.Rite's Issues screen, end to end in the browser, on a sandbox project (a git repository whose pushes go to a
+ * The Issues screen (EquipRite Next, Insights), end to end in the browser, on a sandbox project (a git repository whose pushes go to a
  * bare one; its address GitHub's, so the pull request's address is made), with stand-ins for the AI, Microsoft 365 and
  * Jira: log an issue (its page picked, a screenshot pasted, into Jira) → the AI's write-up → Analyze (the verdict, the
  * exact change with the issue's number) → Send for approval (the email) → Approve → Apply change (the agent's branch,
@@ -67,16 +67,16 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     fdd: { pick: () => 'FDD 7.4 Billing: overdue invoices are listed first.' }, pages: pg.store });
   // the page has a screenshot in Application pages already: the Analyzed step shows it, and the AI sees it
   pg.store.saveShot('vbredwoodapp/customer-portal/customer-my-billing', { base64: PNG, mime: 'image/png', source: 'upload', caption: 'The billing list', by: 'priya.raman' });
-  env = await E.start({ port: 19900, app: 'next', product: 'buildrite', pagesStore: pg.store, fixStore: fixStore, issuesStore: issuesStore });
+  env = await E.start({ port: 19900, app: 'next', pagesStore: pg.store, fixStore: fixStore, issuesStore: issuesStore });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
-    T.section('Build.Rite opens on Issues; log an issue');
-    await env.open('/');
+    T.section('Issues opens from its link; log an issue');
+    await env.open('/?open=issues');
     await page.waitForSelector('#isNewBtn', { timeout: 30000 });
     await page.waitForFunction(() => !document.getElementById('isNewBtn').disabled, null, { timeout: 15000 }).catch(() => {});
-    const first = await page.$eval('.nx-tab', (t) => t.getAttribute('data-tab-id')).catch(() => '');
-    T.check('Issues is Build.Rite\'s first screen; nothing chosen yet', first === 'issues' && /Choose an issue, or Log an issue/.test(await text(page, '#isMain')), first);
+    const first = await page.$eval('.nx-tab--on', (t) => t.getAttribute('data-tab-id')).catch(() => '');
+    T.check('Issues is the screen shown; nothing chosen yet', first === 'issues' && /Choose an issue, or Log an issue/.test(await text(page, '#isMain')), first);
     await page.click('#isNewBtn');
     await page.waitForSelector('#isBuilds .nx-chip', { timeout: 5000 }).catch(() => {});
     T.check('Log an issue: the build first — its pages only once it is chosen', !!(await page.$('#isPickBuildFirst')) && !(await page.$('#isPageQ')) && (await page.$$('#isBuilds .nx-chip')).length === 5,
@@ -253,13 +253,13 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     await page.click('#isAskBtn');
     await page.waitForSelector('#isAwaiting', { timeout: 10000 });
     T.check('waiting for approval; the email sent (its subject with the key and code)', /Waiting for approval/.test(await text(page, '#isStatus')) && /Approval email sent to priya@example\.com \(code BR-/.test(await text(page, '#isEmailNote'))
-      && /^\[Build\.Rite\] Approve EQP-901 · My Billing \(BR-/.test((mails.filter((m) => /Approve/.test(m.subject))[0] || {}).subject || '') && !(await page.$('#isApply')));
+      && /^\[EquipRite\] Approve EQP-901 · My Billing \(BR-/.test((mails.filter((m) => /Approve/.test(m.subject))[0] || {}).subject || '') && !(await page.$('#isApply')));
     await env.shot('issues-awaiting.png');
     page.once('dialog', (d) => d.accept());
     await page.click('#isNextBtn');
     await page.waitForSelector('#isApply', { timeout: 10000 }).catch(() => {});
     await page.waitForFunction(() => { const b = document.getElementById('isApply'); return !!b && !b.disabled; }, null, { timeout: 15000 }).catch(() => {});
-    T.check('approved from the Next step bar (by me, in Build.Rite): Apply change is on', /Approved by priya\.raman · .* in Build\.Rite/.test(await text(page, '#isDecision')) && await page.isEnabled('#isApply') && (await text(page, '#isNextBtn')) === 'Apply change', await text(page, '#isDecision'));
+    T.check('approved from the Next step bar (by me, in EquipRite): Apply change is on', /Approved by priya\.raman · .* in EquipRite/.test(await text(page, '#isDecision')) && await page.isEnabled('#isApply') && (await text(page, '#isNextBtn')) === 'Apply change', await text(page, '#isDecision'));
 
     T.section('the agent applies it: its own branch, tested, pushed, the pull request');
     T.check('before Apply: the exact change it will apply, and what the agent will do (its 9 steps, waiting)', /The change the agent will apply · 1 file · \+1 −0/.test(await text(page, '#isApplyChange summary'))
@@ -349,8 +349,6 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     await page.waitForSelector('#isIssue', { timeout: 5000 });
     T.check('a row opens its issue (back beside the list)', /EQP-901/.test(await text(page, '#isKey')) && !(await page.$('#isTable')));
 
-    T.section('the top bar: your workspace (no build selector); every build\'s issues');
-    T.check('the top bar: your workspace (none set up yet), no build selector; the issues of every build', !(await page.$('#nxScope')) && /Set up your workspace/.test(await text(page, '#nxWork')) && /EQP-901/.test(await text(page, '#isRows')), await text(page, '#nxWork'));
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {
     T.check('no exception: ' + (e && e.message), false);
