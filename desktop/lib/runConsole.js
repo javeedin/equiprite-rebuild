@@ -10,7 +10,8 @@
  *
  *   open({ max?, now? }) → { push(kind, text), lines(after) → { lines, last, dropped }, clear(), command(text, does) }
  *   command(text, does) → { ok, text?, lines? }: does = the desktop app's { run(route), build(force), reload(), devtools(),
- *     stop(), git(args), changes(), signin(), code(), folder(), status() } — each returns { ok, text?, lines? }
+ *     stop(), git(args), changes(), signin(), code(), folder(), status(), runAs(user, roles | null), roles() } — each returns
+ *     { ok, text?, lines? }
  */
 const KINDS = ['build', 'server', 'app', 'nav', 'warn', 'error', 'info', 'cmd'];
 const str = (v) => (v == null ? '' : String(v));
@@ -27,6 +28,9 @@ const HELP = [
   '  status                 who you are signed in as, the workspace, the build, the window',
   '  changes                the working copy\'s files changed since VB Studio',
   '  git status | git log | git diff | git branch     (read only, in the working copy)',
+  '  as <user> <ROLE,…>      who the app runs as: a user and roles answered here (e.g. as priya.raman RT_EQP_ADMINISTRATOR)',
+  '  as                     who it runs as now      as signin   back to the EquipRite sign-in',
+  '  roles                  the roles the app knows (RT_EQP_…)',
   '  signin                 sign in to EquipRite as someone (File → Sign in as…): the app runs as them',
   '  code                   open the working folder in VS Code',
   '  folder                 open the working folder',
@@ -96,6 +100,15 @@ function open(opts) {
       case 'status': case 'whoami': r = await call('status'); break;
       case 'changes': case 'changed': r = await call('changes'); break;
       case 'signin': case 'login': r = await call('signin'); break;
+      case 'as': case 'runas': {
+        // as → who now; as signin|anonymous|none → back to the EquipRite sign-in; as <user> <ROLE[,ROLE…]>
+        if (!rest.length) { r = await call('runAs', null, null); break; }
+        if (/^(signin|sign-in|anonymous|none|clear)$/i.test(rest[0])) { r = await call('runAs', '', []); break; }
+        const roles = rest.slice(1).join(',').split(',').map((x) => x.trim()).filter(Boolean);
+        r = await call('runAs', rest[0], roles);
+        break;
+      }
+      case 'roles': r = await call('roles'); break;
       case 'code': case 'vscode': r = await call('code'); break;
       case 'folder': case 'explorer': r = await call('folder'); break;
       case 'git': {

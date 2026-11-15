@@ -9,6 +9,17 @@ define(['vb/action/actionChain', 'resources/js/vbsClient', 'resources/js/runCons
       const v = context.$page.variables;
       const input = () => { try { return document.getElementById('rcCmd'); } catch (e) { return null; } };
       if (act === 'filter') { v.filter = String(key || ''); return; }
+      // Run as: a role chosen or not; Apply (the app's window reloads); back to the EquipRite sign-in
+      if (act === 'role') { const r = String(key || ''); v.asRoles = (v.asRoles || []).indexOf(r) !== -1 ? v.asRoles.filter((x) => x !== r) : (v.asRoles || []).concat([r]); v.asTouched = true; return; }
+      if (act === 'asApply' || act === 'asClear') {
+        const user = act === 'asClear' ? '' : String(v.asUser || '').trim();
+        const r = await VC.consoleRunAs(user, act === 'asClear' ? [] : v.asRoles);
+        const b = r.body || {};
+        bus.toast(b.text || (r.ok ? 'Done.' : 'It could not be changed.'), b.ok ? 'success' : 'error');
+        if (b.ok) { v.status = b; v.asTouched = false; if (act === 'asClear') { v.asUser = ''; v.asRoles = []; try { const el = document.getElementById('rcAsUser'); if (el) el.value = ''; } catch (e) { /* no DOM */ } } }
+        RC.now();
+        return;
+      }
       if (act === 'clear') { RC.clear(); await VC.consoleClear(); return; }
       let text = act === 'go' ? String((input() && input().value) || key || '').trim() : String(key || '').trim();
       if (act !== 'go' && act !== 'cmd') return;

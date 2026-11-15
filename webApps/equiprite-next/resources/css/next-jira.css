@@ -1745,6 +1745,11 @@ html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, htm
 .nx-rc-who { font-weight: 700; color: #146c2e; }
 .nx-rc-who--anon { color: #a15c00; }
 .nx-rc-fact { color: #4a5865; padding-left: 10px; border-left: 1px solid #d6dde4; }
+.nx-rc-noaccess { padding: 10px 14px; background: #fdecec; color: #8a1c1c; border-bottom: 1px solid #f3c2c2; font-weight: 600; font-size: 13px; }
+.nx-rc-as { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid #e2e7ed; background: #fbfcfd; }
+.nx-rc-aslbl { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #5a6876; }
+.nx-rc-as input { width: 200px; height: 30px; padding: 0 8px; border: 1px solid #c3d0da; border-radius: 6px; font: inherit; font-size: 13px; }
+.nx-rc-roles { display: inline-flex; gap: 4px; flex-wrap: wrap; }
 .nx-rc-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid #e2e7ed; }
 .nx-rc-bar .nx-pg-coderun { margin-left: 0; }
 .nx-rc-filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 14px; background: #fafbfc; border-bottom: 1px solid #e2e7ed; }

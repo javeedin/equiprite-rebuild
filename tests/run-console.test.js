@@ -68,6 +68,12 @@ const T = H.makeAsserter();
     const what = await k.command('rm -rf /', does);
     T.check('a doing that fails, one not here (it needs the desktop app), a command that is not one: each said, nothing run', !st.ok && /the desktop app had a problem/.test(st.text) && !nope.ok && /needs the desktop app/.test(nope.text)
       && !what.ok && /Not a command: rm — type help/.test(what.text) && !did.some((d) => /rm/.test(d)));
+    const asked = [];
+    const doesAs = { runAs: async (u, r) => { asked.push(u === null ? 'who' : u + ' ' + JSON.stringify(r)); return { ok: true, text: 'ok' }; }, roles: async () => ({ ok: true, lines: ['RT_EQP_ADMINISTRATOR'] }) };
+    await k.command('as', doesAs); await k.command('as priya.raman RT_EQP_ADMINISTRATOR', doesAs); await k.command('as priya.raman RT_EQP_MANAGER, RT_EQP_FINANCE', doesAs); await k.command('as signin', doesAs);
+    const rl = await k.command('roles', doesAs);
+    T.check('as: who it runs as now; a user and roles (one, or several, commas); back to the EquipRite sign-in; roles: the known ones', asked.join(' | ') === 'who | priya.raman ["RT_EQP_ADMINISTRATOR"] | priya.raman ["RT_EQP_MANAGER","RT_EQP_FINANCE"] |  []'
+      && rl.ok && rl.lines[0] === 'RT_EQP_ADMINISTRATOR', asked.join(' | '));
     const cl = await k.command('clear', does);
     T.check('clear: the log emptied (the numbering goes on)', cl.cleared && k.lines(0).lines.length === 0 && k.lines(0).last > 0);
     T.check('nothing typed: nothing done', (await k.command('   ', does)).ok && k.lines(0).lines.length === 0);

@@ -57,6 +57,7 @@ define([], function () {
     consoleStatus: function () { return call('console/status'); },
     consoleCmd: function (text) { return post('console/cmd', { text: String(text || '') }); },
     consoleClear: function () { return post('console/clear', {}); },
+    consoleRunAs: function (user, roles) { return post('console/runas', { user: String(user || ''), roles: roles || [] }); },
     /** What ▶ Run says once it answered (the top bar and Application pages say the same): { ok, text, tone }. */
     runText: function (r) {
       var b = (r && r.body) || {};
@@ -67,7 +68,8 @@ define([], function () {
       var what = ch == null ? '' : (ch.length ? ' Your ' + ch.length + ' change' + (ch.length === 1 ? '' : 's') + ' since ' + base + ' are in it: ' + names + '.' : ' It has no change since ' + base + ': it is the same as VB Studio has.');
       return { ok: true, tone: 'success', text: '▶ ' + b.app + ' is running in its own window — your working copy (' + (b.branch || 'buildrite-working') + '), '
         + (b.built ? 'built just now (' + (Math.round((b.ms || 0) / 100) / 10) + ' s)' : 'no change since its last build') + '.' + what
-        + (b.signedInAs === '' ? ' Not signed in to EquipRite: the app runs anonymous, so pages that need access stay hidden — File → Sign in as… (Ctrl+Shift+S).' : '')
+        + (b.signedInAs === '' ? ' It runs anonymous, so pages that need access stay hidden — choose who it runs as: Run console (>_) → Run as.' : '')
+        + (b.noRoles ? ' It runs as ' + b.signedInAs + ' with no roles, so it will say "You don\'t have access" — give them a role: Run console (>_) → Run as.' : '')
         + ' Run again after more changes.' };
     },
     /**

@@ -294,7 +294,8 @@ async function appServerOptions(v) {
     vbsOpenPath: v === 'build' ? (p) => shell.openPath(p) : undefined,
     vbsRun: v === 'build' ? runWorkspaceApp : undefined, // ▶ Run: your workspace's app, in a window of its own
     // the Run console (Build.Rite → Run console): its lines, its commands, who the app runs as
-    vbsConsole: v === 'build' ? { lines: (after) => runConsoleInst.lines(after), command: (t) => runConsoleInst.command(t, consoleDoes), status: () => consoleStatus(false), clear: () => runConsoleInst.clear() } : undefined,
+    vbsConsole: v === 'build' ? { lines: (after) => runConsoleInst.lines(after), command: (t) => runConsoleInst.command(t, consoleDoes), status: () => consoleStatus(false), clear: () => runConsoleInst.clear(),
+      runAs: async (b) => { const r = await consoleDoes.runAs(b && b.user != null ? String(b.user) : '', Array.isArray(b && b.roles) ? b.roles : []); cpush(r.ok ? 'info' : 'error', r.text); return Object.assign(consoleStatus(false), { ok: r.ok, text: r.text }); } } : undefined,
     vbsPickFolder: v === 'build' ? async (start) => {
       const w = BrowserWindow.getFocusedWindow();
       const r = await dialog.showOpenDialog(w && !w.isDestroyed() ? w : undefined, { title: 'Where your workspace goes (Build.Rite makes its folder inside)', defaultPath: start || undefined, properties: ['openDirectory', 'createDirectory'] });
@@ -327,10 +328,55 @@ function workPreview() {
     onLine: (l) => cpush('build', l) });
   return workPreviewInst;
 }
+// Run as (Build.Rite → Run console): who your workspace's app runs as when Build.Rite runs it (▶ Run, Run it, Capture) —
+// a user and roles answered on this PC (RT_EQP_…; no password: run-as.json in this app's data folder). None chosen: the
+// EquipRite sign-in (File → Sign in as…), else anonymous. Read on each request, so a change shows on the next reload.
+let runAsMem = null;
+const runAsFile = () => path.join(app.getPath('userData'), 'run-as.json');
+function runAsNow() {
+  if (!runAsMem) { try { const j = JSON.parse(fs.readFileSync(runAsFile(), 'utf8')); runAsMem = { user: String(j.user || ''), roles: Array.isArray(j.roles) ? j.roles.map(String) : [] }; } catch (e) { runAsMem = { user: '', roles: [] }; } }
+  return runAsMem;
+}
+function setRunAs(user, roles) {
+  const KNOWN = require('./lib/devserver').KNOWN_ROLES;
+  const u = String(user || '').trim().slice(0, 120);
+  const rs = (roles || []).map((r) => String(r).trim().toUpperCase()).filter((r, i, a) => r && a.indexOf(r) === i);
+  const bad = rs.filter((r) => KNOWN.indexOf(r) === -1);
+  if (bad.length) return { ok: false, text: 'Not a role here: ' + bad.join(', ') + ' — the roles: ' + KNOWN.join(', ') };
+  if (u && !rs.length) return { ok: false, text: 'Give ' + u + ' at least one role (the app shows nothing to a user without one): ' + KNOWN.join(', ') };
+  if (!/^[\w.@\-]*$/.test(u)) return { ok: false, text: 'Not a user name: ' + u };
+  runAsMem = { user: u, roles: u ? rs : [] };
+  try { fs.mkdirSync(path.dirname(runAsFile()), { recursive: true }); fs.writeFileSync(runAsFile(), JSON.stringify(runAsMem, null, 1)); } catch (e) { /* this run only */ }
+  noAccessSeen = null;
+  return { ok: true, runAs: runAsMem };
+}
+/** Who the workspace's app runs as: Run as, else the EquipRite sign-in, else nobody (anonymous). */
+function workspaceIdentity() {
+  const r = runAsNow();
+  if (r.user) return { username: r.user, roles: r.roles.length ? r.roles : null, fusion: null };
+  return identity;
+}
+const whoIsIt = () => { const id = workspaceIdentity(); return !id || !id.username ? 'anonymous' : id.username + (id.roles ? ' (' + id.roles.join(', ') + ')' : ' (roles from Fusion)'); };
+// the app's window landed on its "You don't have access" page: noticed, said (console, its head, a notification)
+let noAccessSeen = null;
+function noticeNoAccess(url) {
+  if (!/\/no-access(?:[/?#]|$)/.test(String(url))) return;
+  noAccessSeen = { at: new Date().toISOString(), url: String(url), as: whoIsIt() };
+  cpush('error', 'The app says "You don\'t have access" — it runs as ' + noAccessSeen.as + '. Choose who it runs as: Run as, in the Run console (or type: as <user> RT_EQP_ADMINISTRATOR); the app\'s window reloads.');
+  try {
+    const { Notification } = require('electron');
+    if (Notification.isSupported()) {
+      const n = new Notification({ title: 'The app says you don\'t have access', body: 'It runs as ' + noAccessSeen.as + '. Choose a user and a role in Build.Rite → Run console → Run as.' });
+      n.on('click', () => { if (win && !win.isDestroyed()) { if (win.isMinimized()) win.restore(); win.focus(); } });
+      n.show();
+    }
+  } catch (e) { /* no notifications here */ }
+}
 // The workspace's app served like the app itself (as a sandbox is), its requests shown in the Run console too
 async function serveWorkspace(s) {
   const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === s.webApp && !VERSIONS[k].product)[0] || 'old';
   const srv = await createDevServer(Object.assign(await appServerOptions(v), { buildDir: s.buildDir, repoRoot: s.dir, webApp: s.webApp, port: 0, product: undefined,
+    getIdentity: () => workspaceIdentity(), // Run as, else the EquipRite sign-in
     onLog: (l) => { pushLog(l); cpush(/FAILED|-> (4|5)\d\d/.test(String(l)) ? 'warn' : 'server', String(l).replace(/^\d\d:\d\d:\d\d /, '')); } }));
   cpush('info', 'the app\'s local server: ' + srv.url + ' (' + s.webApp + ')');
   return srv;
@@ -362,8 +408,8 @@ function watchRunWindow(w) {
     const src = String((e && e.sourceId) || sourceId || ''), ln = (e && e.lineNumber) || line || 0;
     cpush(lv === 3 || lv === 'error' ? 'error' : (lv === 2 || lv === 'warning' ? 'warn' : 'app'), String(msg) + (src ? '   (' + src.split('/').slice(-2).join('/') + (ln ? ':' + ln : '') + ')' : ''));
   });
-  wc.on('did-navigate', (e, url) => cpush('nav', 'opened ' + url));
-  wc.on('did-navigate-in-page', (e, url) => cpush('nav', '→ ' + String(url).replace(/^https?:\/\/[^/]+/, '')));
+  wc.on('did-navigate', (e, url) => { cpush('nav', 'opened ' + url); noticeNoAccess(url); });
+  wc.on('did-navigate-in-page', (e, url) => { cpush('nav', '→ ' + String(url).replace(/^https?:\/\/[^/]+/, '')); noticeNoAccess(url); });
   wc.on('did-fail-load', (e, code, desc, url) => { if (code !== -3) cpush('error', 'could not load ' + url + ': ' + desc + ' (' + code + ')'); });
   wc.on('render-process-gone', (e, d) => cpush('error', 'the app\'s window stopped: ' + ((d && d.reason) || 'gone')));
   w.on('closed', () => { cpush('info', 'the app\'s window was closed'); if (runWin === w) runWin = null; });
@@ -375,7 +421,10 @@ const runTitle = (c, app) => 'Working copy — ' + c.projectName + ' ▸ ' + c.w
 function consoleStatus(full) {
   const c = currentWork();
   const st = c ? workPreview().status(c.working, !full) : null;
-  return { ok: true, signedInAs: identity ? String(identity.username || '') : '', workspace: c ? c.projectName + ' ▸ ' + c.workspace : '', working: c ? c.working : '', branch: c ? c.branch : '',
+  const id = workspaceIdentity(), ra = runAsNow();
+  return { ok: true, signedInAs: id ? String(id.username || '') : '', roles: id && id.roles ? id.roles : null, by: ra.user ? 'run-as' : (identity ? 'sign-in' : ''),
+    runAs: ra, knownRoles: require('./lib/devserver').KNOWN_ROLES, noAccess: noAccessSeen,
+    workspace: c ? c.projectName + ' ▸ ' + c.workspace : '', working: c ? c.working : '', branch: c ? c.branch : '',
     built: !!(st && st.built), builtAt: st ? st.builtAt : '', fresh: st ? st.fresh : null, building: !!(st && st.building), window: runWin && !runWin.isDestroyed() ? runWin.webContents.getURL() : '' };
 }
 const noWorkspace = () => ({ ok: false, text: 'No workspace is set up: set one up first (Workspace, in the top bar).' });
@@ -419,12 +468,21 @@ const consoleDoes = {
     return { ok: true, lines: ch.length ? [ch.length + ' file' + (ch.length === 1 ? '' : 's') + ' changed since VB Studio (' + c.branch + '), in the working copy:'].concat(ch.map((f) => '  ' + f)) : ['no change since VB Studio (' + c.branch + ')'] };
   },
   signin: async () => { openSignIn(); return { ok: true, text: 'The sign-in window is open: the app runs as whoever signs in there — then run (or reload) again.' }; },
+  runAs: async (user, roles) => {
+    if (user == null) { const ra = runAsNow(); return { ok: true, text: 'the app runs as ' + whoIsIt() + (ra.user ? ' (Run as)' : identity ? ' (the EquipRite sign-in)' : ' — nobody chosen: type as <user> RT_EQP_ADMINISTRATOR') }; }
+    const r = setRunAs(user, roles);
+    if (!r.ok) return r;
+    const reloaded = !!(runWin && !runWin.isDestroyed());
+    if (reloaded) runWin.webContents.reloadIgnoringCache();
+    return { ok: true, text: 'the app runs as ' + whoIsIt() + (r.runAs.user ? '' : ' (back to the EquipRite sign-in)') + (reloaded ? ' — its window reloaded' : ' — run it to see') };
+  },
+  roles: async () => ({ ok: true, lines: ['the roles the app knows (answered here with Run as):'].concat(require('./lib/devserver').KNOWN_ROLES.map((r) => '  ' + r)) }),
   code: async () => { const c = currentWork(); if (!c) return noWorkspace(); await shell.openExternal('vscode://file/' + String(c.working).replace(/\\/g, '/')); return { ok: true, text: 'opening ' + c.working + ' in VS Code (if it is installed)' }; },
   folder: async () => { const c = currentWork(); if (!c) return noWorkspace(); await shell.openPath(c.working); return { ok: true, text: 'opened ' + c.working }; },
   status: async () => {
     const s = consoleStatus(true);
     return { ok: true, lines: [
-      'signed in as:  ' + (s.signedInAs || 'nobody — the app runs anonymous: pages that need access stay hidden (type signin, or File → Sign in as…)'),
+      'runs as:       ' + (s.signedInAs ? s.signedInAs + (s.roles ? ' (' + s.roles.join(', ') + ')' : ' (roles from Fusion)') + (s.by === 'run-as' ? ' — Run as' : ' — the EquipRite sign-in') : 'nobody — the app runs anonymous: pages that need access stay hidden (type as <user> RT_EQP_ADMINISTRATOR)'),
       'workspace:     ' + (s.workspace || 'none set up'),
       'working copy:  ' + (s.working || '—') + (s.branch ? '  (VB Studio branch ' + s.branch + ')' : ''),
       'build:         ' + (s.building ? 'building…' : s.built ? 'built ' + s.builtAt + (s.fresh === false ? ' — the code changed since: build or run to see it' : ' — up to date') : 'not built yet (run builds it)'),
@@ -445,7 +503,8 @@ async function runWorkspaceApp(b) {
   const appName = apps.indexOf(want) !== -1 ? want : (apps.length === 1 ? apps[0] : (apps.indexOf('vbredwoodapp') !== -1 ? 'vbredwoodapp' : apps[0]));
   if (!appName) return { ok: false, error: 'Your working folder has no app in it (webApps/<app>/app-flow.json): ' + c.working };
   const t0 = Date.now();
-  cpush('info', '▶ Run: ' + appName + ' of ' + c.projectName + ' ▸ ' + c.workspace + ' — building its working copy when its code changed…');
+  cpush('info', '▶ Run: ' + appName + ' of ' + c.projectName + ' ▸ ' + c.workspace + ' as ' + whoIsIt() + ' — building its working copy when its code changed…');
+  noAccessSeen = null;
   const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: appName });
   if (!p.ok) { cpush('error', p.error); return { ok: false, error: p.error, app: appName, apps: apps }; }
   const url = p.url + '/';
@@ -454,9 +513,12 @@ async function runWorkspaceApp(b) {
   const changed = changedSinceVbs(c);
   openRunWindow(url, 'Working copy — ' + c.projectName + ' ▸ ' + c.workspace + ' (' + appName + ')' + (changed ? ' · ' + changed.length + ' change' + (changed.length === 1 ? '' : 's') + ' since VB Studio' : ''));
   pushLog(`${new Date().toTimeString().slice(0, 8)} ▶ Run: ${appName} of ${c.workspace} at ${url}${p.built ? ' (built ' + Math.round((Date.now() - t0) / 100) / 10 + ' s)' : ''}`);
-  if (!identity) cpush('warn', 'not signed in to EquipRite: the app runs anonymous — pages that need access stay hidden (File → Sign in as…, or type signin)');
+  const wid = workspaceIdentity();
+  if (!wid || !wid.username) cpush('warn', 'the app runs anonymous: pages that need access stay hidden — choose who it runs as: Run as, in the Run console (or type: as <user> RT_EQP_ADMINISTRATOR)');
+  else if (!wid.roles && !wid.fusion) cpush('warn', 'the app runs as ' + wid.username + ' with no roles: it will say "You don\'t have access" — give them a role: Run as, in the Run console');
   return { ok: true, url: url, app: appName, apps: apps, built: p.built, ms: Date.now() - t0, workspace: c.workspace, builtAt: p.builtAt,
-    folder: c.working, branch: c.workBranch || 'buildrite-working', base: 'VB Studio (' + c.branch + ')', changed: changed, signedInAs: identity ? String(identity.username || '') : '' };
+    folder: c.working, branch: c.workBranch || 'buildrite-working', base: 'VB Studio (' + c.branch + ')', changed: changed,
+    signedInAs: wid ? String(wid.username || '') : '', roles: wid && wid.roles ? wid.roles : null, noRoles: !!(wid && wid.username && !wid.roles && !wid.fusion) };
 }
 /** The working copy's files changed since VB Studio (origin/<its branch>), new ones too; null when git cannot tell. */
 function changedSinceVbs(c) {

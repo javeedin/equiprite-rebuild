@@ -6,7 +6,15 @@ define(['vb/action/actionChain', 'resources/js/vbsClient', 'resources/js/runCons
   class loadChain extends ActionChain {
     async run(context) {
       const v = context.$page.variables;
-      const status = async () => { try { const r = await VC.consoleStatus(); if (r.ok && r.body && r.body.ok !== false) v.status = r.body; } catch (e) { /* next time */ } };
+      const status = async () => {
+        try {
+          const r = await VC.consoleStatus();
+          if (!(r.ok && r.body && r.body.ok !== false)) return;
+          v.status = r.body;
+          // Run as, as kept — unless being edited here
+          if (!v.asTouched && r.body.runAs) { v.asUser = r.body.runAs.user || ''; v.asRoles = r.body.runAs.roles || []; }
+        } catch (e) { /* next time */ }
+      };
       let n = 0;
       RC.start({ mount: 'rcLog', fetch: VC.consoleLines, every: 800, onRead: () => { if (++n % 4 === 0) status(); } });
       await status();

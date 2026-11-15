@@ -7,13 +7,17 @@
     "hist": { "type": "any[]", "defaultValue": [], "description": "The commands typed (newest last), for ↑ and ↓." },
     "histAt": { "type": "number", "defaultValue": -1 },
     "busy": { "type": "boolean", "defaultValue": false },
-    "busyText": { "type": "string", "defaultValue": "", "description": "The command running." }
+    "busyText": { "type": "string", "defaultValue": "", "description": "The command running." },
+    "asUser": { "type": "string", "defaultValue": "", "description": "Run as: the user name the app runs as (being chosen)." },
+    "asRoles": { "type": "any[]", "defaultValue": [], "description": "Run as: its roles (RT_EQP_…), being chosen." },
+    "asTouched": { "type": "boolean", "defaultValue": false, "description": "Run as edited here (not overwritten by what is read)." }
   },
   "eventListeners": {
     "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
     "vbExit": { "chains": [ { "chain": "exitChain" } ] },
     "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
-    "onCmdKey": { "chains": [ { "chain": "cmdChain", "parameters": { "key": "{{ $event.key }}", "value": "{{ $event.currentTarget.value }}" } } ] }
+    "onCmdKey": { "chains": [ { "chain": "cmdChain", "parameters": { "key": "{{ $event.key }}", "value": "{{ $event.currentTarget.value }}" } } ] },
+    "onField": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.value }}" } } ] }
   },
   "imports": {
     "components": {
