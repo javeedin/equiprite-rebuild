@@ -11,7 +11,12 @@
         <div class="nx-pg-codefrom" id="pgCodeFrom"><span class="oj-ux-ico-folder" aria-hidden="true"></span>
           <span><oj-bind-text value="[[ 'Your workspace: ' + $variables.codeFrom.source ]]"></oj-bind-text></span></div>
         <div class="nx-pg-codepath" id="pgCodePath"><span class="nx-pg-codepath-l">Working folder</span><code id="pgCodeRoot"><oj-bind-text value="[[ $variables.codeFrom.root ]]"></oj-bind-text></code>
-          <button type="button" class="nx-pg-codecopy" id="pgCodeCopy" data-act="copyPath" on-click="[[ $listeners.onAct ]]" aria-label="Copy the working folder's path"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy</button></div>
+          <button type="button" class="nx-pg-codecopy" id="pgCodeCopy" data-act="copyPath" on-click="[[ $listeners.onAct ]]" aria-label="Copy the working folder's path"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy</button>
+          <!-- ▶ Run: this working folder's app (built when its code changed) in a window of its own — as the top bar's Run -->
+          <button type="button" :class="[[ 'nx-pg-coderun' + ($variables.runBusy ? ' nx-pg-coderun--busy' : '') ]]" id="pgRunWs" data-act="runWs" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.runBusy ]]"
+            title="Run this working folder's app in a window of its own — built when its code changed: your changes, running">
+            <oj-bind-if test="[[ $variables.runBusy ]]"><span class="nx-spin nx-spin--btn" aria-hidden="true"></span></oj-bind-if><oj-bind-if test="[[ !$variables.runBusy ]]"><span aria-hidden="true">▶</span></oj-bind-if>
+            <oj-bind-text value="[[ $variables.runBusy ? 'Building…' : 'Run' ]]"></oj-bind-text></button></div>
         <div class="nx-pg-codenote" id="pgCodeNote">This project's sheets, screenshots and Jira stories are its own — kept apart from Build.Rite's (Old EquipRite…).</div>
       </oj-bind-if>
     </div>

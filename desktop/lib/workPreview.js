@@ -63,9 +63,10 @@ function open(opts) {
   let building = '';
 
   /** The copy built from: the working folder without .git (or node_modules), each app's Component Exchange list emptied. */
-  function stage(folder, root) {
+  async function stage(folder, root) {
     const src = path.join(root, SRC);
-    fs.cpSync(folder, src, { recursive: true, filter: (p) => { const b = path.basename(p); return b !== '.git' && b !== 'node_modules'; } });
+    // copied without blocking: the desktop app answers its screens meanwhile (a big working folder takes a moment)
+    await fs.promises.cp(folder, src, { recursive: true, filter: (p) => { const b = path.basename(p); return b !== '.git' && b !== 'node_modules'; } });
     const emptied = [];
     const apps = path.join(src, 'webApps');
     (fs.existsSync(apps) ? fs.readdirSync(apps) : []).forEach((a) => {
@@ -86,7 +87,7 @@ function open(opts) {
     if (path.basename(root) !== PREVIEW_DIR) return { ok: false, error: 'Not a preview folder: ' + root };
     try { fs.rmSync(root, { recursive: true, force: true }); } catch (e) { return { ok: false, error: 'Its last build could not be cleared (' + (e.code || e.message) + '): ' + root }; }
     let st;
-    try { st = stage(folder, root); } catch (e) { return { ok: false, error: 'Your working folder could not be copied to build it (' + (e.code || e.message) + ').' }; }
+    try { st = await stage(folder, root); } catch (e) { return { ok: false, error: 'Your working folder could not be copied to build it (' + (e.code || e.message) + ').' }; }
     if (st.emptied.length) log('your workspace: Component Exchange components (' + st.emptied.join(', ') + ') loaded from the CDN, as in Build.Rite');
     const r = await run(st.src, path.join(root, BUILD));
     return Object.assign(r || {}, { emptied: st.emptied });

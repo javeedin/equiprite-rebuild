@@ -10,8 +10,10 @@ define(['vb/action/actionChain', 'resources/js/shellBus', 'resources/js/vbsClien
     async run(context, { act }) {
       const v = context.$page.variables;
       if (act === 'load') {
-        const read = async () => { const r = await VC.work(); v.work = r.ok ? r.body : null; };
+        // a read that fails (the desktop app busy for a moment) keeps what was known — it does not look like no workspace
+        const read = async () => { try { const r = await VC.work(); if (r.ok && r.body) v.work = r.body; } catch (e) { /* as it was */ } };
         bus.on('vbs-changed', 'shell', () => { read(); });
+        try { window.addEventListener('focus', () => { read(); }); } catch (e) { /* no window */ } // back in front: read again
         await read();
         return;
       }
@@ -41,11 +43,9 @@ define(['vb/action/actionChain', 'resources/js/shellBus', 'resources/js/vbsClien
         v.workRunning = true;
         try {
           bus.toast('▶ Building ' + wsName + '\'s app from its working folder (when its code changed) and opening it…', 'info');
-          const r = await VC.workRun('');
-          const b = r.body || {};
-          if (r.ok && b.ok) {
-            bus.toast('▶ ' + b.app + ' is running in its own window — ' + wsName + '\'s working folder, ' + (b.built ? 'built just now (' + (Math.round((b.ms || 0) / 100) / 10) + ' s)' : 'no change since its last build') + '. Run again after more changes.', 'success');
-          } else bus.toast(b.error || 'It could not be run.', 'error');
+          // what is in it: your working copy, and its changes since VB Studio (named), so you know what to look for
+          const t = VC.runText(await VC.workRun(''));
+          bus.toast(t.text, t.tone);
         } finally { v.workRunning = false; }
         return;
       }

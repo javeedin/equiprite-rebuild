@@ -15,7 +15,12 @@ define([
     async run(context, { refresh }) {
       const v = context.$page.variables;
       // your workspace set up or changed (the wizard, the top bar): its pages read again
-      bus.on('vbs-changed', 'app-pages', (d) => { if (d && d.switched && !v.busy) Actions.callChain(context, { chain: 'loadChain', params: { refresh: true } }).catch(() => {}); });
+      // (busy just then: read again once it is free, rather than not at all)
+      bus.on('vbs-changed', 'app-pages', (d) => {
+        if (!(d && d.switched)) return;
+        const go = (n) => { if (v.busy && n < 40) { setTimeout(() => go(n + 1), 500); return; } Actions.callChain(context, { chain: 'loadChain', params: { refresh: true } }).catch(() => {}); };
+        go(0);
+      });
       // the build in scope (Build.Rite's top bar): its pages first; All builds: every app
       if (!refresh && bus.scope()) v.appF = bus.scope();
       v.busy = true;

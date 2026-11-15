@@ -348,9 +348,21 @@ async function runWorkspaceApp(b) {
   const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: appName });
   if (!p.ok) return { ok: false, error: p.error, app: appName, apps: apps };
   const url = p.url + '/';
-  openRunWindow(url, 'Your workspace — ' + c.projectName + ' ▸ ' + c.workspace + ' (' + appName + ')');
+  // what is in it: the working copy's files changed since VB Studio (its branch as last fetched), saved or not, committed
+  // or not — so you know what you are looking at (and what you are not)
+  const changed = changedSinceVbs(c);
+  openRunWindow(url, 'Working copy — ' + c.projectName + ' ▸ ' + c.workspace + ' (' + appName + ')' + (changed ? ' · ' + changed.length + ' change' + (changed.length === 1 ? '' : 's') + ' since VB Studio' : ''));
   pushLog(`${new Date().toTimeString().slice(0, 8)} ▶ Run: ${appName} of ${c.workspace} at ${url}${p.built ? ' (built ' + Math.round((Date.now() - t0) / 100) / 10 + ' s)' : ''}`);
-  return { ok: true, url: url, app: appName, apps: apps, built: p.built, ms: Date.now() - t0, workspace: c.workspace, builtAt: p.builtAt };
+  return { ok: true, url: url, app: appName, apps: apps, built: p.built, ms: Date.now() - t0, workspace: c.workspace, builtAt: p.builtAt,
+    folder: c.working, branch: c.workBranch || 'buildrite-working', base: 'VB Studio (' + c.branch + ')', changed: changed };
+}
+/** The working copy's files changed since VB Studio (origin/<its branch>), new ones too; null when git cannot tell. */
+function changedSinceVbs(c) {
+  const g = (args) => { try { return require('child_process').execFileSync(commandPath('git') || 'git', ['-C', c.working].concat(args), { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 8000, windowsHide: true }); } catch (e) { return null; } };
+  const diff = g(['diff', '--name-only', 'origin/' + c.branch, '--']);
+  if (diff == null) return null;
+  const fresh = g(['ls-files', '--others', '--exclude-standard']) || '';
+  return diff.split('\n').concat(fresh.split('\n')).map((x) => x.trim()).filter((x, i, a) => x && a.indexOf(x) === i);
 }
 // The app as it is now (this PC's own build), for comparing with a sandbox.
 const appUrlOf = (webApp) => { const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === webApp && !VERSIONS[k].product)[0]; return v && servers[v] ? servers[v].url : ''; };

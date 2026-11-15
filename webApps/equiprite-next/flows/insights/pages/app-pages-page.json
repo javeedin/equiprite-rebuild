@@ -51,6 +51,7 @@
     "codeSel": { "type": "string", "defaultValue": "", "description": "The file shown (its path)." },
     "codeText": { "type": "string", "defaultValue": "", "description": "Its text, read only." },
     "codeFind": { "type": "string", "defaultValue": "", "description": "What is searched for in it." },
+    "runBusy": { "type": "boolean", "defaultValue": false, "description": "▶ Run (beside the working folder) is building the workspace's app and opening it." },
     "shotNew": { "type": "string", "defaultValue": "", "description": "The screenshot just captured or added (its id): its thumbnail flies in, for a moment." },
     "codeMarks": { "type": "any", "defaultValue": null, "description": "What changed in it (pages.js codeFile().changes): { base, isNew, regions: [{ from, to, kind }], added, removed }, or null (not in git)." },
     "codeAt": { "type": "number", "defaultValue": -1, "description": "The change gone to (Previous / Next change), or -1." },

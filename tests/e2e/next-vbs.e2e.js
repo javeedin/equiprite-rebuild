@@ -124,7 +124,8 @@ const SECRET = 'Pa55-w0rd#e2e';
     ran.push(b);
     await new Promise((r) => setTimeout(r, 700)); // a build takes a moment
     if (runFails-- > 0) return { ok: false, error: 'Your workspace could not be built: a broken file (the build tool says so).' };
-    return { ok: true, url: 'http://127.0.0.1:4100/', app: 'vbredwoodapp', apps: ['vbredwoodapp'], built: true, ms: 4200, workspace: 'javeed-26c-titles' };
+    return { ok: true, url: 'http://127.0.0.1:4100/', app: 'vbredwoodapp', apps: ['vbredwoodapp'], built: true, ms: 4200, workspace: 'javeed-26c-titles', branch: 'buildrite-working', base: 'VB Studio (ws-javeed)',
+      changed: ['webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html'] };
   };
   const env = await E.start({ port: 19960, app: 'next', product: 'buildrite', vbsStore: vbs, vbsFind: vbsFind, vbsRun: vbsRun });
   const page = env.page;
@@ -367,7 +368,8 @@ const SECRET = 'Pa55-w0rd#e2e';
       && /^▶\s*Run$/.test(await text(page, '#nxWorkRun')) && !(await page.isDisabled('#nxWorkRun')), await text(page, '.nx-toast'));
     await page.click('#nxWorkRun');
     await page.waitForFunction(() => /is running in its own window/.test((document.querySelector('.nx-toast') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
-    T.check('…run: the app in its own window — your working folder, built just now (how long); run again after more changes', ran.length === 2 && /▶ vbredwoodapp is running in its own window — javeed-26c-titles's working folder, built just now \(4\.2 s\)\. Run again after more changes\./.test(await text(page, '.nx-toast'))
+    T.check('…run: the app in its own window — your working copy, built just now (how long), your changes since VB Studio in it (named); run again after more changes', ran.length === 2
+      && /▶ vbredwoodapp is running in its own window — your working copy \(buildrite-working\), built just now \(4\.2 s\)\. Your 1 change since VB Studio \(ws-javeed\) are in it: customer-dashboard-page\.html\. Run again after more changes\./.test(await text(page, '.nx-toast'))
       && /nx-toast--success/.test((await page.getAttribute('.nx-toast', 'class')) || ''), await text(page, '.nx-toast'));
     T.check('…the done step says where Start working goes (Application pages) and where the project is (the top bar\'s menu)', /Start working opens Application pages, with your workspace's pages/.test(await text(page, '#vbsuDone')) && /top bar's workspace menu/.test(await text(page, '#vbsuDone')));
     await page.click('#vbsuStart');

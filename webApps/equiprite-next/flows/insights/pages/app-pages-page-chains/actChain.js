@@ -5,7 +5,8 @@ define([
   'resources/js/pageSheet',
   'resources/js/minutesClient',
   'resources/js/shellBus',
-], (ActionChain, Actions, PC, PS, M, bus) => {
+  'resources/js/vbsClient',
+], (ActionChain, Actions, PC, PS, M, bus, VC) => {
   'use strict';
 
   // The sheet's actions: build/refresh it, capture or upload screenshots (a page keeps several; the viewer shows one at a
@@ -32,6 +33,18 @@ define([
         return;
       }
       if (act === 'setupWs') { bus.open({ record: 'vbs-setup', params: {} }); bus.emit('vbs-setup', { reset: true }); return; }
+      // ▶ Run beside the working folder: its app, built when its code changed, in a window of its own (as the top bar's)
+      if (act === 'runWs') {
+        if (v.runBusy) return;
+        v.runBusy = true;
+        try {
+          bus.toast('▶ Building your working folder\'s app (when its code changed) and opening it…', 'info');
+          const t = VC.runText(await VC.workRun(''));
+          bus.toast(t.text, t.tone);
+          v.result = { ok: t.ok, text: t.text };
+        } finally { v.runBusy = false; }
+        return;
+      }
       if (act === 'copyPath') {
         // the working folder's full path, copied
         const t = String((v.codeFrom && v.codeFrom.root) || '');

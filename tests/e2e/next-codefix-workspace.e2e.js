@@ -46,7 +46,12 @@ const opened = [];
     chat: async () => ({ ok: true, provider: 'Stand-in AI', model: 'test', text: ['## Summary', 'A note in the header comment.', '## How it works today', 'It lists billed requests.', '## What changes', 'One comment line.',
       '## The change', '- `' + BILL + '.html` — a comment line', '## After the change', 'The same.', '## Risks', 'None known', '## How to test', '1. Open My Billing.', '## Questions', 'None', '',
       'FILE: ' + BILL + '.html', '<<<<<<< SEARCH', lines.slice(1, 3).join('\n'), '=======', lines.slice(1, 3).join('\n') + '\n  Overdue invoices first (workspace fix).', '>>>>>>> REPLACE'].join('\n') }) } });
-  const env = await E.start({ port: 19845, app: 'next', pagesStore, fixStore });
+  // ▶ Run beside the working folder: the desktop app builds it and opens its app in a window of its own — a stand-in
+  const runs = [];
+  const vbsStore = { work: () => ({ copies: [], current: null }), state: () => ({}) };
+  const vbsRun = async (b) => { runs.push(b); await new Promise((r) => setTimeout(r, 400)); return { ok: true, url: 'http://127.0.0.1:4100/', app: 'vbredwoodapp', built: false, ms: 300, branch: 'buildrite-working', base: 'VB Studio (pages/test)',
+    changed: ['webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page.html'] }; };
+  const env = await E.start({ port: 19845, app: 'next', pagesStore, fixStore, vbsStore, vbsRun });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -57,6 +62,7 @@ const opened = [];
     await page.waitForSelector('#pgSheetTitle', { timeout: 10000 });
     await page.click('#pgTabFix');
     await page.waitForSelector('#fxRequest', { timeout: 10000 });
+    T.check('▶ Run beside the working folder (its app, in a window of its own)', /^▶\s*Run$/.test(await text(page, '#pgRunWs')) && /working folder's app in a window of its own/.test((await page.getAttribute('#pgRunWs', 'title')) || ''), await text(page, '#pgRunWs'));
     T.check('the panel names your workspace and its working folder (branch buildrite-working), changes on this PC until Apply to main → Push', (await text(page, '#fxFolderPath')) === path.resolve(working)
       && /Your workspace Rebuild App ▸ Dev_One — its working folder, branch buildrite-working/.test(await text(page, '#fxFolder')) && /Apply to main, then Push/.test(await text(page, '#fxFolder')), await text(page, '#fxFolder'));
     T.check('…no other folder to pick', !(await page.$('#fxPick')));
@@ -119,6 +125,11 @@ const opened = [];
     T.check('Capture: of your working folder\'s code (built just now, with your changes); the page sent it elsewhere — said', opened[0] === 'capture vbredwoodapp /vp/shell/customer-portal/customer-my-billing'
       && /From your workspace's working folder \(built just now, with your changes\)/.test(await text(page, '#pgResult')) && /it sent you to \/vp\/shell\/main\/main-equiprite/.test(await text(page, '#pgResult')), await text(page, '#pgResult'));
     T.check('…its thumbnail says so too', /from your workspace's working folder · the page sent it to \/vp\/shell\/main\/main-equiprite/.test((await page.getAttribute('#pgShots .nx-pg-shotbtn', 'title')) || ''), (await page.getAttribute('#pgShots .nx-pg-shotbtn', 'title')) || '');
+    await page.click('#pgRunWs');
+    await page.waitForFunction(() => /is running in its own window/.test((document.querySelector('.nx-toast') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    T.check('▶ Run (the working folder): the app running — your working copy, your change since VB Studio named; said under it too', runs.length === 1
+      && /▶ vbredwoodapp is running in its own window — your working copy \(buildrite-working\), no change since its last build\. Your 1 change since VB Studio \(pages\/test\) are in it: customer-my-billing-page\.html\./.test(await text(page, '.nx-toast'))
+      && /customer-my-billing-page\.html/.test(await text(page, '#pgResult')), await text(page, '.nx-toast'));
     await page.click('#pgRun');
     await page.waitForFunction(() => /Opened in a window/.test((document.getElementById('pgResult') || {}).textContent || ''), null, { timeout: 20000 }).catch(() => {});
     T.check('Run it: opened in a window, from your workspace\'s working folder', opened[1] === 'run vbredwoodapp /vp/shell/customer-portal/customer-my-billing'
