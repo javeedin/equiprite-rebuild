@@ -236,18 +236,7 @@
   "unresolvedLinks": []
  },
  "ai": null,
- "screenshots": [
-  {
-   "id": "s1",
-   "file": "projects/etao-dev20ldr1u9-demoservices001-phx_equiprite-rebuild-v1_175847/screens/vbredwoodapp.equipment-foundation.equipment-create.1.jpg",
-   "at": "2026-11-15T05:42:35.917Z",
-   "by": "javeed.shaik",
-   "source": "capture",
-   "caption": "",
-   "bytes": 98633,
-   "from": "workspace"
-  }
- ],
+ "screenshots": [],
  "stories": [],
  "at": "2026-11-15T05:47:21.582Z",
  "by": "javeed.shaik",

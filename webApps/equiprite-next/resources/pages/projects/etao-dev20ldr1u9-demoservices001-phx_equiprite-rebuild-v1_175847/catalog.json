@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-15T05:47:21.648Z",
+ "scannedAt": "2026-11-15T06:44:44.354Z",
  "pages": [
   {
    "id": "vbredwoodapp//shell",
@@ -301,7 +301,7 @@
     "at": "2026-11-15T05:47:21.582Z",
     "by": "javeed.shaik",
     "codeHash": "eccd3caeb4e7635a",
-    "screenshots": 1,
+    "screenshots": 0,
     "ai": false,
     "rest": 0,
     "chains": 4
