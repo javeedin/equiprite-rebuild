@@ -38,6 +38,26 @@ EquipRite. See [`desktop/README.md`](desktop/README.md) for how it works and wha
 
 `npm run serve` serves Old EquipRite. For New EquipRite in a browser use `EQP_WEBAPP=equiprite npm run serve`.
 
+### Run any VB app from its own folder
+
+Your Build.Rite workspace's working copy, or any other VB Studio app on this PC, can run straight from its folder,
+without opening Build.Rite. It is built with this project's build tool from a copy of the folder; in the copy its
+Component Exchange list is emptied, so the components load from Oracle's CDN. The folder itself is never changed.
+It is served at one address with its backends forwarded, and it is built again each time you save a file there:
+reload the page to see the change.
+
+```bash
+# from the app's own folder (VS Code's terminal too):
+node C:\path\to\equiprite-rebuild\tools\run-vb-app.js
+
+# or from this folder, naming the app's folder:
+npm run vb -- C:\path\to\workspace\working
+```
+
+Options: `--app <name>` picks the app when the folder has several; `--port <n>` changes the port (8890 by default);
+`--open` opens it in your browser. It runs as `EQP_USER` (and `EQP_ROLES`), as `npm run serve` does, else
+anonymous: pages that need access stay hidden.
+
 ## Layout
 
 | Path | What |
