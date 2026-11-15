@@ -76,11 +76,22 @@ const ENV = Object.assign({}, process.env, { GIT_AUTHOR_NAME: 'Team Mate', GIT_A
     T.section('a change in working: saved, applied to main, main pushed to VB Studio');
     fs.writeFileSync(path.join(base, 'working', 'page.html'), '<h1>Customer dashboard</h1>\n');
     fs.writeFileSync(path.join(base, 'working', 'notes.md'), 'new\n');
+    // an `npm install` (and a build) run in the working folder by mistake: never saved, never pushed
+    fs.mkdirSync(path.join(base, 'working', 'node_modules', 'core-js'), { recursive: true });
+    fs.writeFileSync(path.join(base, 'working', 'node_modules', 'core-js', 'index.js'), 'module.exports = 1;\n');
+    fs.writeFileSync(path.join(base, 'working', 'package-lock.json'), '{}\n');
+    fs.mkdirSync(path.join(base, 'working', 'build'), { recursive: true });
+    fs.writeFileSync(path.join(base, 'working', 'build', 'out.js'), 'x\n');
     const s1 = await st.workStatus('');
+    const excl = fs.readFileSync(path.join(base, 'main', '.git', 'info', 'exclude'), 'utf8');
+    T.check('tool folders (node_modules, a build, package-lock.json — not tracked here) kept out of git, on this PC only: not counted as changes', ['node_modules/', '/build/', '/build-rite-preview/', '/package-lock.json'].every((x) => excl.split('\n').indexOf(x) !== -1)
+      && !/node_modules|package-lock|build\//.test(JSON.stringify(s1.files || [])) && !fs.existsSync(path.join(base, 'working', '.gitignore')), excl);
     T.check('working\'s changes seen (a file changed, a new one); main untouched', s1.ok && s1.changed === 2 && s1.changedCount === 2 && fs.readFileSync(path.join(base, 'main', 'page.html'), 'utf8') === '<h1>Title</h1>\n', JSON.stringify(s1).slice(0, 300));
     T.check('applying before saving: refused (save first)', /Save working's changes first/.test((await st.workApply('')).error));
     const c1 = await st.workCommit('', 'EQP-901: titles on the customer dashboard', 'javeed.shaik');
     T.check('saved in working (by who made it): 1 change ready to apply; nothing to push yet', c1.ok && c1.committed && c1.toApply === 1 && c1.toPush === 0 && c1.changed === 0 && c1.last.author === 'javeed.shaik', JSON.stringify(c1).slice(0, 300));
+    const saved = g(path.join(base, 'working'), ['show', '--name-only', '--format=', 'HEAD']).trim().split('\n').sort().join(',');
+    T.check('…the commit: only the real changes — no node_modules, build or package-lock.json', saved === 'notes.md,page.html', saved);
     const a1 = await st.workApply('');
     T.check('applied to main: main has it (exactly what working has); 1 commit to push', a1.ok && a1.applied && a1.toApply === 0 && a1.toPush === 1 && fs.readFileSync(path.join(base, 'main', 'page.html'), 'utf8') === '<h1>Customer dashboard</h1>\n', JSON.stringify(a1).slice(0, 300));
     T.check('…nothing more to apply: said', /Nothing to apply/.test((await st.workApply('')).error));

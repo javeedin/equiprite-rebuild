@@ -657,10 +657,39 @@ function open(opts) {
       error: !(org && header(org)) ? 'Set up the organization first (its sign-in): Build.Rite copies the workspace with it.' : inWay ? 'There is a folder there already, not made by Build.Rite: ' + base + ' — choose another folder.' : '' };
   }
   /** Its state: working's changes and saved changes not yet applied; main's commits to push, VB Studio's to get. */
+  // Tool folders kept out of git — on this PC only (the repository's info/exclude: never committed, never pushed). A VB
+  // Studio app's repository has no .gitignore of its own, so an `npm install` (node_modules, package-lock.json), a build
+  // or Build.Rite's own preview in the working folder would otherwise be saved into the workspace and pushed to VB Studio.
+  // package-lock.json only when the repository does not track it. Once per folder per run.
+  const LOCAL_EXCLUDES = ['node_modules/', '/build/', '/build-rite-preview/', 'Thumbs.db', '.DS_Store'];
+  const keptOut = {};
+  async function keepOutTools(dir) {
+    if (keptOut[dir]) return keptOut[dir];
+    const gp = await git(['-C', dir, 'rev-parse', '--git-path', 'info/exclude'], null, 30000);
+    let file = str(gp.stdout).trim();
+    if (gp.code !== 0 || !file) return [];
+    if (!path.isAbsolute(file)) file = path.resolve(dir, file);
+    const want = LOCAL_EXCLUDES.slice();
+    const lock = await git(['-C', dir, 'ls-files', '--error-unmatch', 'package-lock.json'], null, 30000);
+    if (lock.code !== 0) want.push('/package-lock.json');
+    let have = '';
+    try { have = fs.readFileSync(file, 'utf8'); } catch (e) { have = ''; }
+    const lines = have.split(/\r?\n/).map((l) => l.trim());
+    const add = want.filter((w) => lines.indexOf(w) === -1);
+    if (add.length) {
+      try {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.appendFileSync(file, (have && !/\n$/.test(have) ? '\n' : '') + '# Build.Rite: tool folders, kept out of git on this PC only (never committed)\n' + add.join('\n') + '\n');
+      } catch (e) { return []; }
+    }
+    keptOut[dir] = want;
+    return want;
+  }
   async function workStatus(id, opts) {
     const c = workOf(id);
     if (!c) return { ok: false, error: 'No workspace set up on this PC yet: Set up your workspace (the top bar).', work: work() };
     if (!isGitDir(c.main) || !isGitDir(c.working)) return { ok: false, error: 'Its folders are not there any more (' + c.base + '): set the workspace up again.', work: work() };
+    await keepOutTools(c.working);
     let fetchError = '';
     if (opts && opts.fetch) {
       const f = await git(['-C', c.main, 'fetch', '--no-tags', '-q', 'origin', '+refs/heads/' + c.branch + ':refs/remotes/origin/' + c.branch], orgFor(c.orgKey), 180000);
@@ -732,6 +761,7 @@ function open(opts) {
     const msg = str(message).trim();
     if (!c || !isGitDir(c.working)) return workStatus(id);
     if (!msg) return { ok: false, error: 'Write what the change is (a Jira story, an issue, what it fixes).' };
+    await keepOutTools(c.working); // never node_modules, a build, the preview…
     const add = await git(['-C', c.working, 'add', '-A'], null, 120000);
     if (add.code !== 0) return { ok: false, error: why(add.stderr) };
     const st = await git(['-C', c.working, 'status', '--porcelain=v1'], null, 60000);
