@@ -442,6 +442,9 @@
                 <oj-bind-if test="[[ !!$variables.fix.applied && ($variables.fix.status === 'applied' || $variables.fix.status === 'committed') ]]">
                   <div class="nx-fx-applied" id="fxApplied">
                     <div id="fxAppliedText"><b><oj-bind-text value="[[ $functions.fixAppliedText($variables.fix) ]]"></oj-bind-text></b> · <oj-bind-text value="[[ $variables.fix.applied.pull.text ]]"></oj-bind-text><oj-bind-if test="[[ $variables.fix.applied.live ]]"> Reload the page in this app to try it.</oj-bind-if></div>
+                    <!-- try it: this page, running from your working copy (built when its code changed), in the Run window -->
+                    <oj-bind-if test="[[ $variables.info.canRun && $functions.fixInWs($variables.fix) ]]"><div class="nx-fx-try" id="fxTryRow"><button type="button" class="nx-pg-coderun" id="fxTry" data-act="run" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Build your working copy (when its code changed) and open the app right on this page"><span aria-hidden="true">▶</span>Try it on this page</button>
+                      <span class="nx-note"><oj-bind-text value="[[ 'Opens ' + ($variables.sheet.facts.route.url || 'the page') + ' from your working copy, in the Run window.' ]]"></oj-bind-text></span></div></oj-bind-if>
                     <oj-bind-if test="[[ !!$variables.fix.applied.notes ]]"><div class="nx-note nx-fx-notesline" id="fxNotes"><span class="oj-ux-ico-edit" aria-hidden="true"></span> <oj-bind-text value="[[ $functions.fixNotesText($variables.fix) ]]"></oj-bind-text></div></oj-bind-if>
                     <oj-bind-if test="[[ !!$variables.fix.tests ]]">
                       <div :class="[[ 'nx-fx-tests ' + ($variables.fix.tests.ok ? 'nx-fx-tests--ok' : 'nx-fx-tests--bad') ]]" id="fxTests">

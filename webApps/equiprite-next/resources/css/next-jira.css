@@ -1733,6 +1733,9 @@ html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, htm
 .nx-work-wrap .nx-work { margin-left: 0; }
 .nx-work-caret { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid #dde4ea; background: #eef2f6; color: #3b4a58; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .nx-work-caret:hover, .nx-work-caret[aria-expanded="true"] { background: #fff; border-color: #2a78d6; }
+/* ▶ Try it on this page (Code fix, applied in your workspace) */
+.nx-fx-try { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; }
+.nx-fx-try .nx-pg-coderun { margin-left: 0; }
 /* ▶ Run beside the working folder (Application pages) */
 .nx-pg-coderun { display: inline-flex; align-items: center; gap: 6px; height: 28px; margin-left: 6px; padding: 0 12px 0 10px; border: 0; border-radius: 999px; background: #1f7a3d; color: #fff; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
 .nx-pg-coderun:hover { background: #17652f; }

@@ -89,6 +89,10 @@ const opened = [];
     const wrote = fs.readFileSync(path.join(working, BILL + '.html'), 'utf8');
     T.check('…the change note written in the code (who asked, who changed it, when, the Jira story and issue); said under Applied', /1 change note written in the code beside the change/.test(await text(page, '#fxNotes'))
       && /<!-- Build\.Rite change fx[a-z0-9]+ — My Billing[\s\S]*Request: +Show overdue invoices first[\s\S]*Requested by: priya\.raman on [\s\S]*Changed by: +priya\.raman on [\s\S]*Issue: +ISS-12[\s\S]*Jira story: +EQP-123[\s\S]*?-->/.test(wrote), await text(page, '#fxNotes'));
+    T.check('…▶ Try it on this page: offered under Applied (its address said)', /Try it on this page/.test(await text(page, '#fxTry')) && /Opens \/vp\/shell\/customer-portal\/customer-my-billing from your working copy/.test(await text(page, '#fxTryRow')), await text(page, '#fxTryRow'));
+    await page.click('#fxTry');
+    await page.waitForFunction(() => /Opened in a window/.test((document.getElementById('pgResult') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    T.check('…clicked: that page opened from your working copy (the Run window)', opened.some((x) => x === 'run vbredwoodapp /vp/shell/customer-portal/customer-my-billing') && /your workspace's working folder/.test(await text(page, '#pgResult')), opened.join(' | '));
     T.check('…"Save in working" — no Commit & push', !!(await page.$('#fxSaveWork')) && !(await page.$('#fxPush')) && !(await page.$('#fxCommit')));
     await env.shot('next-codefix-workspace-applied.png');
 
@@ -140,7 +144,7 @@ const opened = [];
     T.check('Run it offered beside Capture (your workspace: its working folder, running)', !!(await page.$('#pgRun')) && /your workspace's working folder/.test((await page.getAttribute('#pgRun', 'title')) || ''));
     await page.click('#pgCapture');
     await page.waitForFunction(() => /Screenshot captured/.test((document.getElementById('pgResult') || {}).textContent || ''), null, { timeout: 20000 }).catch(() => {});
-    T.check('Capture: of your working folder\'s code (built just now, with your changes); the page sent it elsewhere — said', opened[0] === 'capture vbredwoodapp /vp/shell/customer-portal/customer-my-billing'
+    T.check('Capture: of your working folder\'s code (built just now, with your changes); the page sent it elsewhere — said', opened.indexOf('capture vbredwoodapp /vp/shell/customer-portal/customer-my-billing') !== -1
       && /From your workspace's working folder \(built just now, with your changes\)/.test(await text(page, '#pgResult')) && /it sent you to \/vp\/shell\/main\/main-equiprite/.test(await text(page, '#pgResult')), await text(page, '#pgResult'));
     T.check('…its thumbnail says so too', /from your workspace's working folder · the page sent it to \/vp\/shell\/main\/main-equiprite/.test((await page.getAttribute('#pgShots .nx-pg-shotbtn', 'title')) || ''), (await page.getAttribute('#pgShots .nx-pg-shotbtn', 'title')) || '');
     await page.click('#pgRunWs');
@@ -150,7 +154,7 @@ const opened = [];
       && /customer-my-billing-page\.html/.test(await text(page, '#pgResult')), await text(page, '.nx-toast'));
     await page.click('#pgRun');
     await page.waitForFunction(() => /Opened in a window/.test((document.getElementById('pgResult') || {}).textContent || ''), null, { timeout: 20000 }).catch(() => {});
-    T.check('Run it: opened in a window, from your workspace\'s working folder', opened[1] === 'run vbredwoodapp /vp/shell/customer-portal/customer-my-billing'
+    T.check('Run it: opened in a window, from your workspace\'s working folder', opened.filter((x) => x === 'run vbredwoodapp /vp/shell/customer-portal/customer-my-billing').length === 2
       && /Opened in a window: http:\/\/127\.0\.0\.1:4100\/vp\/shell\/customer-portal\/customer-my-billing — your workspace's working folder\./.test(await text(page, '#pgResult')), await text(page, '#pgResult'));
     T.check('no page errors', errs().length === 0, errs().join(' | '));
   } catch (e) {
