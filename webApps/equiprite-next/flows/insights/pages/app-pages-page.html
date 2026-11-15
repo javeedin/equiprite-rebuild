@@ -17,6 +17,10 @@
             title="Run this working folder's app in a window of its own — built when its code changed: your changes, running">
             <oj-bind-if test="[[ $variables.runBusy ]]"><span class="nx-spin nx-spin--btn" aria-hidden="true"></span></oj-bind-if><oj-bind-if test="[[ !$variables.runBusy ]]"><span aria-hidden="true">▶</span></oj-bind-if>
             <oj-bind-text value="[[ $variables.runBusy ? 'Building…' : 'Run' ]]"></oj-bind-text></button></div>
+        <!-- what Build.Rite is doing while it builds and runs your workspace's app (runProgressView.js) -->
+        <oj-bind-if test="[[ $variables.runProgShown ]]">
+          <div class="nx-runprog-wrap"><div class="nx-runprog" id="pgRunProg" aria-live="polite"></div><button type="button" class="nx-runprog-x" id="pgRunProgClose" data-act="runProgClose" on-click="[[ $listeners.onAct ]]" aria-label="Close what it did" title="Close">×</button></div>
+        </oj-bind-if>
         <div class="nx-pg-codenote" id="pgCodeNote">This project's sheets, screenshots and Jira stories are its own — kept apart from Build.Rite's (Old EquipRite…).</div>
       </oj-bind-if>
     </div>

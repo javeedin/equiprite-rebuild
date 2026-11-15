@@ -55,9 +55,14 @@ const text = (page, sel) => page.$eval(sel, (e) => e.textContent.replace(/\s+/g,
   const statusOf = () => ({ ok: true, signedInAs: runAs.user || signedInAs, roles: runAs.user ? runAs.roles : null, by: runAs.user ? 'run-as' : (signedInAs ? 'sign-in' : ''), runAs: runAs, knownRoles: DS.KNOWN_ROLES, noAccess: noAccess,
     workspace: 'Rebuild App ▸ Dev_One', working: current.working, branch: 'dev-one', built: did.length > 0, builtAt: '2026-11-15T09:00:00Z', building: false, window: did.length ? 'http://127.0.0.1:4100/' : '' });
   const vbsConsole = { lines: (a) => con.lines(a), command: (t) => con.command(t, does), clear: () => con.clear(), status: statusOf,
+    progress: () => ({ ok: true, running: false, title: '▶ Run', at: '2026-11-15T09:00:00.000Z', end: '2026-11-15T09:00:04.200Z', text: 'built in 3.4 s', tail: ['Running "vb-process-local" task', 'Done.'],
+    steps: [{ key: 'check', label: 'Check for changes', state: 'done', text: 'it changed since its last build: building it again' }, { key: 'copy', label: 'Copy the working folder', state: 'done', text: 'copied in 0.5 s' },
+      { key: 'prepare', label: 'Prepare the copy', state: 'done', text: 'the Component Exchange list of vbredwoodapp emptied in the copy' }, { key: 'build', label: 'Build — Oracle\'s VB build tool', state: 'done', text: 'built in 3.4 s' },
+      { key: 'serve', label: 'Start the app\'s server', state: 'done', text: 'started at http://127.0.0.1:4100' }, { key: 'open', label: 'Open the app\'s window', state: 'done', text: 'opened http://127.0.0.1:4100/' }] }),
     runAs: async (b) => { const r = await does.runAs(b.user, b.roles); con.push(r.ok ? 'info' : 'error', r.text); return Object.assign(statusOf(), { ok: r.ok, text: r.text }); } };
   con.push('info', 'Build.Rite started');
-  const env = await E.start({ port: 19855, app: 'next', product: 'buildrite', vbsStore, vbsConsole });
+  const vbsRun = async () => { await new Promise((r) => setTimeout(r, 600)); return { ok: true, url: 'http://127.0.0.1:4100/', app: 'vbredwoodapp', built: true, ms: 4200, branch: 'buildrite-working', base: 'VB Studio (dev-one)', changed: [], signedInAs: 'priya.raman', roles: ['RT_EQP_ADMINISTRATOR'] }; };
+  const env = await E.start({ port: 19855, app: 'next', product: 'buildrite', vbsStore, vbsConsole, vbsRun });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   const logText = () => text(page, '#rcLog');
@@ -66,6 +71,12 @@ const text = (page, sel) => page.$eval(sel, (e) => e.textContent.replace(/\s+/g,
     await env.open('/');
     await page.waitForSelector('#nxWorkConsole', { timeout: 20000 }).catch(() => {});
     T.check('>_ beside ▶ Run in the top bar', !!(await page.$('#nxWorkConsole')) && !!(await page.$('#nxWorkRun')) && /Run console/.test((await page.getAttribute('#nxWorkConsole', 'title')) || ''));
+    await page.click('#nxWorkRun');
+    await page.waitForFunction(() => /Open the app's window/.test((document.getElementById('nxRunProg') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    T.check('▶ Run (the top bar): what it is doing, step by step, drops down under it (Oracle\'s VB build tool among them)', (await page.$$('#nxRunProg .rp-s')).length === 6 && /Build — Oracle's VB build tool/.test(await text(page, '#nxRunProg')), await text(page, '#nxRunProg'));
+    await page.waitForFunction(() => /is running in its own window/.test((document.querySelector('.nx-toast') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(() => !document.getElementById('nxRunProg'), null, { timeout: 9000 }).catch(() => {});
+    T.check('…gone a few seconds after it ran', !(await page.$('#nxRunProg')));
     await page.click('#nxWorkConsole');
     await page.waitForSelector('#rcLog:visible', { timeout: 15000 }).catch(() => {});
     T.check('…it opens the Run console (a tab)', /Run console/.test(await text(page, '.nx-tab--on')) && (await page.isVisible('#rcLog')), await text(page, '.nx-tab--on'));

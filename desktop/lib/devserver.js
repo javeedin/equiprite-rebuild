@@ -998,6 +998,7 @@ function createDevServer(o) {
           if (pathname === '/__vbs/diagnostic' && !post) return jsonV(200, { ok: true, text: vs.diagnostic ? vs.diagnostic() : '' });
           if (pathname === '/__vbs/work' && !post) return jsonV(200, vs.work ? vs.work() : { ok: false, error: 'Needs the desktop app.' });
           if (pathname === '/__vbs/console' && !post) return jsonV(200, o.vbsConsole ? Object.assign({ ok: true }, o.vbsConsole.lines(new URL(req.url, 'http://local').searchParams.get('after'))) : { ok: false, lines: [], error: 'The Run console needs the desktop app.' });
+          if (pathname === '/__vbs/run/progress' && !post) return jsonV(200, o.vbsConsole && o.vbsConsole.progress ? o.vbsConsole.progress() : { ok: false, steps: [] });
           if (pathname === '/__vbs/console/status' && !post) return jsonV(200, o.vbsConsole ? o.vbsConsole.status() : { ok: false, error: 'The Run console needs the desktop app.' });
           if (pathname === '/__vbs/work/progress' && !post) return jsonV(200, vs.workProgress ? vs.workProgress() : { ok: true, active: false });
           if (!post) return jsonV(404, { error: 'Not found' });

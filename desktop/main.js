@@ -230,7 +230,7 @@ async function pagesStore() {
       capture: async (app, url) => {
         const c = current();
         if (!c) return capturePage(app, url);
-        const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: app });
+        const p = await buildWorkspace(c, app, 'Capture screenshot');
         if (!p.ok) return { ok: false, error: p.error };
         return Object.assign(await capturePage(app, url, p.url), { from: 'workspace', built: p.built });
       },
@@ -238,8 +238,9 @@ async function pagesStore() {
       run: async (app, url) => {
         const c = current();
         if (!c) { const u = appUrlOf(app); if (!u) return { ok: false, error: 'The app is not running in Build.Rite: build it (npm run build), then try again.' }; openAppWindow(u + url, 'EquipRite'); return { ok: true, url: u + url, from: '' }; }
-        const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: app });
+        const p = await buildWorkspace(c, app, 'Run it');
         if (!p.ok) return { ok: false, error: p.error };
+        progStep({ key: 'open', state: 'done', text: 'opened ' + p.url + url });
         openRunWindow(p.url + url, 'Your workspace — ' + c.projectName + ' ▸ ' + c.workspace + ' (' + app + ')');
         return { ok: true, url: p.url + url, from: 'workspace', built: p.built, builtAt: p.builtAt };
       },
@@ -295,6 +296,7 @@ async function appServerOptions(v) {
     vbsRun: v === 'build' ? runWorkspaceApp : undefined, // ▶ Run: your workspace's app, in a window of its own
     // the Run console (Build.Rite → Run console): its lines, its commands, who the app runs as
     vbsConsole: v === 'build' ? { lines: (after) => runConsoleInst.lines(after), command: (t) => runConsoleInst.command(t, consoleDoes), status: () => consoleStatus(false), clear: () => runConsoleInst.clear(),
+      progress: () => Object.assign({ ok: true }, runProg),
       runAs: async (b) => { const r = await consoleDoes.runAs(b && b.user != null ? String(b.user) : '', Array.isArray(b && b.roles) ? b.roles : []); cpush(r.ok ? 'info' : 'error', r.text); return Object.assign(consoleStatus(false), { ok: r.ok, text: r.text }); } } : undefined,
     vbsPickFolder: v === 'build' ? async (start) => {
       const w = BrowserWindow.getFocusedWindow();
@@ -319,13 +321,41 @@ async function serveSandbox(s) {
 // git status…), each done here: nothing typed is run as a program
 const runConsoleInst = require('./lib/runConsole').open();
 const cpush = (kind, text) => { try { runConsoleInst.push(kind, text); } catch (e) { /* no console */ } };
+// Building your workspace's app, step by step, for the screens to show (GET /__vbs/run/progress): what it is doing — check
+// for changes, copy the working folder, prepare the copy, build with Oracle's VB build tool, start the app's server, open
+// its window — each step's state and what it did, the build tool's last lines, how long
+const STEP_LABEL = { check: 'Check for changes', copy: 'Copy the working folder', prepare: 'Prepare the copy', build: 'Build — Oracle\'s VB build tool', serve: 'Start the app\'s server', open: 'Open the app\'s window' };
+let runProg = { running: false, steps: [], tail: [] };
+function progStart(title, withOpen) {
+  runProg = { running: true, title: String(title || 'Build'), at: new Date().toISOString(), end: '', ok: null, text: '', tail: [],
+    steps: ['check', 'copy', 'prepare', 'build', 'serve'].concat(withOpen ? ['open'] : []).map((k) => ({ key: k, label: STEP_LABEL[k], state: 'todo', text: '' })) };
+}
+function progStep(s) {
+  let x = runProg.steps.filter((p) => p.key === s.key)[0];
+  if (!x) { x = { key: s.key, label: STEP_LABEL[s.key] || s.key }; runProg.steps.push(x); }
+  x.state = s.state; x.text = s.text || '';
+  if (s.state === 'running') x.at = new Date().toISOString(); else x.end = new Date().toISOString();
+  if (s.state !== 'running') cpush(s.state === 'failed' ? 'error' : 'info', (STEP_LABEL[s.key] || s.key) + ': ' + (s.text || s.state));
+  if (s.key === 'open' && s.state !== 'running') runProg.running = false; // its window open: the run is over
+}
+function progEnd(ok, text) { runProg.running = false; runProg.ok = !!ok; runProg.end = new Date().toISOString(); runProg.text = String(text || ''); }
+/** Your workspace built (when its code changed) and its app served, its steps shown as they go. */
+async function buildWorkspace(c, app, title) {
+  progStart(title, /Run|run /.test(String(title)));
+  const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: app });
+  progEnd(p.ok, p.ok ? (p.built ? 'built in ' + (Math.round((p.ms || 0) / 100) / 10) + ' s' : 'no change since its last build') : p.error);
+  if (p.ok && runProg.steps.some((x) => x.key === 'open')) runProg.running = true; // until its window opens
+  setTimeout(() => { runProg.running = false; }, 4000);
+  return p;
+}
 // Your workspace running in Build.Rite (lib/workPreview.js): its working folder built beside it (never inside it) with
 // this project's build tool, and served like the app — what Capture screenshot and Run it open in your workspace
 let workPreviewInst = null;
 function workPreview() {
   if (!workPreviewInst) workPreviewInst = require('./lib/workPreview').open({ buildTool: REPO_ROOT, serve: serveWorkspace,
     log: (l) => { try { pushLog(`${new Date().toTimeString().slice(0, 8)} ${l}`); } catch (e) { console.log(l); } cpush('info', l); },
-    onLine: (l) => cpush('build', l) });
+    onLine: (l) => { cpush('build', l); if (String(l).trim()) { runProg.tail.push(String(l).slice(0, 300)); if (runProg.tail.length > 10) runProg.tail.shift(); } },
+    onStep: progStep });
   return workPreviewInst;
 }
 // Run as (Build.Rite → Run console): who your workspace's app runs as when Build.Rite runs it (▶ Run, Run it, Capture) —
@@ -435,8 +465,9 @@ const consoleDoes = {
     const c = currentWork();
     if (!c) return noWorkspace();
     const app = runAppOf(c);
-    const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: app });
+    const p = await buildWorkspace(c, app, 'run ' + route);
     if (!p.ok) return { ok: false, text: p.error };
+    progStep({ key: 'open', state: 'done', text: 'opened ' + p.url + route });
     openRunWindow(p.url + route, runTitle(c, app));
     return { ok: true, text: '▶ opened ' + p.url + route };
   },
@@ -445,7 +476,7 @@ const consoleDoes = {
     if (!c) return noWorkspace();
     if (force) workPreview().forget(c.working);
     cpush('info', (force ? 'rebuilding from scratch: ' : 'building (when its code changed): ') + c.working);
-    const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: runAppOf(c) });
+    const p = await buildWorkspace(c, runAppOf(c), force ? 'Rebuild' : 'Build');
     return p.ok ? { ok: true, text: p.built ? 'built in ' + (Math.round(p.ms / 100) / 10) + ' s' + (runWin && !runWin.isDestroyed() ? ' — reload (or run) to see it' : '') : 'up to date: no change since its last build' } : { ok: false, text: p.error };
   },
   reload: async () => { if (!runWin || runWin.isDestroyed()) return { ok: false, text: 'No app window: type run first.' }; runWin.webContents.reloadIgnoringCache(); return { ok: true, text: 'reloaded' }; },
@@ -505,9 +536,10 @@ async function runWorkspaceApp(b) {
   const t0 = Date.now();
   cpush('info', '▶ Run: ' + appName + ' of ' + c.projectName + ' ▸ ' + c.workspace + ' as ' + whoIsIt() + ' — building its working copy when its code changed…');
   noAccessSeen = null;
-  const p = await workPreview().ensure({ folder: c.working, out: require('./lib/workPreview').outOf(c.working), app: appName });
+  const p = await buildWorkspace(c, appName, '▶ Run');
   if (!p.ok) { cpush('error', p.error); return { ok: false, error: p.error, app: appName, apps: apps }; }
   const url = p.url + '/';
+  progStep({ key: 'open', state: 'done', text: 'opened ' + url });
   // what is in it: the working copy's files changed since VB Studio (its branch as last fetched), saved or not, committed
   // or not — so you know what you are looking at (and what you are not)
   const changed = changedSinceVbs(c);

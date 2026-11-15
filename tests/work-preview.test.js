@@ -40,7 +40,7 @@ const files = (dir) => { const out = []; const walk = (d, rel) => fs.readdirSync
     const before = files(working);
 
     T.section('built beside the working folder, served');
-    const builds = [], served = [], closed = [];
+    const builds = [], served = [], closed = [], steps = [];
     let failNext = false;
     const store = WP.open({
       build: async (src, target) => {
@@ -53,6 +53,7 @@ const files = (dir) => { const out = []; const walk = (d, rel) => fs.readdirSync
         return { ok: true, ms: 30 };
       },
       serve: async (s) => { served.push(s); const n = served.length; return { url: 'http://127.0.0.1:4' + n + '00/', close: () => closed.push(n) }; },
+      onStep: (x) => steps.push(x.key + ':' + x.state),
     });
     const out = WP.outOf(working);
     const r1 = await store.ensure({ folder: working, out: out, app: 'equiprite-mobile' });
@@ -61,11 +62,15 @@ const files = (dir) => { const out = []; const walk = (d, rel) => fs.readdirSync
     const copied = JSON.parse(fs.readFileSync(path.join(out, 'src', 'webApps', 'equiprite-mobile', 'settings', 'dependencies.json'), 'utf8'));
     T.check('…the copy: the app\'s Component Exchange list emptied (its components from the CDN), no .git; the app\'s code as it is', JSON.stringify(copied) === '{"component-dependencies":{}}' && !fs.existsSync(path.join(out, 'src', '.git'))
       && fs.readFileSync(path.join(out, 'src', 'webApps', 'equiprite-mobile', 'index.html'), 'utf8') === fs.readFileSync(path.join(working, 'webApps', 'equiprite-mobile', 'index.html'), 'utf8'), JSON.stringify(copied));
+    T.check('each step said as it goes: check (not built yet), copy, prepare, build, serve — running, then done', steps.join(' ') === 'check:running check:done copy:running copy:done prepare:done build:running build:done serve:running serve:done', steps.join(' '));
+    steps.length = 0;
     T.check('…the working folder: nothing new in it, its list as VB Studio has it (git there sees no change)', files(working) === before && fs.readFileSync(deps, 'utf8') === CE_DEPS);
 
     T.section('built again only when the code changed');
+    steps.length = 0;
     const r2 = await store.ensure({ folder: working, out: out, app: 'equiprite-mobile' });
     T.check('unchanged: not built again, the same server', r2.ok && !r2.built && builds.length === 1 && served.length === 1 && r2.url === r1.url && store.status(working).fresh);
+    T.check('…its steps: no change, so copy, prepare and build not needed; the server running', steps.join(' ') === 'check:running check:done copy:skipped prepare:skipped build:skipped serve:running serve:done', steps.join(' '));
     const page = path.join(working, 'webApps', 'equiprite-mobile', 'index.html');
     fs.writeFileSync(page, fs.readFileSync(page, 'utf8') + '\n<!-- a change in the working folder -->\n');
     T.check('…changed: it says so (not fresh)', !store.status(working).fresh && store.status(working).built);
@@ -78,8 +83,10 @@ const files = (dir) => { const out = []; const walk = (d, rel) => fs.readdirSync
     T.check('two at once: one build, both answered with the same server', both[0].ok && both[1].ok && builds.length === 3 && both[0].built && !both[1].built && both[0].url === both[1].url);
     fs.writeFileSync(page, fs.readFileSync(page, 'utf8') + '<!-- broken -->\n');
     failNext = true;
+    steps.length = 0;
     const bad = await store.ensure({ folder: working, out: out, app: 'equiprite-mobile' });
     T.check('a failed build: said, with the build tool\'s words', !bad.ok && /Your workspace could not be built: .*a broken file/.test(bad.error), bad.error);
+    T.check('…its step: build failed (and nothing served)', /build:failed$/.test(steps.join(' ')) && !/serve:running$/.test(steps.join(' ')), steps.slice(-3).join(' '));
     const again = await store.ensure({ folder: working, out: out, app: 'equiprite-mobile' });
     T.check('…tried again next time (and built)', again.ok && again.built && builds.length === 5);
 

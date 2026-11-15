@@ -1736,6 +1736,26 @@ html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, htm
 /* ▶ Try it on this page (Code fix, applied in your workspace) */
 .nx-fx-try { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; }
 .nx-fx-try .nx-pg-coderun { margin-left: 0; }
+/* What Build.Rite is doing building and running your workspace's app (runProgressView.js) */
+.nx-runprog-wrap { position: relative; margin-top: 10px; max-width: 820px; }
+.nx-runprog { padding: 10px 12px; border-radius: 10px; background: #fff; color: #16212c; box-shadow: 0 6px 22px rgba(0, 0, 0, .18); font-size: 12.5px; }
+.nx-runprog:empty { display: none; }
+.nx-runprog-x { position: absolute; top: 6px; right: 8px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: #5a6876; font-size: 16px; cursor: pointer; }
+.nx-runprog-x:hover { background: #eef2f6; }
+.nx-runprog--pop { position: absolute; top: 40px; right: 0; z-index: 80; width: min(600px, 90vw); }
+.rp-head { margin-bottom: 6px; padding-right: 26px; }
+.rp-took { color: #5a6876; }
+.rp-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.rp-s { display: grid; grid-template-columns: 20px 200px 1fr; align-items: baseline; gap: 6px; }
+.rp-i { text-align: center; font-weight: 700; }
+.rp-l { font-weight: 600; }
+.rp-t { color: #4a5865; overflow-wrap: anywhere; }
+.rp-s--done .rp-i { color: #1f9d55; } .rp-s--failed .rp-i, .rp-s--failed .rp-t { color: #b42318; }
+.rp-s--skipped, .rp-s--todo { color: #8a97a5; } .rp-s--skipped .rp-l, .rp-s--todo .rp-l { font-weight: 400; }
+.rp-s--running .rp-l { color: #0b5a7a; }
+.rp-spin { display: inline-block; width: 12px; height: 12px; border-width: 2px; vertical-align: -2px; }
+.rp-tail { margin: 8px 0 0; max-height: 9.5em; overflow: auto; padding: 6px 8px; border-radius: 6px; background: #1e1e1e; color: #c5c5c5; font: 11.5px/1.45 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; }
+@media (max-width: 720px) { .rp-s { grid-template-columns: 20px 1fr; } .rp-t { grid-column: 2; } }
 /* Console (>_) beside ▶ Run in the top bar */
 .nx-work-console { flex: none; height: 30px; padding: 0 10px; border: 1px solid #c9d3dc; border-radius: 999px; background: #1e1e1e; color: #9cdcfe; font: 700 12px/1 ui-monospace, Menlo, Consolas, monospace; cursor: pointer; }
 .nx-work-console:hover { background: #2d2d2d; color: #fff; }

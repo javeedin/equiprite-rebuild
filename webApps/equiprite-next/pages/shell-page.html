@@ -105,6 +105,7 @@
             <oj-bind-if test="[[ $variables.workRunning ]]"><span class="nx-spin nx-spin--btn" aria-hidden="true"></span></oj-bind-if>
             <oj-bind-if test="[[ !$variables.workRunning ]]"><span class="nx-work-runico" aria-hidden="true">▶</span></oj-bind-if>
             <oj-bind-text value="[[ $variables.workRunning ? 'Building…' : 'Run' ]]"></oj-bind-text></button>
+          <oj-bind-if test="[[ $variables.workRunProg ]]"><div class="nx-runprog nx-runprog--pop" id="nxRunProg" aria-live="polite"></div></oj-bind-if>
           <button type="button" class="nx-work-console" id="nxWorkConsole" data-act="console" on-click="[[ $listeners.onWorkAct ]]" title="Run console: what happens when your workspace runs — the build, its requests, the app's own console — and commands">&gt;_</button>
         </oj-bind-if>
         <oj-bind-if test="[[ $variables.workMenu ]]">

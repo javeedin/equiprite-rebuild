@@ -49,9 +49,14 @@ const opened = [];
   // ▶ Run beside the working folder: the desktop app builds it and opens its app in a window of its own — a stand-in
   const runs = [];
   const vbsStore = { work: () => ({ copies: [], current: null }), state: () => ({}) };
+  // what Build.Rite did, step by step (the desktop app's progress) — a stand-in
+  const vbsConsole = { progress: () => ({ ok: true, running: false, title: '▶ Run', at: '2026-11-15T09:00:00.000Z', end: '2026-11-15T09:00:04.200Z', text: 'built in 3.4 s', tail: ['Running "vb-process-local" task', 'Done.'],
+    steps: [{ key: 'check', label: 'Check for changes', state: 'done', text: 'it changed since its last build: building it again' }, { key: 'copy', label: 'Copy the working folder', state: 'done', text: 'copied in 0.5 s' },
+      { key: 'prepare', label: 'Prepare the copy', state: 'done', text: 'the Component Exchange list of vbredwoodapp emptied in the copy' }, { key: 'build', label: 'Build — Oracle\'s VB build tool', state: 'done', text: 'built in 3.4 s' },
+      { key: 'serve', label: 'Start the app\'s server', state: 'done', text: 'started at http://127.0.0.1:4100' }, { key: 'open', label: 'Open the app\'s window', state: 'done', text: 'opened http://127.0.0.1:4100/' }] }), lines: () => ({ lines: [], last: 0 }), status: () => ({ ok: true }), command: async () => ({ ok: true }), clear: () => 0 };
   const vbsRun = async (b) => { runs.push(b); await new Promise((r) => setTimeout(r, 400)); return { ok: true, url: 'http://127.0.0.1:4100/', app: 'vbredwoodapp', built: false, ms: 300, branch: 'buildrite-working', base: 'VB Studio (pages/test)',
     changed: ['webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page.html'] }; };
-  const env = await E.start({ port: 19845, app: 'next', pagesStore, fixStore, vbsStore, vbsRun });
+  const env = await E.start({ port: 19845, app: 'next', pagesStore, fixStore, vbsStore, vbsRun, vbsConsole });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -152,6 +157,13 @@ const opened = [];
     T.check('▶ Run (the working folder): the app running — your working copy, your change since VB Studio named; said under it too', runs.length === 1
       && /▶ vbredwoodapp is running in its own window — your working copy \(buildrite-working\), no change since its last build\. Your 1 change since VB Studio \(pages\/test\) are in it: customer-my-billing-page\.html\./.test(await text(page, '.nx-toast'))
       && /customer-my-billing-page\.html/.test(await text(page, '#pgResult')), await text(page, '.nx-toast'));
+    await page.waitForFunction(() => /Open the app's window/.test((document.getElementById('pgRunProg') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    T.check('…what it did, step by step, under the working folder: check, copy, prepare, build (Oracle\'s VB build tool), start the server, open the window — each ✓ with what it did; the build tool\'s last lines', (await page.$$('#pgRunProg .rp-s--done')).length === 6
+      && /Copy the working folder\s*copied in 0\.5 s/.test(await text(page, '#pgRunProg')) && /Build — Oracle's VB build tool\s*built in 3\.4 s/.test(await text(page, '#pgRunProg')) && /done in 4\.2 s — built in 3\.4 s/.test(await text(page, '#pgRunProg .rp-head'))
+      && /vb-process-local/.test(await text(page, '#pgRunProg .rp-tail')), await text(page, '#pgRunProg'));
+    await env.shot('next-codefix-workspace-runprog.png');
+    await page.click('#pgRunProgClose');
+    T.check('…closed with ×', !(await page.$('#pgRunProg')));
     await page.click('#pgRun');
     await page.waitForFunction(() => /Opened in a window/.test((document.getElementById('pgResult') || {}).textContent || ''), null, { timeout: 20000 }).catch(() => {});
     T.check('Run it: opened in a window, from your workspace\'s working folder', opened.filter((x) => x === 'run vbredwoodapp /vp/shell/customer-portal/customer-my-billing').length === 2

@@ -57,6 +57,7 @@ define([], function () {
     consoleStatus: function () { return call('console/status'); },
     consoleCmd: function (text) { return post('console/cmd', { text: String(text || '') }); },
     consoleClear: function () { return post('console/clear', {}); },
+    runProgress: function () { return call('run/progress'); },
     consoleRunAs: function (user, roles) { return post('console/runas', { user: String(user || ''), roles: roles || [] }); },
     /** What ▶ Run says once it answered (the top bar and Application pages say the same): { ok, text, tone }. */
     runText: function (r) {

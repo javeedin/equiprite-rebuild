@@ -19,6 +19,9 @@
  *
  *   open({ buildTool, build?(src, target), serve({ dir, buildDir, webApp }) → { url, close }, log?, onLine?, now? })
  *     onLine(text): the build tool's output, line by line, as it builds (the Run console shows it)
+ *     onStep({ key, state, text }): each step as it goes — check (did the code change?), copy (the working folder into
+ *       the preview's src), prepare (its Component Exchange list emptied), build (Oracle's VB build tool), serve (the
+ *       app's local server); state: running | done | skipped | failed
  *     .ensure({ folder, out, app })  → { ok, url, built, ms, builtAt } | { ok: false, error }
  *     .status(folder)               → { built, builtAt, fresh, building }
  *     .stop(folder?)                  its servers closed (all, without a folder)
@@ -59,6 +62,8 @@ function open(opts) {
   const now = o.now || (() => new Date());
   const log = (t) => { if (typeof o.log === 'function') { try { o.log(t); } catch (e) { /* no log */ } } };
   const state = {};   // folder → { fp, out, builtAt }
+  const step = (key, st, text) => { if (typeof o.onStep === 'function') { try { o.onStep({ key: key, state: st, text: str(text) }); } catch (e) { /* no screen */ } } };
+  const secs = (ms) => (Math.round(ms / 100) / 10) + ' s';
   const servers = {}; // folder|app → Promise<{ url, close }>
   let chain = Promise.resolve();
   let building = '';
@@ -86,11 +91,17 @@ function open(opts) {
   /** The app's own build tool: the preview folder (ours, by its name) emptied, the working folder copied into it, built. */
   async function build(folder, root) {
     if (path.basename(root) !== PREVIEW_DIR) return { ok: false, error: 'Not a preview folder: ' + root };
-    try { fs.rmSync(root, { recursive: true, force: true }); } catch (e) { return { ok: false, error: 'Its last build could not be cleared (' + (e.code || e.message) + '): ' + root }; }
+    const t0 = Date.now();
+    step('copy', 'running', 'copying ' + folder + ' → ' + path.join(root, SRC) + ' (without .git and node_modules)');
+    try { fs.rmSync(root, { recursive: true, force: true }); } catch (e) { step('copy', 'failed', 'its last build could not be cleared'); return { ok: false, error: 'Its last build could not be cleared (' + (e.code || e.message) + '): ' + root }; }
     let st;
-    try { st = await stage(folder, root); } catch (e) { return { ok: false, error: 'Your working folder could not be copied to build it (' + (e.code || e.message) + ').' }; }
+    try { st = await stage(folder, root); } catch (e) { step('copy', 'failed', String(e.code || e.message)); return { ok: false, error: 'Your working folder could not be copied to build it (' + (e.code || e.message) + ').' }; }
+    step('copy', 'done', 'copied in ' + secs(Date.now() - t0));
+    step('prepare', 'done', st.emptied.length ? 'the Component Exchange list of ' + st.emptied.join(', ') + ' emptied in the copy — its components load from Oracle\'s CDN (your folder keeps its list)' : 'nothing to change in the copy');
     if (st.emptied.length) log('your workspace: Component Exchange components (' + st.emptied.join(', ') + ') loaded from the CDN, as in Build.Rite');
+    step('build', 'running', 'Oracle\'s VB build tool: grunt vb-clean vb-process-local (the copy → ' + path.join(root, BUILD) + ')');
     const r = await run(st.src, path.join(root, BUILD));
+    step('build', r && r.ok ? 'done' : 'failed', r && r.ok ? 'built in ' + secs(r.ms || 0) : ((r && r.error) || 'the build failed'));
     return Object.assign(r || {}, { emptied: st.emptied });
   }
   function run(src, target) {
@@ -144,7 +155,9 @@ function open(opts) {
       const fp = fingerprint(folder);
       const st = state[folder];
       let built = false, ms = 0;
+      step('check', 'running', 'did the working folder change since its last build?');
       if (!st || st.fp !== fp || st.out !== out || !isFile(index)) {
+        step('check', 'done', !st ? 'not built yet: building it' : 'it changed since its last build: building it again');
         building = folder;
         log('your workspace: building ' + folder + ' → ' + out);
         closeServers(folder); // a new build: its version folder is new
@@ -153,14 +166,20 @@ function open(opts) {
         if (!r || !r.ok) { delete state[folder]; return { ok: false, error: 'Your workspace could not be built: ' + ((r && r.error) || 'the build failed') }; }
         state[folder] = { fp: fp, out: out, builtAt: now().toISOString() };
         built = true; ms = r.ms || 0;
+      } else {
+        step('check', 'done', 'no change since its last build (' + st.builtAt + '): nothing to build');
+        ['copy', 'prepare', 'build'].forEach((k) => step(k, 'skipped', 'not needed'));
       }
       if (!isFile(index)) return { ok: false, error: 'The build has no app "' + app + '": is this page\'s app in your workspace?' };
       const k = folder + '|' + app;
+      const had = !!servers[k];
+      step('serve', 'running', had ? 'the app\'s local server is running' : 'starting the app\'s local server');
       if (!servers[k]) servers[k] = Promise.resolve(o.serve({ dir: folder, buildDir: path.join(out, BUILD), webApp: app })).catch((e) => { delete servers[k]; throw e; });
       try {
         const s = await servers[k];
+        step('serve', 'done', (had ? 'running at ' : 'started at ') + str(s.url).replace(/\/$/, ''));
         return { ok: true, url: str(s.url).replace(/\/$/, ''), built: built, ms: ms, builtAt: state[folder].builtAt };
-      } catch (e) { return { ok: false, error: 'Your workspace\'s app could not be started: ' + str(e && e.message) }; }
+      } catch (e) { step('serve', 'failed', str(e && e.message)); return { ok: false, error: 'Your workspace\'s app could not be started: ' + str(e && e.message) }; }
     });
     chain = job.catch(() => {});
     return job.catch((e) => ({ ok: false, error: str(e && e.message) }));

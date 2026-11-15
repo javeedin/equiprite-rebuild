@@ -1,4 +1,4 @@
-define(['vb/action/actionChain', 'resources/js/shellBus', 'resources/js/vbsClient'], (ActionChain, bus, VC) => {
+define(['vb/action/actionChain', 'resources/js/shellBus', 'resources/js/vbsClient', 'resources/js/runProgressView'], (ActionChain, bus, VC, RP) => {
   'use strict';
 
   // Build.Rite's top bar: the working copy — the VB Studio project ▸ workspace whose repository is cloned on this PC and
@@ -41,12 +41,18 @@ define(['vb/action/actionChain', 'resources/js/shellBus', 'resources/js/vbsClien
       if (act === 'run') {
         if (v.workRunning || !c) return;
         v.workRunning = true;
+        v.workRunProg = true;
+        RP.start('nxRunProg', VC.runProgress); // what it is doing, under ▶ Run
         try {
           bus.toast('▶ Building ' + wsName + '\'s app from its working folder (when its code changed) and opening it…', 'info');
           // what is in it: your working copy, and its changes since VB Studio (named), so you know what to look for
           const t = VC.runText(await VC.workRun(''));
           bus.toast(t.text, t.tone);
-        } finally { v.workRunning = false; }
+        } finally {
+          v.workRunning = false;
+          await RP.stop('nxRunProg');
+          setTimeout(() => { if (!v.workRunning) v.workRunProg = false; }, 6000); // read, then gone
+        }
         return;
       }
       if (act === 'console') { bus.open({ navId: 'run-console' }); return; }
